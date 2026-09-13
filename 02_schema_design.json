@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AvDasTipuanasSchema",
+  "description": "Estrutura do modelo de dados do ecossistema Av. das Tipuanas Local",
+  "definitions": {
+    "Store": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "category": { "type": "string" },
+        "whatsapp_number": { "type": "string" },
+        "address_line": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "is_paused": { "type": "boolean" },
+        "delivery_fee": { "type": "number" },
+        "custom_commission_percent": { "type": ["number", "null"] }
+      },
+      "required": ["name", "slug", "category", "whatsapp_number", "address_line"]
+    },
+    "Product": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "store_id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "price": { "type": "number" },
+        "is_available": { "type": "boolean" },
+        "image_url": { "type": ["string", "null"] }
+      },
+      "required": ["store_id", "name", "price"]
+    },
+    "Order": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "store_id": { "type": "string", "format": "uuid" },
+        "client_name": { "type": "string" },
+        "client_address": { "type": "string" },
+        "payment_method": { "type": "string" },
+        "fulfillment_type": { "type": "string", "enum": ["DELIVERY", "PICKUP"] },
+        "subtotal": { "type": "number" },
+        "delivery_fee": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { 
+          "type": "string", 
+          "enum": ["PENDING", "ACCEPTED", "PREPARING", "IN_TRANSIT", "COMPLETED", "CANCELLED"] 
+        },
+        "delivery_pin": { "type": "string", "minLength": 4, "maxLength": 4 }
+      },
+      "required": ["store_id", "client_name", "client_address", "payment_method", "subtotal", "total", "delivery_pin"]
+    }
+  }
+}

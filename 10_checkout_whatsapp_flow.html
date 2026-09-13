@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Pedido — Av. das Tipuanas Local</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-4 py-3.5 flex items-center gap-3">
+            <a href="08_neighborhood_showcase.html" class="text-slate-500 text-sm font-bold">← Voltar</a>
+            <h1 class="font-extrabold text-base text-slate-900">Finalizar Pedido</h1>
+        </div>
+    </header>
+
+    <!-- Formulário de Checkout -->
+    <main class="max-w-md mx-auto px-4 py-5 w-full flex-1 space-y-4">
+        
+        <!-- Resumo do Pedido -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Itens do Pedido</h2>
+            <div id="checkout-items" class="space-y-2 text-xs divide-y divide-slate-100">
+                <!-- Preenchido via JS -->
+            </div>
+            <div class="border-t border-slate-100 pt-2 flex justify-between font-extrabold text-sm text-slate-900">
+                <span>Total:</span>
+                <span id="checkout-total-price" class="text-emerald-600">R$ 0,00</span>
+            </div>
+        </div>
+
+        <!-- Dados de Entrega -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dados para Entrega</h2>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Seu Nome</label>
+                    <input type="text" id="client-name" placeholder="Ex: Maria Silva" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Endereço na Av. das Tipuanas / N°</label>
+                    <input type="text" id="client-address" placeholder="Ex: Av. das Tipuanas, 150 - Apt 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Forma de Pagamento</label>
+                    <select id="payment-method" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500 bg-white">
+                        <option value="Pix">Pix (no recebimento)</option>
+                        <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito (na entrega)</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botão WhatsApp -->
+        <button onclick="submitOrderToWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition text-sm flex items-center justify-center gap-2">
+            <span>💬 Enviar Pedido no WhatsApp</span>
+        </button>
+
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let cart = JSON.parse(localStorage.getItem('tipuanas_cart')) || [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCheckout();
+        });
+
+        function renderCheckout() {
+            const container = document.getElementById('checkout-items');
+            const totalEl = document.getElementById('checkout-total-price');
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 py-2">Seu carrinho está vazio.</p>';
+                return;
+            }
+
+            const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+            
+            container.innerHTML = cart.map(item => `
+                <div class="flex justify-between items-center py-1">
+                    <div>
+                        <span class="font-bold text-slate-800">${item.quantity}x</span> ${item.name}
+                        <p class="text-[10px] text-slate-400">${item.storeName}</p>
+                    </div>
+                    <span class="font-semibold text-slate-700">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+            `).join('');
+
+            totalEl.textContent = `R$ ${total.toFixed(2)}`;
+        }
+
+        async function submitOrderToWhatsApp() {
+            const name = document.getElementById('client-name').value.trim();
+            const address = document.getElementById('client-address').value.trim();
+            const payment = document.getElementById('payment-method').value;
+
+            if (!name || !address) {
+                alert('Por favor, preencha seu nome e endereço.');
+                return;
+            }
+
+            if (cart.length === 0) {
+                alert('Seu carrinho está vazio.');
+                return;
+            }
+
+            const pin = Math.floor(1000 + Math.random() * 9000).toString();
+            const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+            const storeId = cart[0].storeId;
+
+            // Salva no Supabase
+            const { data, error } = await supabase.from('orders').insert([{
+                store_id: storeId,
+                client_name: name,
+                client_address: address,
+                payment_method: payment,
+                subtotal: total,
+                delivery_fee: 0,
+                total: total,
+                delivery_pin: pin,
+                status: 'PENDING'
+            }]).select();
+
+            if (error) {
+                console.error('Erro ao registrar pedido:', error);
+            }
+
+            // Formata mensagem WhatsApp
+            let message = `*NOVO PEDIDO - AV. DAS TIPUANAS LOCAL*\n\n`;
+            message += `👤 *Cliente:* ${name}\n`;
+            message += `📍 *Endereço:* ${address}\n`;
+            message += `💳 *Pagamento:* ${payment}\n`;
+            message += `🔑 *PIN de Segurança:* ${pin}\n\n`;
+            message += `*ITENS:* \n`;
+            
+            cart.forEach(item => {
+                message += `• ${item.quantity}x ${item.name} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
+            });
+
+            message += `\n💰 *Total:* R$ ${total.toFixed(2)}`;
+
+            localStorage.removeItem('tipuanas_cart');
+            
+            const encoded = encodeURIComponent(message);
+            window.location.href = `https://wa.me/5548999999999?text=${encoded}`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Acompanhar Pedidos — Av. das Tipuanas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800">
+  <header class="bg-emerald-700 text-white shadow-md p-4">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <h1 class="font-bold">Av. das Tipuanas</h1>
+      <nav class="flex gap-4 text-sm font-medium">
+        <a href="index.html" class="hover:underline">Vitrine</a>
+        <a href="pedidos.html" class="underline">Meus Pedidos</a>
+        <a href="lojista.html" class="hover:underline">Painel Lojista</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 mt-8">
+    <h2 class="text-2xl font-bold mb-6">Acompanhar Seus Pedidos</h2>
+    <div id="lista-pedidos" class="space-y-4"></div>
+  </main>
+
+  <script>
+    function carregarPedidos() {
+      const pedidos = JSON.parse(localStorage.getItem('tipuanas_pedidos')) || [];
+      const container = document.getElementById('lista-pedidos');
+      
+      if(pedidos.length === 0) {
+        container.innerHTML = `<p class="text-gray-500">Nenhum pedido realizado ainda. Acesse a vitrine para pedir!</p>`;
+        return;
+      }
+
+      container.innerHTML = pedidos.map(p => `
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex justify-between items-center">
+          <div>
+            <span class="text-xs font-bold text-gray-400">PEDIDO #${p.id}</span>
+            <h3 class="font-bold text-lg">${p.loja}</h3>
+            <p class="text-xs text-gray-500">Horário: ${p.data}</p>
+          </div>
+          <div>
+            <span class="px-3 py-1.5 rounded-full text-xs font-bold ${
+              p.status === 'Aceito' ? 'bg-blue-100 text-blue-700' :
+              p.status === 'Em Entrega' ? 'bg-amber-100 text-amber-700' :
+              p.status === 'Concluído' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+            }">${p.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+    window.onload = carregarPedidos;
+  </script>
+</body>
+</html>
