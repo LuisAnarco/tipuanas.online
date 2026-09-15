@@ -25,13 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadStoresAndProducts() {
     const container = document.getElementById('stores-container');
     
-    // Busca lojas ativas
-    const { data: stores, error: storeErr } = await supabase
+    // Busca lojas ativas (e filtra as que estiverem pausadas pelo próprio lojista)
+    const { data: allStores, error: storeErr } = await supabase
         .from('stores')
         .select('*')
         .eq('is_active', true);
 
-    if (storeErr || !stores || stores.length === 0) {
+    const stores = (allStores || []).filter(s => !s.is_paused);
+
+    if (storeErr || stores.length === 0) {
         container.innerHTML = `<p class="text-center text-xs text-slate-400 py-8">Nenhum estabelecimento disponível no momento.</p>`;
         return;
     }
