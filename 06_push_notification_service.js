@@ -39,8 +39,9 @@ export class MerchantNotificationService {
         // Dispara notificação nativa se permitido
         if (this.hasPermission) {
             const title = `🚨 Novo Pedido #${order.id.slice(0, 6)}!`;
+            const addr = order.delivery_address || {};
             const options = {
-                body: `Cliente: ${order.client_name}\nTotal: R$ ${Number(order.total).toFixed(2)}\nEndereço: ${order.client_address}`,
+                body: `Cliente: ${addr.client_name || 'Cliente'}\nTotal: R$ ${Number(order.total_amount).toFixed(2)}\nEndereço: ${order.is_takeout ? 'Retirada no local' : (addr.address || 'não informado')}`,
                 icon: '/favicon.ico',
                 tag: order.id,
                 requireInteraction: true

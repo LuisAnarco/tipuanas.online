@@ -6,8 +6,8 @@
  * ==============================================================================
  */
 
-const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const STORE_ID_KEY = 'tipuanas_store_id';
@@ -89,19 +89,19 @@ function renderProducts(products) {
         }
 
         return `
-            <div class="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row justify-between md:items-center gap-3 ${p.is_available ? '' : 'bg-gray-50 opacity-60'}">
+            <div class="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row justify-between md:items-center gap-3 ${p.is_paused ? 'bg-gray-50 opacity-60' : ''}">
                 <div>
                     <div class="flex items-center gap-2">
                         <p class="font-bold text-gray-900">${escapeHtml(p.name)}</p>
-                        ${!p.is_available ? '<span class="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">Pausado</span>' : ''}
+                        ${p.is_paused ? '<span class="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">Pausado</span>' : ''}
                     </div>
                     ${p.description ? `<p class="text-xs text-gray-500">${escapeHtml(p.description)}</p>` : ''}
                     <p class="text-sm font-extrabold text-emerald-600 mt-1">R$ ${Number(p.price).toFixed(2)}</p>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="iniciarEdicao('${p.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-3 py-1.5 rounded-lg">Editar</button>
-                    <button onclick="alternarDisponibilidade('${p.id}', ${p.is_available})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg">
-                        ${p.is_available ? 'Pausar' : 'Ativar'}
+                    <button onclick="alternarDisponibilidade('${p.id}', ${p.is_paused})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg">
+                        ${p.is_paused ? 'Ativar' : 'Pausar'}
                     </button>
                     <button onclick="removerProduto('${p.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold px-3 py-1.5 rounded-lg">Remover</button>
                 </div>
@@ -128,7 +128,7 @@ async function adicionarProduto() {
         name,
         description: description || null,
         price,
-        is_available: true
+        is_paused: false
     }]);
 
     if (error) {
@@ -179,10 +179,10 @@ async function salvarEdicao(productId) {
     loadProducts();
 }
 
-async function alternarDisponibilidade(productId, isAvailable) {
+async function alternarDisponibilidade(productId, isPaused) {
     const { error } = await sb
         .from('products')
-        .update({ is_available: !isAvailable })
+        .update({ is_paused: !isPaused })
         .eq('id', productId);
 
     if (error) {

@@ -6,9 +6,9 @@
  * ==============================================================================
  */
 
-// Configuração Oficial do Supabase
-const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+// Configuração Oficial do Supabase (projeto real: avenidadastipuanas.online)
+const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -38,11 +38,11 @@ async function loadStoresAndProducts() {
         return;
     }
 
-    // Busca todos os produtos disponíveis
+    // Busca todos os produtos disponíveis (não pausados pelo lojista)
     const { data: products, error: prodErr } = await sb
         .from('products')
         .select('*')
-        .eq('is_available', true);
+        .eq('is_paused', false);
 
     if (prodErr) {
         console.error('Erro ao buscar produtos:', prodErr);

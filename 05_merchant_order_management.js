@@ -1,16 +1,29 @@
 /**
  * ==============================================================================
- * PROJETO: AV. DAS TIPUANAS LOCAL
+ * PROJETO: TIPUANAS.ONLINE
  * ARQUIVO: 05_merchant_order_management.js
  * DESCRIÇÃO: Identificação da loja (bootstrap + URL/localStorage) e gestão de
  *            pedidos em tempo real via Supabase, filtrada pela loja logada.
+ *            Usa o banco avançado "avenidadastipuanas.online" (multi-loja,
+ *            estoque, corridas expressas) — ver comentários de mapeamento
+ *            de status abaixo.
  * ==============================================================================
  */
 
-// Configuração Oficial do Supabase
-const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+// Configuração Oficial do Supabase (projeto real: avenidadastipuanas.online)
+const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Mapa de status do pedido (enum order_status do banco) -> rótulo em português
+const STATUS_LABELS = {
+    novo: 'Pendente',
+    em_preparacao: 'Em Preparação',
+    pronto: 'Pronto p/ Retirada',
+    em_rota: 'A Caminho',
+    entregue: 'Concluído',
+    cancelado: 'Cancelado'
+};
 
 const STORE_ID_KEY = 'tipuanas_store_id';
 let currentStore = null;
@@ -184,14 +197,14 @@ function updatePauseUI(isPaused) {
 }
 
 /**
- * Busca pedidos da loja atual no Supabase
+ * Busca pedidos da loja atual no Supabase, já trazendo os itens de cada pedido
  */
 async function fetchOrders() {
     if (!currentStore) return;
 
     const { data: orders, error } = await sb
         .from('orders')
-        .select('*')
+        .select('*, order_items(quantity, unit_price, products(name))')
         .eq('store_id', currentStore.id)
         .order('created_at', { ascending: false });
 
@@ -214,29 +227,38 @@ function renderOrders(orders) {
         return;
     }
 
-    listContainer.innerHTML = orders.map(order => `
+    listContainer.innerHTML = orders.map(order => {
+        const addr = order.delivery_address || {};
+        const itemsList = (order.order_items || [])
+            .map(it => `${it.quantity}x ${it.products ? it.products.name : 'Item'}`)
+            .join(', ');
+
+        return `
         <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <div class="flex items-center gap-2">
                     <span class="font-bold text-gray-900">#${order.id.slice(0, 8)}</span>
-                    <span class="text-xs text-gray-500">• ${order.client_name}</span>
-                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${order.status}</span>
+                    <span class="text-xs text-gray-500">• ${addr.client_name || 'Cliente'}</span>
+                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${STATUS_LABELS[order.status] || order.status}</span>
                 </div>
-                <p class="text-xs text-gray-600 mt-1">📍 ${order.client_address}</p>
-                <p class="text-xs text-gray-500 mt-0.5">💳 ${order.payment_method} | PIN: <strong class="text-emerald-600">${order.delivery_pin}</strong></p>
+                ${itemsList ? `<p class="text-xs text-gray-700 mt-1">🛒 ${itemsList}</p>` : ''}
+                <p class="text-xs text-gray-600 mt-1">📍 ${order.is_takeout ? 'Retirada no local' : (addr.address || 'Endereço não informado')}</p>
+                <p class="text-xs text-gray-500 mt-0.5">💳 ${addr.payment_method || '—'} | PIN: <strong class="text-emerald-600">${order.delivery_pin || '----'}</strong></p>
             </div>
             <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                <span class="font-bold text-gray-900 text-sm">R$ ${Number(order.total).toFixed(2)}</span>
+                <span class="font-bold text-gray-900 text-sm">R$ ${Number(order.total_amount).toFixed(2)}</span>
                 <select onchange="updateOrderStatus('${order.id}', this.value)" class="text-xs border border-gray-300 rounded p-1.5 bg-white">
-                    <option value="PENDING" ${order.status === 'PENDING' ? 'selected' : ''}>Pendente</option>
-                    <option value="ACCEPTED" ${order.status === 'ACCEPTED' ? 'selected' : ''}>Aceito</option>
-                    <option value="PREPARING" ${order.status === 'PREPARING' ? 'selected' : ''}>Em Preparação (pronto p/ retirada)</option>
-                    <option value="IN_TRANSIT" ${order.status === 'IN_TRANSIT' ? 'selected' : ''}>A Caminho</option>
-                    <option value="COMPLETED" ${order.status === 'COMPLETED' ? 'selected' : ''}>Concluído</option>
+                    <option value="novo" ${order.status === 'novo' ? 'selected' : ''}>Pendente</option>
+                    <option value="em_preparacao" ${order.status === 'em_preparacao' ? 'selected' : ''}>Em Preparação</option>
+                    <option value="pronto" ${order.status === 'pronto' ? 'selected' : ''}>Pronto p/ Retirada (entregador)</option>
+                    <option value="em_rota" ${order.status === 'em_rota' ? 'selected' : ''}>A Caminho</option>
+                    <option value="entregue" ${order.status === 'entregue' ? 'selected' : ''}>Concluído</option>
+                    <option value="cancelado" ${order.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
                 </select>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 /**
@@ -260,8 +282,8 @@ async function updateOrderStatus(orderId, newStatus) {
  */
 function updateMetrics(orders) {
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((acc, order) => acc + Number(order.total), 0);
-    const pendingCount = orders.filter(o => o.status === 'PENDING').length;
+    const totalRevenue = orders.reduce((acc, order) => acc + Number(order.total_amount), 0);
+    const pendingCount = orders.filter(o => o.status === 'novo').length;
 
     document.getElementById('total-orders-today').textContent = totalOrders;
     document.getElementById('total-revenue-today').textContent = `R$ ${totalRevenue.toFixed(2)}`;

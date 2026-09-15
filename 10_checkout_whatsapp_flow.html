@@ -81,8 +81,8 @@
     </main>
 
     <script>
-        const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const FALLBACK_WHATSAPP = '5548999999999'; // usado só se a loja ainda não tiver whatsapp_number cadastrado
 
@@ -193,15 +193,16 @@
 
                 const { data: inserted, error } = await sb.from('orders').insert([{
                     store_id: storeId,
-                    client_name: name,
-                    client_address: address,
-                    payment_method: payment,
-                    fulfillment_type: 'DELIVERY',
-                    subtotal: subtotal,
+                    status: 'novo',
+                    total_amount: total,
                     delivery_fee: deliveryFee,
-                    total: total,
+                    is_takeout: false,
                     delivery_pin: pin,
-                    status: 'PENDING'
+                    delivery_address: {
+                        client_name: name,
+                        address: address,
+                        payment_method: payment
+                    }
                 }]).select();
 
                 if (error) {
@@ -210,6 +211,21 @@
                 }
 
                 const orderId = inserted && inserted[0] ? inserted[0].id : null;
+
+                // Registra os itens do pedido na tabela relacional order_items
+                if (orderId) {
+                    const orderItemsPayload = items.map(item => ({
+                        order_id: orderId,
+                        product_id: item.id,
+                        quantity: item.quantity,
+                        unit_price: item.price
+                    }));
+                    const { error: itemsError } = await sb.from('order_items').insert(orderItemsPayload);
+                    if (itemsError) {
+                        console.error('Erro ao registrar itens do pedido:', itemsError);
+                    }
+                }
+
                 const whatsappNumber = (store && store.whatsapp_number) ? store.whatsapp_number.replace(/\D/g, '') : FALLBACK_WHATSAPP;
 
                 let message = `*NOVO PEDIDO - AV. DAS TIPUANAS LOCAL*\n\n`;

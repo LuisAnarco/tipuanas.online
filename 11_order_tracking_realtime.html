@@ -64,8 +64,8 @@
     </main>
 
     <script>
-        const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -97,14 +97,15 @@
             document.getElementById('delivery-pin').textContent = order.delivery_pin;
             
             const statusMap = {
-                'PENDING': { icon: '⏳', title: 'Aguardando Lojista', desc: 'O comércio recebeu seu pedido e irá confirmar em breve.' },
-                'ACCEPTED': { icon: '✅', title: 'Pedido Aceito!', desc: 'O estabelecimento aceitou seu pedido.' },
-                'PREPARING': { icon: '👨‍🍳', title: 'Em Preparação', desc: 'Seu pedido está sendo separado/preparado.' },
-                'IN_TRANSIT': { icon: '🛵', title: 'A Caminho!', desc: 'O entregador já está a caminho do seu endereço.' },
-                'COMPLETED': { icon: '🎉', title: 'Entregue com Sucesso', desc: 'Obrigado por comprar do comércio local!' }
+                'novo': { icon: '⏳', title: 'Aguardando Lojista', desc: 'O comércio recebeu seu pedido e irá confirmar em breve.' },
+                'em_preparacao': { icon: '👨‍🍳', title: 'Em Preparação', desc: 'O estabelecimento aceitou e está preparando seu pedido.' },
+                'pronto': { icon: '✅', title: 'Pronto p/ Retirada', desc: 'Seu pedido está pronto, aguardando o entregador.' },
+                'em_rota': { icon: '🛵', title: 'A Caminho!', desc: 'O entregador já está a caminho do seu endereço.' },
+                'entregue': { icon: '🎉', title: 'Entregue com Sucesso', desc: 'Obrigado por comprar do comércio local!' },
+                'cancelado': { icon: '❌', title: 'Pedido Cancelado', desc: 'Este pedido foi cancelado.' }
             };
 
-            const current = statusMap[order.status] || statusMap['PENDING'];
+            const current = statusMap[order.status] || statusMap['novo'];
             document.getElementById('status-icon').textContent = current.icon;
             document.getElementById('status-title').textContent = current.title;
             document.getElementById('status-desc').textContent = current.desc;

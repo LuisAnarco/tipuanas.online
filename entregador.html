@@ -22,8 +22,8 @@
 
   <script>
     // Configuração Oficial do Supabase (mesma usada em todo o resto do sistema)
-    const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+    const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const feed = document.getElementById('feed-entregas');
@@ -34,13 +34,13 @@
         subscribeToOrderChanges();
     });
 
-    // PREPARING = pronto pra retirada (aguardando entregador aceitar a corrida)
-    // IN_TRANSIT = já foi retirado por um entregador e está a caminho (falta confirmar entrega com PIN)
+    // pronto = pronto pra retirada (aguardando entregador aceitar a corrida)
+    // em_rota = já foi retirado por um entregador e está a caminho (falta confirmar entrega com PIN)
     async function loadDeliveries() {
         const { data: orders, error } = await sb
             .from('orders')
             .select('*')
-            .in('status', ['PREPARING', 'IN_TRANSIT'])
+            .in('status', ['pronto', 'em_rota'])
             .order('created_at', { ascending: true });
 
         if (error) {
@@ -75,7 +75,8 @@
             const store = storesCache[order.store_id];
             const storeName = store ? store.name : 'Loja';
             const storeAddress = store ? store.address_line : '';
-            const isReady = order.status === 'PREPARING';
+            const isReady = order.status === 'pronto';
+            const addr = order.delivery_address || {};
 
             return `
                 <div class="bg-white p-5 rounded-xl shadow border border-gray-200 flex flex-col md:flex-row justify-between md:items-center gap-3">
@@ -83,7 +84,7 @@
                         <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">Retirar em: ${storeName}</span>
                         <h3 class="font-bold text-lg mt-1">Corrida #${order.id.slice(0, 6)}</h3>
                         <p class="text-xs text-gray-500">📍 Retirada: ${storeAddress || 'endereço não informado'}</p>
-                        <p class="text-xs text-gray-500">🏁 Entrega: ${order.client_address}</p>
+                        <p class="text-xs text-gray-500">🏁 Entrega: ${order.is_takeout ? 'Retirada no local' : (addr.address || 'endereço não informado')}</p>
                         <p class="text-sm font-bold text-gray-700 mt-1">Status: ${isReady ? 'Pronto para retirada' : 'Em rota de entrega'}</p>
                     </div>
 
@@ -108,7 +109,7 @@
     }
 
     window.aceitarCorrida = async (orderId) => {
-        const { error } = await sb.from('orders').update({ status: 'IN_TRANSIT' }).eq('id', orderId);
+        const { error } = await sb.from('orders').update({ status: 'em_rota' }).eq('id', orderId);
         if (error) {
             alert('Não foi possível aceitar a corrida. Tente novamente.');
             console.error(error);
@@ -120,7 +121,7 @@
         if (pinDigitado === null) return;
 
         if (pinDigitado.trim() === String(pinCorreto).trim()) {
-            const { error } = await sb.from('orders').update({ status: 'COMPLETED' }).eq('id', orderId);
+            const { error } = await sb.from('orders').update({ status: 'entregue' }).eq('id', orderId);
             if (error) {
                 alert('Erro ao concluir a entrega. Tente novamente.');
                 console.error(error);
