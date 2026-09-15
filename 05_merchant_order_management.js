@@ -10,7 +10,7 @@
 // Configuração Oficial do Supabase
 const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const STORE_ID_KEY = 'tipuanas_store_id';
 let currentStore = null;
@@ -34,7 +34,7 @@ async function initMerchantPanel() {
         return;
     }
 
-    const { data: store, error } = await supabase.from('stores').select('*').eq('id', storeId).single();
+    const { data: store, error } = await sb.from('stores').select('*').eq('id', storeId).single();
 
     if (error || !store) {
         console.error('Loja não encontrada:', error);
@@ -99,7 +99,7 @@ async function criarLoja() {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') + '-' + Math.floor(Math.random() * 10000);
 
-    const { data, error } = await supabase.from('stores').insert([{
+    const { data, error } = await sb.from('stores').insert([{
         name,
         slug,
         category,
@@ -142,7 +142,7 @@ async function togglePause() {
     if (!currentStore) return;
     const newPausedState = !currentStore.is_paused;
 
-    const { error } = await supabase
+    const { error } = await sb
         .from('stores')
         .update({ is_paused: newPausedState })
         .eq('id', currentStore.id);
@@ -189,7 +189,7 @@ function updatePauseUI(isPaused) {
 async function fetchOrders() {
     if (!currentStore) return;
 
-    const { data: orders, error } = await supabase
+    const { data: orders, error } = await sb
         .from('orders')
         .select('*')
         .eq('store_id', currentStore.id)
@@ -243,7 +243,7 @@ function renderOrders(orders) {
  * Atualiza o status de um pedido no banco de dados
  */
 async function updateOrderStatus(orderId, newStatus) {
-    const { error } = await supabase
+    const { error } = await sb
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId);
@@ -273,10 +273,10 @@ function updateMetrics(orders) {
  */
 function subscribeToNewOrders() {
     if (ordersChannel) {
-        supabase.removeChannel(ordersChannel);
+        sb.removeChannel(ordersChannel);
     }
 
-    ordersChannel = supabase
+    ordersChannel = sb
         .channel(`public:orders:store:${currentStore.id}`)
         .on('postgres_changes', {
             event: '*',

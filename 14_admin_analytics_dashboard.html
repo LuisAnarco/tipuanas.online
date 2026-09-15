@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin — Av. das Tipuanas Local</title>
+    <title>Painel Admin — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
                     <span class="text-xl">📊</span>
                     <h1 class="text-xl font-black text-white">Painel Master Admin</h1>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">Gestão Financeira & Operacional • Av. das Tipuanas</p>
+                <p class="text-xs text-slate-400 mt-1">Gestão Financeira & Operacional • Tipuanas.online</p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="index.html" class="text-xs text-slate-400 hover:text-emerald-400 underline">Ir para Vitrine</a>
@@ -79,15 +79,15 @@
     <script>
         const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminMetrics();
         });
 
         async function loadAdminMetrics() {
-            const { data: stores } = await supabase.from('stores').select('*');
-            const { data: orders } = await supabase.from('orders').select('*');
+            const { data: stores } = await sb.from('stores').select('*');
+            const { data: orders } = await sb.from('orders').select('*');
 
             if (!stores || !orders) return;
 

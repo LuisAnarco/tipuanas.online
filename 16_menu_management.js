@@ -8,7 +8,7 @@
 
 const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const STORE_ID_KEY = 'tipuanas_store_id';
 let currentStore = null;
@@ -27,7 +27,7 @@ async function initMenuPage() {
         return;
     }
 
-    const { data: store, error } = await supabase.from('stores').select('*').eq('id', storeId).single();
+    const { data: store, error } = await sb.from('stores').select('*').eq('id', storeId).single();
 
     if (error || !store) {
         console.error('Loja não encontrada:', error);
@@ -49,7 +49,7 @@ async function initMenuPage() {
 }
 
 async function loadProducts() {
-    const { data: products, error } = await supabase
+    const { data: products, error } = await sb
         .from('products')
         .select('*')
         .eq('store_id', currentStore.id)
@@ -123,7 +123,7 @@ async function adicionarProduto() {
     }
     errorEl.classList.add('hidden');
 
-    const { error } = await supabase.from('products').insert([{
+    const { error } = await sb.from('products').insert([{
         store_id: currentStore.id,
         name,
         description: description || null,
@@ -164,7 +164,7 @@ async function salvarEdicao(productId) {
         return;
     }
 
-    const { error } = await supabase
+    const { error } = await sb
         .from('products')
         .update({ name, description: description || null, price })
         .eq('id', productId);
@@ -180,7 +180,7 @@ async function salvarEdicao(productId) {
 }
 
 async function alternarDisponibilidade(productId, isAvailable) {
-    const { error } = await supabase
+    const { error } = await sb
         .from('products')
         .update({ is_available: !isAvailable })
         .eq('id', productId);
@@ -197,7 +197,7 @@ async function alternarDisponibilidade(productId, isAvailable) {
 async function removerProduto(productId) {
     if (!confirm('Remover este produto do cardápio? Essa ação não pode ser desfeita.')) return;
 
-    const { error } = await supabase.from('products').delete().eq('id', productId);
+    const { error } = await sb.from('products').delete().eq('id', productId);
 
     if (error) {
         console.error('Erro ao remover produto:', error);

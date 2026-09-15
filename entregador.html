@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Entregador — Av. das Tipuanas</title>
+    <title>Painel do Entregador — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -24,7 +24,7 @@
     // Configuração Oficial do Supabase (mesma usada em todo o resto do sistema)
     const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const feed = document.getElementById('feed-entregas');
     let storesCache = {};
@@ -37,7 +37,7 @@
     // PREPARING = pronto pra retirada (aguardando entregador aceitar a corrida)
     // IN_TRANSIT = já foi retirado por um entregador e está a caminho (falta confirmar entrega com PIN)
     async function loadDeliveries() {
-        const { data: orders, error } = await supabase
+        const { data: orders, error } = await sb
             .from('orders')
             .select('*')
             .in('status', ['PREPARING', 'IN_TRANSIT'])
@@ -62,7 +62,7 @@
         const missing = [...new Set(storeIds)].filter(id => !storesCache[id]);
         if (missing.length === 0) return;
 
-        const { data: stores, error } = await supabase.from('stores').select('*').in('id', missing);
+        const { data: stores, error } = await sb.from('stores').select('*').in('id', missing);
         if (error) {
             console.error('Erro ao buscar lojas:', error);
             return;
@@ -99,7 +99,7 @@
     }
 
     function subscribeToOrderChanges() {
-        supabase
+        sb
             .channel('public:orders:entregador')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
                 loadDeliveries();
@@ -108,7 +108,7 @@
     }
 
     window.aceitarCorrida = async (orderId) => {
-        const { error } = await supabase.from('orders').update({ status: 'IN_TRANSIT' }).eq('id', orderId);
+        const { error } = await sb.from('orders').update({ status: 'IN_TRANSIT' }).eq('id', orderId);
         if (error) {
             alert('Não foi possível aceitar a corrida. Tente novamente.');
             console.error(error);
@@ -120,7 +120,7 @@
         if (pinDigitado === null) return;
 
         if (pinDigitado.trim() === String(pinCorreto).trim()) {
-            const { error } = await supabase.from('orders').update({ status: 'COMPLETED' }).eq('id', orderId);
+            const { error } = await sb.from('orders').update({ status: 'COMPLETED' }).eq('id', orderId);
             if (error) {
                 alert('Erro ao concluir a entrega. Tente novamente.');
                 console.error(error);

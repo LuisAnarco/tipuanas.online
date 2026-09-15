@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finalizar Pedido — Av. das Tipuanas Local</title>
+    <title>Finalizar Pedido — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -83,7 +83,7 @@
     <script>
         const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const FALLBACK_WHATSAPP = '5548999999999'; // usado só se a loja ainda não tiver whatsapp_number cadastrado
 
         let cart = JSON.parse(localStorage.getItem('tipuanas_cart')) || [];
@@ -164,7 +164,7 @@
             const storeIds = Object.keys(groups);
 
             // Busca dados (inclusive whatsapp) de todas as lojas envolvidas no carrinho
-            const { data: stores, error: storeErr } = await supabase
+            const { data: stores, error: storeErr } = await sb
                 .from('stores')
                 .select('*')
                 .in('id', storeIds);
@@ -191,7 +191,7 @@
                 const total = subtotal + deliveryFee;
                 const pin = Math.floor(1000 + Math.random() * 9000).toString();
 
-                const { data: inserted, error } = await supabase.from('orders').insert([{
+                const { data: inserted, error } = await sb.from('orders').insert([{
                     store_id: storeId,
                     client_name: name,
                     client_address: address,

@@ -1,11 +1,11 @@
 # 🎤 Roteiro de Abordagem Presencial (Pitch do Comerciante)
-**Projeto:** Av. das Tipuanas Local  
+**Projeto:** Tipuanas.online  
 **Objetivo:** Cadastrar o lojista no ecossistema de bairro em uma conversa presencial de 2 minutos.
 
 ---
 
 ## 📍 Etapa 1: Quebra-Gelo (15 segundos)
-> *"Boa tarde, [Nome do Dono/Gerente]! Tudo bem? Sou morador aqui da região e estou organizando a rede **Av. das Tipuanas Local** para ajudar o pessoal dos prédios e casas a pedirem direto dos comércios da nossa rua."*
+> *"Boa tarde, [Nome do Dono/Gerente]! Tudo bem? Sou morador aqui da região e estou organizando a rede **Tipuanas.online** para ajudar o pessoal dos prédios e casas a pedirem direto dos comércios da nossa rua."*
 
 ---
 

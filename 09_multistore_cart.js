@@ -10,7 +10,7 @@
 const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let cart = JSON.parse(localStorage.getItem('tipuanas_cart')) || [];
 
@@ -26,7 +26,7 @@ async function loadStoresAndProducts() {
     const container = document.getElementById('stores-container');
     
     // Busca lojas ativas (e filtra as que estiverem pausadas pelo próprio lojista)
-    const { data: allStores, error: storeErr } = await supabase
+    const { data: allStores, error: storeErr } = await sb
         .from('stores')
         .select('*')
         .eq('is_active', true);
@@ -39,7 +39,7 @@ async function loadStoresAndProducts() {
     }
 
     // Busca todos os produtos disponíveis
-    const { data: products, error: prodErr } = await supabase
+    const { data: products, error: prodErr } = await sb
         .from('products')
         .select('*')
         .eq('is_available', true);
