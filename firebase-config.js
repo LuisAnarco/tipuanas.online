@@ -1,4 +1,8 @@
-// firebase-config.js - Conexão em Tempo Real
+// firebase-config.js - NÃO É MAIS USADO.
+// O sistema todo (vitrine, checkout, painel do lojista, entregador e admin) roda em cima
+// do Supabase (veja 05_merchant_order_management.js / 09_multistore_cart.js). Este arquivo
+// ficou órfão depois que entregador.html foi migrado de Firebase para Supabase.
+// Pode ser removido do repositório com segurança.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 

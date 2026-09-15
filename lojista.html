@@ -1,62 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Painel Lojista — Av. das Tipuanas</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="1; url=04_merchant_portal.html">
+    <title>Painel Lojista — Av. das Tipuanas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen text-gray-800">
-  <header class="bg-gray-800 text-white shadow-md p-4">
-    <div class="max-w-6xl mx-auto flex justify-between items-center">
-      <h1 class="font-bold">Painel do Comerciante</h1>
-      <nav class="flex gap-4 text-sm font-medium">
-        <a href="index.html" class="hover:underline">Vitrine</a>
-        <a href="pedidos.html" class="hover:underline">Meus Pedidos</a>
-        <a href="lojista.html" class="underline">Painel Lojista</a>
-      </nav>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6 text-center">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 max-w-sm">
+        <p class="text-sm text-gray-600">Esta página foi substituída pelo novo painel do lojista.</p>
+        <p class="text-xs text-gray-400 mt-1">Redirecionando automaticamente...</p>
+        <a href="04_merchant_portal.html" class="inline-block mt-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-lg">
+            Ir para o Painel do Lojista
+        </a>
     </div>
-  </header>
-
-  <main class="max-w-4xl mx-auto px-4 mt-8">
-    <h2 class="text-2xl font-bold mb-6">Gestão de Pedidos do Bairro</h2>
-    <div id="painel-pedidos" class="space-y-4"></div>
-  </main>
-
-  <script>
-    function carregarPainel() {
-      let pedidos = JSON.parse(localStorage.getItem('tipuanas_pedidos')) || [];
-      const container = document.getElementById('painel-pedidos');
-
-      if(pedidos.length === 0) {
-        container.innerHTML = `<p class="text-gray-500">Nenhum pedido recebido até o momento.</p>`;
-        return;
-      }
-
-      container.innerHTML = pedidos.map((p, index) => `
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex justify-between items-center">
-          <div>
-            <span class="text-xs font-bold text-gray-400">PEDIDO #${p.id}</span>
-            <h3 class="font-bold text-lg">${p.loja}</h3>
-            <p class="text-xs text-gray-500">Status Atual: <strong>${p.status}</strong></p>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="mudarStatus(${index}, 'Aceito')" class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded">Aceitar</button>
-            <button onclick="mudarStatus(${index}, 'Em Entrega')" class="bg-amber-600 text-white text-xs px-3 py-1.5 rounded">Saiu p/ Entrega</button>
-            <button onclick="mudarStatus(${index}, 'Concluído')" class="bg-green-600 text-white text-xs px-3 py-1.5 rounded">Concluir</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function mudarStatus(index, novoStatus) {
-      let pedidos = JSON.parse(localStorage.getItem('tipuanas_pedidos')) || [];
-      pedidos[index].status = novoStatus;
-      localStorage.setItem('tipuanas_pedidos', JSON.stringify(pedidos));
-      carregarPainel();
-    }
-
-    window.onload = carregarPainel;
-  </script>
 </body>
 </html>

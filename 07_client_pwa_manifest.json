@@ -13,7 +13,7 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": "/08_neighborhood_showcase.html",
+  "start_url": "/index.html",
   "background_color": "#f8fafc",
   "theme_color": "#059669",
   "display": "standalone",

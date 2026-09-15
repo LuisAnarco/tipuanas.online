@@ -19,7 +19,7 @@
 ---
 
 ## 📱 Etapa 3: Demonstração Rápida (30 segundos)
-*(Mostre a tela do celular com o `08_neighborhood_showcase.html` aberto)*
+*(Mostre a tela do celular com o `index.html` — a vitrine do bairro — aberto)*
 
 > *"Olha como fica simples: o morador abre a vitrine do bairro, escolhe os produtos da sua loja e clica em enviar. O pedido já chega formatado no seu WhatsApp com o valor, endereço e código de confirmação."*
 

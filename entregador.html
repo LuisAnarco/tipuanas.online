@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Painel do Entregador — Tipuanas</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Entregador — Av. das Tipuanas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen p-6">
   <div class="max-w-4xl mx-auto">
@@ -18,54 +20,116 @@
     </div>
   </div>
 
-  <script type="module">
-    import { db, collection, onSnapshot, doc, updateDoc } from './firebase-config.js';
+  <script>
+    // Configuração Oficial do Supabase (mesma usada em todo o resto do sistema)
+    const SUPABASE_URL = 'https://uiroqxinszrhvyzuiqfu.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcm9xeGluc3pyaHZ5enVpcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzEyNDYsImV4cCI6MjEwNDMwNzI0Nn0.suJIxTU26t8U7S6IRiNChZtfLyQzftOVF0sZe1c7x2k';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const feed = document.getElementById('feed-entregas');
+    let storesCache = {};
 
-    onSnapshot(collection(db, "pedidos"), (snapshot) => {
-      const entregas = snapshot.docs.filter(d => d.data().status === 'Aguardando Entregador' || d.data().status === 'Saiu para Entrega');
-
-      if (entregas.length === 0) {
-        feed.innerHTML = `<p class="text-gray-500">Nenhuma entrega pendente no momento.</p>`;
-        return;
-      }
-
-      feed.innerHTML = entregas.map(docSnap => {
-        const p = docSnap.data();
-        const id = docSnap.id;
-        return `
-          <div class="bg-white p-5 rounded-xl shadow border border-gray-200 flex justify-between items-center">
-            <div>
-              <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">Retirar em: ${p.loja}</span>
-              <h3 class="font-bold text-lg mt-1">Corrida #${id.substring(0, 5)}</h3>
-              <p class="text-xs text-gray-500">Destino: Av. das Tipuanas</p>
-              <p class="text-sm font-bold text-gray-700 mt-1">Status: ${p.status}</p>
-            </div>
-
-            <div>
-              ${p.status === 'Aguardando Entregador' ? 
-                `<button onclick="aceitarCorrida('${id}')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-lg">Aceitar Corrida</button>` : 
-                `<button onclick="finalizarEntrega('${id}', ${p.pin})" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg">Confirmar PIN e Entregar</button>`
-              }
-            </div>
-          </div>
-        `;
-      }).join('');
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDeliveries();
+        subscribeToOrderChanges();
     });
 
-    window.aceitarCorrida = async (id) => {
-      await updateDoc(doc(db, "pedidos", id), { status: "Saiu para Entrega" });
+    // PREPARING = pronto pra retirada (aguardando entregador aceitar a corrida)
+    // IN_TRANSIT = já foi retirado por um entregador e está a caminho (falta confirmar entrega com PIN)
+    async function loadDeliveries() {
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select('*')
+            .in('status', ['PREPARING', 'IN_TRANSIT'])
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Erro ao buscar entregas:', error);
+            feed.innerHTML = `<p class="text-red-500">Erro ao carregar entregas. Tente recarregar a página.</p>`;
+            return;
+        }
+
+        if (!orders || orders.length === 0) {
+            feed.innerHTML = `<p class="text-gray-500">Nenhuma entrega pendente no momento.</p>`;
+            return;
+        }
+
+        await ensureStoresLoaded(orders.map(o => o.store_id));
+        renderDeliveries(orders);
+    }
+
+    async function ensureStoresLoaded(storeIds) {
+        const missing = [...new Set(storeIds)].filter(id => !storesCache[id]);
+        if (missing.length === 0) return;
+
+        const { data: stores, error } = await supabase.from('stores').select('*').in('id', missing);
+        if (error) {
+            console.error('Erro ao buscar lojas:', error);
+            return;
+        }
+        (stores || []).forEach(s => { storesCache[s.id] = s; });
+    }
+
+    function renderDeliveries(orders) {
+        feed.innerHTML = orders.map(order => {
+            const store = storesCache[order.store_id];
+            const storeName = store ? store.name : 'Loja';
+            const storeAddress = store ? store.address_line : '';
+            const isReady = order.status === 'PREPARING';
+
+            return `
+                <div class="bg-white p-5 rounded-xl shadow border border-gray-200 flex flex-col md:flex-row justify-between md:items-center gap-3">
+                    <div>
+                        <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">Retirar em: ${storeName}</span>
+                        <h3 class="font-bold text-lg mt-1">Corrida #${order.id.slice(0, 6)}</h3>
+                        <p class="text-xs text-gray-500">📍 Retirada: ${storeAddress || 'endereço não informado'}</p>
+                        <p class="text-xs text-gray-500">🏁 Entrega: ${order.client_address}</p>
+                        <p class="text-sm font-bold text-gray-700 mt-1">Status: ${isReady ? 'Pronto para retirada' : 'Em rota de entrega'}</p>
+                    </div>
+
+                    <div>
+                        ${isReady
+                            ? `<button onclick="aceitarCorrida('${order.id}')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-lg">Aceitar Corrida</button>`
+                            : `<button onclick="finalizarEntrega('${order.id}', '${order.delivery_pin}')" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg">Confirmar PIN e Entregar</button>`
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function subscribeToOrderChanges() {
+        supabase
+            .channel('public:orders:entregador')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+                loadDeliveries();
+            })
+            .subscribe();
+    }
+
+    window.aceitarCorrida = async (orderId) => {
+        const { error } = await supabase.from('orders').update({ status: 'IN_TRANSIT' }).eq('id', orderId);
+        if (error) {
+            alert('Não foi possível aceitar a corrida. Tente novamente.');
+            console.error(error);
+        }
     };
 
-    window.finalizarEntrega = async (id, pinCorreto) => {
-      const pinDigitado = prompt(`Digite o PIN de 4 dígitos informado pelo cliente:`);
-      if (parseInt(pinDigitado) === pinCorreto) {
-        await updateDoc(doc(db, "pedidos", id), { status: "Concluído" });
-        alert("Entrega finalizada com sucesso!");
-      } else {
-        alert("PIN incorreto! Confirme com o cliente.");
-      }
+    window.finalizarEntrega = async (orderId, pinCorreto) => {
+        const pinDigitado = prompt('Digite o PIN de 4 dígitos informado pelo cliente:');
+        if (pinDigitado === null) return;
+
+        if (pinDigitado.trim() === String(pinCorreto).trim()) {
+            const { error } = await supabase.from('orders').update({ status: 'COMPLETED' }).eq('id', orderId);
+            if (error) {
+                alert('Erro ao concluir a entrega. Tente novamente.');
+                console.error(error);
+            } else {
+                alert('Entrega finalizada com sucesso!');
+            }
+        } else {
+            alert('PIN incorreto! Confirme com o cliente.');
+        }
     };
   </script>
 </body>
