@@ -49,16 +49,34 @@ async function loadStoresAndProducts() {
         return;
     }
 
-    // Renderiza cada loja e seus respectivos produtos
+    // Renderiza cada loja: catálogo (produtos + carrinho) ou orçamento (só divulgação/contato)
     container.innerHTML = stores.map(store => {
+        if (store.listing_type === 'orcamento') {
+            return `
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+                    <div class="border-b border-slate-100 pb-2">
+                        <div class="flex items-center gap-1.5">
+                            <h3 class="font-bold text-slate-900 text-sm">${store.name}</h3>
+                            <span class="text-[9px] bg-amber-50 text-amber-700 font-bold px-1.5 py-0.5 rounded-full border border-amber-100">Sob Orçamento</span>
+                        </div>
+                        ${store.category ? `<p class="text-[11px] text-slate-500">${store.category}</p>` : ''}
+                    </div>
+                    <p class="text-xs text-slate-600">${store.description || 'Solicite um orçamento e o prestador entra em contato pra combinar os detalhes.'}</p>
+                    <a href="18_solicitar_orcamento.html?store=${store.id}" class="block text-center bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2.5 rounded-lg transition active:scale-95">
+                        Solicitar Orçamento
+                    </a>
+                </div>
+            `;
+        }
+
         const storeProducts = products.filter(p => p.store_id === store.id);
-        
+
         return `
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                     <div>
                         <h3 class="font-bold text-slate-900 text-sm">${store.name}</h3>
-                        <p class="text-[11px] text-slate-500">${store.category}</p>
+                        ${store.category ? `<p class="text-[11px] text-slate-500">${store.category}</p>` : ''}
                     </div>
                     <span class="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-100">
                         Taxa: R$ ${Number(store.delivery_fee).toFixed(2)}

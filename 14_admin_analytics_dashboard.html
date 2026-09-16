@@ -37,7 +37,7 @@
                 <p id="total-gmv" class="text-2xl font-black text-emerald-400 mt-1">R$ 0,00</p>
             </div>
             <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
-                <p class="text-xs text-slate-400 font-medium">Comissão da Plataforma (~5%)</p>
+                <p class="text-xs text-slate-400 font-medium">Comissão da Plataforma (8%)</p>
                 <p id="total-commission" class="text-2xl font-black text-emerald-300 mt-1">R$ 0,00</p>
             </div>
             <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
@@ -92,7 +92,7 @@
             if (!stores || !orders) return;
 
             const totalGmv = orders.reduce((acc, o) => acc + Number(o.total_amount), 0);
-            const totalCommission = totalGmv * 0.05; // 5% de taxa cobrada pela plataforma
+            const totalCommission = totalGmv * 0.08; // 8% de taxa cobrada pela plataforma (fixa pro lojista; taxas de pagamento saem daqui)
 
             document.getElementById('total-gmv').textContent = `R$ ${totalGmv.toFixed(2)}`;
             document.getElementById('total-commission').textContent = `R$ ${totalCommission.toFixed(2)}`;
@@ -104,7 +104,7 @@
             tableBody.innerHTML = stores.map(store => {
                 const storeOrders = orders.filter(o => o.store_id === store.id);
                 const storeGmv = storeOrders.reduce((acc, o) => acc + Number(o.total_amount), 0);
-                const commission = storeGmv * 0.05;
+                const commission = storeGmv * 0.08;
 
                 return `
                     <tr class="hover:bg-slate-700/30">

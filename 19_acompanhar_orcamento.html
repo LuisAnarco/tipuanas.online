@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhar Orçamento — Tipuanas.online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-4 py-3.5 flex items-center justify-between">
+            <a href="index.html" class="text-slate-500 text-sm font-bold">← Início</a>
+            <h1 class="font-extrabold text-base text-slate-900">Status do Orçamento</h1>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-6 w-full flex-1 space-y-5">
+
+        <!-- Card de Status -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm text-center space-y-3">
+            <span class="text-3xl" id="status-icon">⏳</span>
+            <div>
+                <h2 class="text-lg font-bold text-slate-900" id="status-title">Buscando solicitação...</h2>
+                <p class="text-xs text-slate-500 mt-1" id="status-desc">Aguarde enquanto carregamos as informações.</p>
+            </div>
+        </div>
+
+        <!-- Visita agendada -->
+        <div id="visit-card" class="hidden bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-1">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Visita Técnica</p>
+            <p id="visit-info" class="text-sm font-semibold text-slate-800"></p>
+        </div>
+
+        <!-- Proposta recebida -->
+        <div id="proposal-card" class="hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Proposta Recebida</p>
+            <p id="proposal-amount" class="text-2xl font-black text-emerald-600">R$ 0,00</p>
+            <p id="proposal-description" class="text-xs text-slate-600"></p>
+            <div id="proposal-actions" class="flex gap-2 pt-2">
+                <button onclick="responderProposta('rejeitado')" class="flex-1 bg-white border border-red-300 text-red-600 hover:bg-red-50 font-bold px-3 py-2.5 rounded-lg text-xs transition">
+                    Rejeitar
+                </button>
+                <button onclick="responderProposta('aceito')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2.5 rounded-lg text-xs transition active:scale-95">
+                    Aceitar Proposta
+                </button>
+            </div>
+        </div>
+
+        <!-- Pagamento (simulado até integração real com gateway) -->
+        <div id="payment-card" class="hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3 text-center">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pagamento</p>
+            <p class="text-xs text-slate-600">Combine a forma de pagamento com o prestador e confirme aqui quando concluído.</p>
+            <button onclick="confirmarPagamento()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition active:scale-95">
+                Confirmar Pagamento
+            </button>
+        </div>
+
+        <!-- Etapas do serviço -->
+        <div id="updates-card" class="hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Acompanhamento do Serviço</h3>
+            <div id="updates-list" class="space-y-2 text-xs text-slate-600"></div>
+        </div>
+
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const PLATFORM_COMMISSION_RATE = 0.08;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestId = urlParams.get('id');
+        let currentRequest = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (requestId) {
+                trackRequest(requestId);
+            } else {
+                document.getElementById('status-title').textContent = 'Solicitação Não Encontrada';
+                document.getElementById('status-desc').textContent = 'Acesse o link enviado após pedir o orçamento.';
+            }
+        });
+
+        async function trackRequest(id) {
+            const { data: request, error } = await sb.from('service_requests').select('*').eq('id', id).single();
+            if (error || !request) return;
+
+            updateUI(request);
+            loadUpdates(id);
+
+            sb.channel(`service_request:${id}`)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'service_requests', filter: `id=eq.${id}` }, payload => {
+                    updateUI(payload.new);
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'service_updates', filter: `service_request_id=eq.${id}` }, () => {
+                    loadUpdates(id);
+                })
+                .subscribe();
+        }
+
+        async function loadUpdates(id) {
+            const { data } = await sb.from('service_updates').select('*').eq('service_request_id', id).order('created_at', { ascending: true });
+            if (!data || data.length === 0) return;
+
+            document.getElementById('updates-card').classList.remove('hidden');
+            document.getElementById('updates-list').innerHTML = data.map(u => `
+                <div class="border-l-2 border-emerald-200 pl-3 py-1">
+                    <p>${u.note}</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${new Date(u.created_at).toLocaleString('pt-BR')}</p>
+                </div>
+            `).join('');
+        }
+
+        function updateUI(request) {
+            currentRequest = request;
+
+            const statusMap = {
+                'solicitado': { icon: '⏳', title: 'Aguardando Retorno', desc: 'O prestador recebeu sua solicitação e vai agendar uma visita técnica em breve.' },
+                'visita_agendada': { icon: '📅', title: 'Visita Agendada', desc: 'O prestador vai avaliar sua necessidade na data marcada.' },
+                'proposta_enviada': { icon: '📋', title: 'Proposta Recebida', desc: 'Confira os detalhes abaixo e responda quando quiser.' },
+                'aceito': { icon: '✅', title: 'Proposta Aceita', desc: 'Combine o pagamento com o prestador e confirme abaixo.' },
+                'rejeitado': { icon: '❌', title: 'Proposta Rejeitada', desc: 'Você rejeitou esta proposta.' },
+                'pago': { icon: '💳', title: 'Pagamento Confirmado', desc: 'Aguardando o início do serviço.' },
+                'em_andamento': { icon: '🔧', title: 'Serviço em Andamento', desc: 'Acompanhe as etapas abaixo.' },
+                'concluido': { icon: '🎉', title: 'Serviço Concluído', desc: 'Obrigado por contratar pelo Tipuanas.online!' },
+                'cancelado': { icon: '🚫', title: 'Cancelado', desc: 'Esta solicitação foi cancelada.' }
+            };
+
+            const current = statusMap[request.status] || statusMap['solicitado'];
+            document.getElementById('status-icon').textContent = current.icon;
+            document.getElementById('status-title').textContent = current.title;
+            document.getElementById('status-desc').textContent = current.desc;
+
+            // Visita
+            const visitCard = document.getElementById('visit-card');
+            if (request.visit_scheduled_for) {
+                visitCard.classList.remove('hidden');
+                const modeLabel = request.visit_mode === 'cliente_leva_ao_prestador' ? 'Você leva até o prestador' : 'O prestador vai até você';
+                document.getElementById('visit-info').textContent = `${new Date(request.visit_scheduled_for).toLocaleString('pt-BR')} — ${modeLabel}`;
+            } else {
+                visitCard.classList.add('hidden');
+            }
+
+            // Proposta — só mostra ações enquanto ainda está "proposta_enviada"
+            const proposalCard = document.getElementById('proposal-card');
+            if (request.proposal_amount && ['proposta_enviada', 'aceito', 'rejeitado', 'pago', 'em_andamento', 'concluido'].includes(request.status)) {
+                proposalCard.classList.remove('hidden');
+                document.getElementById('proposal-amount').textContent = `R$ ${Number(request.proposal_amount).toFixed(2)}`;
+                document.getElementById('proposal-description').textContent = request.proposal_description || '';
+                document.getElementById('proposal-actions').classList.toggle('hidden', request.status !== 'proposta_enviada');
+            } else {
+                proposalCard.classList.add('hidden');
+            }
+
+            // Pagamento — só quando aceito e ainda não pago
+            document.getElementById('payment-card').classList.toggle('hidden', request.status !== 'aceito');
+
+            // Etapas do serviço — visíveis a partir de pago
+            document.getElementById('updates-card').classList.toggle('hidden', !['pago', 'em_andamento', 'concluido'].includes(request.status));
+        }
+
+        async function responderProposta(decision) {
+            if (!currentRequest) return;
+            const { error } = await sb.from('service_requests').update({
+                status: decision,
+                client_decision_at: new Date().toISOString()
+            }).eq('id', currentRequest.id);
+
+            if (error) {
+                alert('Não foi possível registrar sua resposta. Tente novamente.');
+                console.error(error);
+            }
+        }
+
+        // Simulação de pagamento — sem gateway real integrado ainda (Efí entra numa fase futura).
+        // O prestador/cliente confirmam aqui que o pagamento foi acertado por fora do checkout.
+        async function confirmarPagamento() {
+            if (!currentRequest) return;
+            const commission = Number(currentRequest.proposal_amount) * PLATFORM_COMMISSION_RATE;
+
+            const { error } = await sb.from('service_requests').update({
+                status: 'pago',
+                paid_at: new Date().toISOString(),
+                platform_commission: commission
+            }).eq('id', currentRequest.id);
+
+            if (error) {
+                alert('Não foi possível confirmar o pagamento. Tente novamente.');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

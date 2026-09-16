@@ -25,7 +25,17 @@ const STATUS_LABELS = {
     cancelado: 'Cancelado'
 };
 
+// Categorias sugeridas por tipo de negócio, pra guiar o cadastro sem travar a lista.
+const CATEGORY_OPTIONS = {
+    catalogo: ['Alimentação', 'Brinquedos', 'Ferramentas', 'Variedades', 'Outro (comércio)'],
+    orcamento: ['Serviços Gerais', 'Transporte e Logística (Táxi/Frete)', 'Imóveis (Venda/Aluguel)', 'Outro (serviço)']
+};
+
 const STORE_ID_KEY = 'tipuanas_store_id';
+// Mesma taxa usada no painel admin (14_admin_analytics_dashboard.html). Ainda não há
+// coluna de comissão personalizada por loja no banco — é fixa em 8% pra todo mundo
+// (taxa fixada pro lojista; a plataforma arca com as taxas de pagamento do próprio bolso).
+const PLATFORM_COMMISSION_RATE = 0.08;
 let currentStore = null;
 let ordersChannel = null;
 
@@ -56,6 +66,13 @@ async function initMerchantPanel() {
         return;
     }
 
+    // Lojas do tipo "orçamento" não usam cardápio/carrinho — têm painel próprio
+    if (store.listing_type === 'orcamento') {
+        localStorage.setItem(STORE_ID_KEY, store.id);
+        window.location.href = `17_gerenciar_orcamentos.html?store=${store.id}`;
+        return;
+    }
+
     currentStore = store;
     localStorage.setItem(STORE_ID_KEY, store.id);
 
@@ -72,6 +89,33 @@ async function initMerchantPanel() {
 
 function showBootstrap() {
     document.getElementById('bootstrap-section').classList.remove('hidden');
+    atualizarCategorias();
+}
+
+/**
+ * Repopula o <select> de categoria de acordo com o tipo de negócio escolhido
+ * (comércio = catalogo, serviços = orcamento). Preserva a seleção quando possível.
+ */
+function atualizarCategorias() {
+    const listingTypeInput = document.querySelector('input[name="bs-listing-type"]:checked');
+    const listingType = listingTypeInput ? listingTypeInput.value : 'catalogo';
+    const select = document.getElementById('bs-category');
+    const previous = select.value;
+    const options = CATEGORY_OPTIONS[listingType] || CATEGORY_OPTIONS.catalogo;
+
+    select.innerHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    if (options.includes(previous)) select.value = previous;
+
+    // Taxa de entrega só faz sentido pra comércio com carrinho; serviços cobram/combinam à parte
+    document.getElementById('bs-fee-wrap').classList.toggle('hidden', listingType === 'orcamento');
+
+    alternarCategoriaOutro();
+}
+
+function alternarCategoriaOutro() {
+    const select = document.getElementById('bs-category');
+    const isOutro = select.value.startsWith('Outro');
+    document.getElementById('bs-category-other-wrap').classList.toggle('hidden', !isOutro);
 }
 
 function showMerchantPanel(store) {
@@ -82,6 +126,7 @@ function showMerchantPanel(store) {
     document.getElementById('nav-cardapio').href = `15_gerenciar_cardapio.html?store=${store.id}`;
     document.getElementById('quick-actions').classList.remove('hidden');
     document.getElementById('quick-actions').classList.add('grid');
+    document.getElementById('repasse-section').classList.remove('hidden');
     document.getElementById('orders-section').classList.remove('hidden');
     updatePauseUI(store.is_paused);
 }
@@ -91,10 +136,15 @@ function showMerchantPanel(store) {
  */
 async function criarLoja() {
     const name = document.getElementById('bs-name').value.trim();
-    const category = document.getElementById('bs-category').value.trim();
+    const categorySelect = document.getElementById('bs-category').value.trim();
+    const categoryOther = document.getElementById('bs-category-other').value.trim();
+    const category = categorySelect.startsWith('Outro') && categoryOther ? categoryOther : categorySelect;
     const whatsapp = document.getElementById('bs-whatsapp').value.trim().replace(/\D/g, '');
     const address = document.getElementById('bs-address').value.trim();
     const fee = parseFloat(document.getElementById('bs-fee').value) || 0;
+    const description = document.getElementById('bs-description').value.trim();
+    const listingTypeInput = document.querySelector('input[name="bs-listing-type"]:checked');
+    const listingType = listingTypeInput ? listingTypeInput.value : 'catalogo';
     const errorEl = document.getElementById('bs-error');
     const submitBtn = document.getElementById('bs-submit');
 
@@ -119,6 +169,8 @@ async function criarLoja() {
         whatsapp_number: whatsapp,
         address_line: address,
         delivery_fee: fee,
+        description: description || null,
+        listing_type: listingType,
         is_active: true,
         is_paused: false
     }]).select();
@@ -134,6 +186,12 @@ async function criarLoja() {
 
     const store = data[0];
     localStorage.setItem(STORE_ID_KEY, store.id);
+
+    // Loja tipo "orçamento" tem painel próprio (sem cardápio/pedidos com carrinho)
+    if (store.listing_type === 'orcamento') {
+        window.location.href = `17_gerenciar_orcamentos.html?store=${store.id}`;
+        return;
+    }
 
     const newUrl = `${window.location.pathname}?store=${store.id}`;
     window.history.replaceState({}, '', newUrl);
@@ -288,6 +346,25 @@ function updateMetrics(orders) {
     document.getElementById('total-orders-today').textContent = totalOrders;
     document.getElementById('total-revenue-today').textContent = `R$ ${totalRevenue.toFixed(2)}`;
     document.getElementById('pending-badge').textContent = `${pendingCount} Pendentes`;
+
+    updateRepasse(orders);
+}
+
+/**
+ * Calcula e exibe o repasse da loja: faturamento dos pedidos já concluídos,
+ * menos a comissão da plataforma. Pedidos pendentes/cancelados não entram na conta
+ * ainda (só quando o pedido realmente é entregue é que a comissão é devida).
+ */
+function updateRepasse(orders) {
+    const completed = orders.filter(o => o.status === 'entregue');
+    const gross = completed.reduce((acc, o) => acc + Number(o.total_amount), 0);
+    const commission = gross * PLATFORM_COMMISSION_RATE;
+    const net = gross - commission;
+
+    document.getElementById('repasse-orders-count').textContent = completed.length;
+    document.getElementById('repasse-gross').textContent = `R$ ${gross.toFixed(2)}`;
+    document.getElementById('repasse-commission').textContent = `R$ ${commission.toFixed(2)}`;
+    document.getElementById('repasse-net').textContent = `R$ ${net.toFixed(2)}`;
 }
 
 /**
