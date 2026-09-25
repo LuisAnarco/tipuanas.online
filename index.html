@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#059669">
+    <meta name="description" content="Vitrine do comércio local da Av. das Tipuanas — peça direto do vizinho pelo WhatsApp.">
     <title>Tipuanas.online — Compre do Vizinho</title>
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -38,7 +41,13 @@
             <p class="text-xs text-slate-300 mt-1">Peça direto dos comércios da avenida sem baixar nenhum aplicativo.</p>
         </div>
 
-        <!-- Categorias Rápidas -->
+        <!-- Busca e Categorias -->
+        <div class="space-y-2.5">
+            <input id="search-input" type="search" placeholder="🔎 Buscar loja ou produto..." class="w-full text-sm p-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-emerald-500">
+            <div id="category-chips" class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"></div>
+        </div>
+
+        <!-- Lojas -->
         <div id="stores-container" class="space-y-6">
             <p class="text-center text-xs text-slate-400 py-8">Carregando estabelecimentos...</p>
         </div>
@@ -60,8 +69,10 @@
 
     <!-- Rodapé discreto para acesso interno (lojista) e Mural da Vizinhança -->
     <footer class="max-w-md mx-auto px-4 pb-6 pt-2 text-center space-y-1.5">
+        <a href="pedidos.html" class="block text-[11px] text-slate-400 hover:text-emerald-600 underline">📦 Meus pedidos</a>
         <a href="20_mural_vizinhanca.html" class="block text-[11px] text-slate-400 hover:text-emerald-600 underline">🎁 Mural da Vizinhança (desapego / procuro por)</a>
         <a href="04_merchant_portal.html" class="block text-[11px] text-slate-400 hover:text-emerald-600 underline">Sou lojista, quero acessar meu painel</a>
+        <a href="entregador.html" class="block text-[11px] text-slate-400 hover:text-emerald-600 underline">Sou entregador</a>
     </footer>
 
     <script src="09_multistore_cart.js"></script>

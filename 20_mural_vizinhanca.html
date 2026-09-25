@@ -6,6 +6,7 @@
     <title>Mural da Vizinhança — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -87,10 +88,6 @@
     </main>
 
     <script>
-        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         let currentFilter = 'desapego';
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -144,13 +141,13 @@
             listEl.innerHTML = posts.map(post => `
                 <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
                     <div class="flex items-center justify-between">
-                        <h3 class="font-bold text-slate-900 text-sm">${post.title}</h3>
+                        <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(post.title)}</h3>
                         ${post.price ? `<span class="text-xs font-extrabold text-emerald-600">R$ ${Number(post.price).toFixed(2)}</span>` : `<span class="text-[10px] text-slate-400">${post.post_type === 'desapego' ? 'De graça / a combinar' : 'A combinar'}</span>`}
                     </div>
-                    <p class="text-xs text-slate-600">${post.description || ''}</p>
+                    <p class="text-xs text-slate-600">${escapeHtml(post.description)}</p>
                     <div class="flex items-center justify-between pt-2 border-t border-slate-50">
-                        <span class="text-[11px] text-slate-400">${post.author_name}</span>
-                        <a href="https://wa.me/55${post.author_whatsapp}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg">
+                        <span class="text-[11px] text-slate-400">${escapeHtml(post.author_name)}</span>
+                        <a href="https://wa.me/${toWhatsappNumber(post.author_whatsapp)}?text=${encodeURIComponent(`Olá! Vi seu anúncio "${post.title}" no Mural da Vizinhança do Tipuanas.online.`)}" target="_blank" rel="noopener" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg">
                             Chamar no WhatsApp
                         </a>
                     </div>

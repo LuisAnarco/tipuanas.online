@@ -6,6 +6,7 @@
     <title>Painel do Entregador — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen p-6">
   <div class="max-w-4xl mx-auto">
@@ -21,11 +22,6 @@
   </div>
 
   <script>
-    // Configuração Oficial do Supabase (mesma usada em todo o resto do sistema)
-    const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     const feed = document.getElementById('feed-entregas');
     let storesCache = {};
 
@@ -41,6 +37,7 @@
             .from('orders')
             .select('*')
             .in('status', ['pronto', 'em_rota'])
+            .not('is_takeout', 'is', true) // retirada pelo próprio cliente não vira corrida
             .order('created_at', { ascending: true });
 
         if (error) {
@@ -75,23 +72,27 @@
             const store = storesCache[order.store_id];
             const storeName = store ? store.name : 'Loja';
             const storeAddress = store ? store.address_line : '';
+            const clientWhatsapp = toWhatsappNumber((order.delivery_address || {}).client_phone);
+            const fee = Number(order.delivery_fee || 0);
             const isReady = order.status === 'pronto';
             const addr = order.delivery_address || {};
 
             return `
                 <div class="bg-white p-5 rounded-xl shadow border border-gray-200 flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <div>
-                        <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">Retirar em: ${storeName}</span>
-                        <h3 class="font-bold text-lg mt-1">Corrida #${order.id.slice(0, 6)}</h3>
-                        <p class="text-xs text-gray-500">📍 Retirada: ${storeAddress || 'endereço não informado'}</p>
-                        <p class="text-xs text-gray-500">🏁 Entrega: ${order.is_takeout ? 'Retirada no local' : (addr.address || 'endereço não informado')}</p>
+                        <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">Retirar em: ${escapeHtml(storeName)}</span>
+                        <h3 class="font-bold text-lg mt-1">Corrida #${order.id.slice(0, 6)} <span class="text-emerald-600 text-base">• ${fee > 0 ? `Taxa ${formatBRL(fee)}` : 'Taxa a combinar'}</span></h3>
+                        <p class="text-xs text-gray-500">📍 Retirada: ${escapeHtml(storeAddress || 'endereço não informado')}</p>
+                        <p class="text-xs text-gray-500">🏁 Entrega: ${escapeHtml(addr.address || 'endereço não informado')}${addr.client_name ? ` — ${escapeHtml(addr.client_name)}` : ''}</p>
+                        <p class="text-xs text-gray-500">💳 Cobrar: ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</p>
+                        ${!isReady && clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="inline-block text-xs text-emerald-700 hover:underline mt-1">💬 Falar com o cliente</a>` : ''}
                         <p class="text-sm font-bold text-gray-700 mt-1">Status: ${isReady ? 'Pronto para retirada' : 'Em rota de entrega'}</p>
                     </div>
 
                     <div>
                         ${isReady
                             ? `<button onclick="aceitarCorrida('${order.id}')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-lg">Aceitar Corrida</button>`
-                            : `<button onclick="finalizarEntrega('${order.id}', '${order.delivery_pin}')" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg">Confirmar PIN e Entregar</button>`
+                            : `<button onclick="finalizarEntrega('${order.id}', '${escapeHtml(order.delivery_pin)}')" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg">Confirmar PIN e Entregar</button>`
                         }
                     </div>
                 </div>

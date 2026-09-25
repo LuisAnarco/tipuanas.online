@@ -1,23 +1,36 @@
 /**
  * ==============================================================================
- * PROJETO: AV. DAS TIPUANAS LOCAL
+ * PROJETO: TIPUANAS.ONLINE
  * ARQUIVO: 06_push_notification_service.js
- * DESCRIÇÃO: Serviço de Notificações Push & Alertas Sonoros para Lojistas
+ * DESCRIÇÃO: Alertas sonoros e notificações do navegador para novos pedidos.
+ *            Carregado como script comum no painel do lojista (04_merchant_portal.html).
+ *            O navegador só libera som/permissão depois de um clique do usuário,
+ *            por isso o painel chama enable() a partir do botão "Ativar alertas".
  * ==============================================================================
  */
 
-export class MerchantNotificationService {
+class MerchantNotificationService {
     constructor() {
-        this.hasPermission = false;
-        this.init();
+        this.enabled = false;
+        this.hasPermission = 'Notification' in window && Notification.permission === 'granted';
+        this.audioCtx = null;
     }
 
     /**
-     * Solicita permissão para enviar notificações do navegador
+     * Liga os alertas (precisa ser chamado a partir de um clique): destrava o áudio
+     * e pede permissão de notificação do navegador.
      */
-    async init() {
+    async enable() {
+        this.enabled = true;
+        try {
+            this.audioCtx = this.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            if (this.audioCtx.state === 'suspended') await this.audioCtx.resume();
+        } catch (e) {
+            console.warn('Áudio indisponível neste navegador:', e);
+        }
+
         if (!('Notification' in window)) {
-            console.warn('Este navegador não suporta notificações de trabalho.');
+            console.warn('Este navegador não suporta notificações.');
             return;
         }
 
@@ -33,6 +46,8 @@ export class MerchantNotificationService {
      * Dispara um alerta sonoro e visual para novos pedidos
      */
     notifyNewOrder(order) {
+        if (!this.enabled) return;
+
         // Toca alerta sonoro
         this.playNotificationSound();
 
@@ -42,7 +57,7 @@ export class MerchantNotificationService {
             const addr = order.delivery_address || {};
             const options = {
                 body: `Cliente: ${addr.client_name || 'Cliente'}\nTotal: R$ ${Number(order.total_amount).toFixed(2)}\nEndereço: ${order.is_takeout ? 'Retirada no local' : (addr.address || 'não informado')}`,
-                icon: '/favicon.ico',
+                icon: 'https://cdn-icons-png.flaticon.com/512/3081/3081559.png',
                 tag: order.id,
                 requireInteraction: true
             };
@@ -56,7 +71,8 @@ export class MerchantNotificationService {
      */
     playNotificationSound() {
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const audioCtx = this.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            this.audioCtx = audioCtx;
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
 

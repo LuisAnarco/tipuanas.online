@@ -6,10 +6,6 @@
  * ==============================================================================
  */
 
-const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const STORE_ID_KEY = 'tipuanas_store_id';
 let currentStore = null;
 let editingProductId = null;
@@ -76,14 +72,14 @@ function renderProducts(products) {
             return `
                 <div class="border border-emerald-200 rounded-lg p-4 bg-emerald-50 space-y-2">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-                        <input id="edit-name-${p.id}" type="text" value="${escapeAttr(p.name)}" class="md:col-span-2 text-sm p-2 rounded border border-gray-300">
+                        <input id="edit-name-${p.id}" type="text" value="${escapeHtml(p.name)}" class="md:col-span-2 text-sm p-2 rounded border border-gray-300">
                         <input id="edit-price-${p.id}" type="number" min="0" step="0.01" value="${Number(p.price)}" class="text-sm p-2 rounded border border-gray-300">
                         <div class="flex gap-2">
                             <button onclick="salvarEdicao('${p.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded px-2">Salvar</button>
                             <button onclick="cancelarEdicao()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-xs font-bold rounded px-2">Cancelar</button>
                         </div>
                     </div>
-                    <input id="edit-desc-${p.id}" type="text" value="${escapeAttr(p.description || '')}" placeholder="Descrição (opcional)" class="w-full text-xs p-2 rounded border border-gray-300">
+                    <input id="edit-desc-${p.id}" type="text" value="${escapeHtml(p.description || '')}" placeholder="Descrição (opcional)" class="w-full text-xs p-2 rounded border border-gray-300">
                 </div>
             `;
         }
@@ -208,10 +204,3 @@ async function removerProduto(productId) {
     loadProducts();
 }
 
-function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-}
-
-function escapeAttr(str) {
-    return escapeHtml(str);
-}
