@@ -121,6 +121,7 @@ function showMerchantPanel(store) {
     document.getElementById('repasse-section').classList.remove('hidden');
     document.getElementById('orders-section').classList.remove('hidden');
     updatePauseUI(store.is_paused);
+    loadReviews(store.id);
 }
 
 /**
@@ -362,6 +363,41 @@ function updateMetrics(orders) {
  * menos a comissão da plataforma. Pedidos pendentes/cancelados não entram na conta
  * ainda (só quando o pedido realmente é entregue é que a comissão é devida).
  */
+/**
+ * Nota média e últimos comentários deixados pelos clientes após a entrega
+ */
+async function loadReviews(storeId) {
+    const { data: reviews, error } = await sb
+        .from('reviews')
+        .select('rating, comment, created_at')
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar avaliações:', error);
+        return;
+    }
+
+    const section = document.getElementById('reviews-section');
+    section.classList.remove('hidden');
+
+    if (!reviews || reviews.length === 0) {
+        document.getElementById('reviews-average').textContent = '';
+        document.getElementById('reviews-list').innerHTML = '<p class="text-gray-400">Nenhuma avaliação ainda. Elas aparecem aqui quando o cliente avalia um pedido entregue.</p>';
+        return;
+    }
+
+    const avg = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
+    document.getElementById('reviews-average').textContent = `★ ${avg.toFixed(1).replace('.', ',')} (${reviews.length})`;
+    document.getElementById('reviews-list').innerHTML = reviews.slice(0, 5).map(r => `
+        <div class="border-b border-gray-100 last:border-none pb-2">
+            <span class="text-amber-500">${'★'.repeat(r.rating)}<span class="text-gray-300">${'★'.repeat(5 - r.rating)}</span></span>
+            <span class="text-[10px] text-gray-400 ml-1">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span>
+            ${r.comment ? `<p class="mt-0.5">${escapeHtml(r.comment)}</p>` : ''}
+        </div>
+    `).join('');
+}
+
 function updateRepasse(orders) {
     const completed = orders.filter(o => o.status === 'entregue');
     const gross = completed.reduce((acc, o) => acc + Number(o.total_amount), 0);

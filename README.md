@@ -8,17 +8,17 @@ via CDN) em cima do Supabase, publicado na Vercel.
 
 | Quem | Arquivo | O que faz |
 |---|---|---|
-| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine com busca, filtro por categoria e carrinho multi-loja |
+| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine com busca, filtro por categoria, nota das lojas e carrinho multi-loja |
 | Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada), cria um pedido por loja e abre o WhatsApp de cada uma |
-| Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento em tempo real com PIN de entrega |
+| Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento em tempo real com PIN de entrega e avaliação da loja após a entrega |
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
 | Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por" |
-| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro da loja, pedidos em tempo real, alerta sonoro, pausa, repasse |
+| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro da loja, pedidos em tempo real, alerta sonoro, pausa, repasse, avaliações |
 | Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos |
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html` | Display com QR Code para o balcão |
-| Entregador | `entregador.html` | Fila de corridas com taxa, aceite e confirmação por PIN |
+| Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho, aceite exclusivo, PIN conferido no banco, histórico e ganhos |
 | Admin | `14_admin_analytics_dashboard.html` | GMV, comissão, recorrência, ranking de produtos, ativar/desativar lojas |
 
 Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
@@ -37,7 +37,8 @@ python3 -m http.server 8000
 ## Banco (Supabase)
 
 Projeto `avenidadastipuanas.online`. Tabelas usadas: `stores`, `products`, `orders`, `order_items`,
-`service_requests`, `service_updates`, `community_posts`. Status do pedido (`order_status`):
+`service_requests`, `service_updates`, `community_posts`, `reviews`, `couriers`
+(`orders.courier_ref` aponta para o entregador). Migrações novas ficam em `supabase/migrations/`. Status do pedido (`order_status`):
 `novo → em_preparacao → pronto → em_rota → entregue` (ou `cancelado`). Dados do cliente ficam em
 `orders.delivery_address` (jsonb): `client_name`, `client_phone`, `address`, `payment_method`, `notes`.
 

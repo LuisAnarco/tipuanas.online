@@ -8,55 +8,180 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 min-h-screen p-6">
+<body class="bg-gray-100 text-gray-800 min-h-screen p-4 md:p-6">
   <div class="max-w-4xl mx-auto">
-    <header class="flex justify-between items-center border-b pb-4 mb-6">
-      <h1 class="text-2xl font-bold text-amber-600">🛵 Painel do Entregador</h1>
-      <a href="index.html" class="text-sm text-gray-600 hover:text-black">Ir para Vitrine</a>
+    <header class="flex flex-wrap justify-between items-center gap-2 border-b pb-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-amber-600">🛵 Painel do Entregador</h1>
+        <p id="courier-name" class="text-xs text-gray-500"></p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="logout-btn" class="hidden text-xs text-gray-500 hover:text-black underline">Sair</button>
+        <a href="index.html" class="text-sm text-gray-600 hover:text-black">Ir para Vitrine</a>
+      </div>
     </header>
 
-    <h2 class="text-xl font-bold mb-4">Corridas e Entregas Disponíveis</h2>
-    <div id="feed-entregas" class="space-y-4">
-      <p class="text-gray-500">Procurando entregas no bairro...</p>
-    </div>
+    <!-- Cadastro / entrada do entregador -->
+    <section id="signup-section" class="hidden bg-white rounded-xl shadow border border-gray-200 p-5 space-y-4 max-w-md">
+      <div>
+        <h2 class="text-lg font-bold">Cadastro do entregador</h2>
+        <p class="text-xs text-gray-500">Leva 1 minuto. Você aceita as corridas que quiser, quando quiser — não há horário mínimo.</p>
+      </div>
+      <div class="space-y-3">
+        <input id="su-name" type="text" autocomplete="name" placeholder="Seu nome" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+        <input id="su-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="WhatsApp com DDD (ex: 48999998888)" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+        <input id="su-vehicle" type="text" placeholder="Veículo (ex: Moto, Bicicleta, A pé)" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+        <button id="su-submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-lg text-sm">Cadastrar e ver corridas</button>
+        <p id="su-error" class="hidden text-xs text-red-600"></p>
+      </div>
+      <p class="text-[11px] text-gray-400">Já é cadastrado em outro aparelho? Preencha o mesmo WhatsApp que a gente encontra seu cadastro.</p>
+    </section>
+
+    <!-- Painel -->
+    <section id="panel-section" class="hidden space-y-6">
+      <div class="grid grid-cols-3 gap-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <p class="text-[11px] text-gray-500">Entregas hoje</p>
+          <p id="stat-today-count" class="text-xl font-bold">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <p class="text-[11px] text-gray-500">Ganhos hoje</p>
+          <p id="stat-today-earn" class="text-xl font-bold text-emerald-600">R$ 0.00</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <p class="text-[11px] text-gray-500">Ganhos totais</p>
+          <p id="stat-total-earn" class="text-xl font-bold text-emerald-600">R$ 0.00</p>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold mb-3">Minhas entregas em andamento</h2>
+        <div id="feed-mine" class="space-y-4"></div>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold mb-3">Corridas disponíveis</h2>
+        <div id="feed-entregas" class="space-y-4">
+          <p class="text-gray-500">Procurando entregas no bairro...</p>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold mb-3">Histórico</h2>
+        <div id="feed-history" class="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100 text-sm"></div>
+      </div>
+    </section>
   </div>
 
   <script>
-    const feed = document.getElementById('feed-entregas');
+    const COURIER_KEY = 'tipuanas_courier_id';
+    let courier = null;
     let storesCache = {};
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadDeliveries();
-        subscribeToOrderChanges();
+        document.getElementById('su-submit').addEventListener('click', cadastrar);
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem(COURIER_KEY);
+            window.location.reload();
+        });
+        // Delegação: botões das corridas
+        document.getElementById('panel-section').addEventListener('click', event => {
+            const accept = event.target.closest('[data-accept]');
+            if (accept) aceitarCorrida(accept.dataset.accept);
+            const finish = event.target.closest('[data-finish]');
+            if (finish) finalizarEntrega(finish.dataset.finish);
+        });
+        init();
     });
 
-    // pronto = pronto pra retirada (aguardando entregador aceitar a corrida)
-    // em_rota = já foi retirado por um entregador e está a caminho (falta confirmar entrega com PIN)
-    async function loadDeliveries() {
-        const { data: orders, error } = await sb
-            .from('orders')
-            .select('*')
-            .in('status', ['pronto', 'em_rota'])
-            .not('is_takeout', 'is', true) // retirada pelo próprio cliente não vira corrida
-            .order('created_at', { ascending: true });
+    async function init() {
+        const courierId = localStorage.getItem(COURIER_KEY);
+        if (courierId) {
+            const { data } = await sb.from('couriers').select('*').eq('id', courierId).maybeSingle();
+            if (data && data.is_active) {
+                startPanel(data);
+                return;
+            }
+            localStorage.removeItem(COURIER_KEY);
+        }
+        document.getElementById('signup-section').classList.remove('hidden');
+    }
 
-        if (error) {
-            console.error('Erro ao buscar entregas:', error);
-            feed.innerHTML = `<p class="text-red-500">Erro ao carregar entregas. Tente recarregar a página.</p>`;
+    async function cadastrar() {
+        const name = document.getElementById('su-name').value.trim();
+        const phone = document.getElementById('su-phone').value.replace(/\D/g, '');
+        const vehicle = document.getElementById('su-vehicle').value.trim();
+        const errorEl = document.getElementById('su-error');
+        const btn = document.getElementById('su-submit');
+
+        if (name.length < 2 || phone.length < 10) {
+            errorEl.textContent = 'Informe seu nome e WhatsApp com DDD.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+        errorEl.classList.add('hidden');
+        btn.disabled = true;
+        btn.textContent = 'Salvando...';
+
+        // Mesmo WhatsApp = mesmo entregador (troca de aparelho)
+        const { data: existing } = await sb.from('couriers').select('*').eq('phone', phone).eq('is_active', true).limit(1);
+        let record = existing && existing[0];
+
+        if (!record) {
+            const { data, error } = await sb.from('couriers').insert([{ name, phone, vehicle: vehicle || null }]).select();
+            if (error || !data || !data[0]) {
+                console.error('Erro ao cadastrar entregador:', error);
+                errorEl.textContent = 'Não foi possível cadastrar agora. Tente novamente.';
+                errorEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Cadastrar e ver corridas';
+                return;
+            }
+            record = data[0];
+        }
+
+        localStorage.setItem(COURIER_KEY, record.id);
+        document.getElementById('signup-section').classList.add('hidden');
+        startPanel(record);
+    }
+
+    function startPanel(record) {
+        courier = record;
+        document.getElementById('courier-name').textContent = `${record.name}${record.vehicle ? ` • ${record.vehicle}` : ''}`;
+        document.getElementById('logout-btn').classList.remove('hidden');
+        document.getElementById('panel-section').classList.remove('hidden');
+        loadAll();
+        sb.channel('public:orders:entregador')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => loadAll())
+            .subscribe();
+    }
+
+    async function loadAll() {
+        // pronto = aguardando entregador aceitar; em_rota sem entregador = corrida antiga (antes do cadastro)
+        const [available, mine, history] = await Promise.all([
+            sb.from('orders').select('*')
+                .or('status.eq.pronto,and(status.eq.em_rota,courier_ref.is.null)')
+                .not('is_takeout', 'is', true) // retirada pelo próprio cliente não vira corrida
+                .order('created_at', { ascending: true }),
+            sb.from('orders').select('*').eq('status', 'em_rota').eq('courier_ref', courier.id).order('created_at', { ascending: true }),
+            sb.from('orders').select('id, store_id, delivery_fee, created_at, delivery_address').eq('status', 'entregue').eq('courier_ref', courier.id).order('created_at', { ascending: false }).limit(100)
+        ]);
+
+        if (available.error || mine.error || history.error) {
+            console.error('Erro ao buscar entregas:', available.error || mine.error || history.error);
+            document.getElementById('feed-entregas').innerHTML = `<p class="text-red-500">Erro ao carregar entregas. Tente recarregar a página.</p>`;
             return;
         }
 
-        if (!orders || orders.length === 0) {
-            feed.innerHTML = `<p class="text-gray-500">Nenhuma entrega pendente no momento.</p>`;
-            return;
-        }
+        await ensureStoresLoaded([...available.data, ...mine.data, ...history.data].map(o => o.store_id));
 
-        await ensureStoresLoaded(orders.map(o => o.store_id));
-        renderDeliveries(orders);
+        renderFeed('feed-mine', mine.data, 'Nenhuma entrega em andamento.');
+        renderFeed('feed-entregas', available.data, 'Nenhuma corrida disponível no momento.');
+        renderHistory(history.data);
     }
 
     async function ensureStoresLoaded(storeIds) {
-        const missing = [...new Set(storeIds)].filter(id => !storesCache[id]);
+        const missing = [...new Set(storeIds)].filter(id => id && !storesCache[id]);
         if (missing.length === 0) return;
 
         const { data: stores, error } = await sb.from('stores').select('*').in('id', missing);
@@ -67,32 +192,38 @@
         (stores || []).forEach(s => { storesCache[s.id] = s; });
     }
 
-    function renderDeliveries(orders) {
-        feed.innerHTML = orders.map(order => {
+    function renderFeed(elementId, orders, emptyMsg) {
+        const el = document.getElementById(elementId);
+        if (!orders || orders.length === 0) {
+            el.innerHTML = `<p class="text-gray-500 text-sm">${emptyMsg}</p>`;
+            return;
+        }
+
+        el.innerHTML = orders.map(order => {
             const store = storesCache[order.store_id];
             const storeName = store ? store.name : 'Loja';
             const storeAddress = store ? store.address_line : '';
-            const clientWhatsapp = toWhatsappNumber((order.delivery_address || {}).client_phone);
+            const addr = order.delivery_address || {};
+            const clientWhatsapp = toWhatsappNumber(addr.client_phone);
             const fee = Number(order.delivery_fee || 0);
             const isReady = order.status === 'pronto';
-            const addr = order.delivery_address || {};
 
             return `
                 <div class="bg-white p-5 rounded-xl shadow border border-gray-200 flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <div>
                         <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">Retirar em: ${escapeHtml(storeName)}</span>
-                        <h3 class="font-bold text-lg mt-1">Corrida #${order.id.slice(0, 6)} <span class="text-emerald-600 text-base">• ${fee > 0 ? `Taxa ${formatBRL(fee)}` : 'Taxa a combinar'}</span></h3>
+                        <h3 class="font-bold text-lg mt-1">Corrida #${order.id.slice(0, 6)} <span class="text-emerald-600 text-base">• ${fee > 0 ? `Você ganha ${formatBRL(fee)}` : 'Taxa a combinar'}</span></h3>
                         <p class="text-xs text-gray-500">📍 Retirada: ${escapeHtml(storeAddress || 'endereço não informado')}</p>
                         <p class="text-xs text-gray-500">🏁 Entrega: ${escapeHtml(addr.address || 'endereço não informado')}${addr.client_name ? ` — ${escapeHtml(addr.client_name)}` : ''}</p>
                         <p class="text-xs text-gray-500">💳 Cobrar: ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</p>
+                        ${addr.notes ? `<p class="text-xs text-gray-500">📝 ${escapeHtml(addr.notes)}</p>` : ''}
                         ${!isReady && clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="inline-block text-xs text-emerald-700 hover:underline mt-1">💬 Falar com o cliente</a>` : ''}
-                        <p class="text-sm font-bold text-gray-700 mt-1">Status: ${isReady ? 'Pronto para retirada' : 'Em rota de entrega'}</p>
                     </div>
 
-                    <div>
+                    <div class="shrink-0">
                         ${isReady
-                            ? `<button onclick="aceitarCorrida('${order.id}')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-lg">Aceitar Corrida</button>`
-                            : `<button onclick="finalizarEntrega('${order.id}', '${escapeHtml(order.delivery_pin)}')" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg">Confirmar PIN e Entregar</button>`
+                            ? `<button data-accept="${escapeHtml(order.id)}" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-lg">Aceitar Corrida</button>`
+                            : `<button data-finish="${escapeHtml(order.id)}" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg">Confirmar PIN e Entregar</button>`
                         }
                     </div>
                 </div>
@@ -100,39 +231,81 @@
         }).join('');
     }
 
-    function subscribeToOrderChanges() {
-        sb
-            .channel('public:orders:entregador')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-                loadDeliveries();
-            })
-            .subscribe();
+    function renderHistory(orders) {
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const today = orders.filter(o => new Date(o.created_at) >= startOfToday);
+        const sum = list => list.reduce((acc, o) => acc + Number(o.delivery_fee || 0), 0);
+
+        document.getElementById('stat-today-count').textContent = today.length;
+        document.getElementById('stat-today-earn').textContent = formatBRL(sum(today));
+        document.getElementById('stat-total-earn').textContent = formatBRL(sum(orders));
+
+        const el = document.getElementById('feed-history');
+        if (orders.length === 0) {
+            el.innerHTML = '<p class="text-gray-500 p-4">Suas entregas concluídas aparecem aqui.</p>';
+            return;
+        }
+        el.innerHTML = orders.map(o => {
+            const store = storesCache[o.store_id];
+            return `
+                <div class="flex justify-between items-center p-3 gap-2">
+                    <div>
+                        <p class="font-semibold">${escapeHtml(store ? store.name : 'Loja')} <span class="text-gray-400 text-xs">#${o.id.slice(0, 6)}</span></p>
+                        <p class="text-xs text-gray-500">${new Date(o.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <span class="font-bold text-emerald-600">${formatBRL(o.delivery_fee)}</span>
+                </div>
+            `;
+        }).join('');
     }
 
-    window.aceitarCorrida = async (orderId) => {
-        const { error } = await sb.from('orders').update({ status: 'em_rota' }).eq('id', orderId);
+    async function aceitarCorrida(orderId) {
+        // Só aceita se ainda estiver livre — evita dois entregadores na mesma corrida
+        const { data, error } = await sb
+            .from('orders')
+            .update({ status: 'em_rota', courier_ref: courier.id })
+            .eq('id', orderId)
+            .eq('status', 'pronto')
+            .is('courier_ref', null)
+            .select('id');
+
         if (error) {
             alert('Não foi possível aceitar a corrida. Tente novamente.');
             console.error(error);
+            return;
         }
-    };
+        if (!data || data.length === 0) {
+            alert('Essa corrida já foi aceita por outro entregador.');
+        }
+        loadAll();
+    }
 
-    window.finalizarEntrega = async (orderId, pinCorreto) => {
+    async function finalizarEntrega(orderId) {
         const pinDigitado = prompt('Digite o PIN de 4 dígitos informado pelo cliente:');
         if (pinDigitado === null) return;
 
-        if (pinDigitado.trim() === String(pinCorreto).trim()) {
-            const { error } = await sb.from('orders').update({ status: 'entregue' }).eq('id', orderId);
-            if (error) {
-                alert('Erro ao concluir a entrega. Tente novamente.');
-                console.error(error);
-            } else {
-                alert('Entrega finalizada com sucesso!');
-            }
-        } else {
-            alert('PIN incorreto! Confirme com o cliente.');
+        // Confere o PIN no banco (e não no HTML da página)
+        const { data, error } = await sb
+            .from('orders')
+            .update({ status: 'entregue', courier_ref: courier.id })
+            .eq('id', orderId)
+            .eq('status', 'em_rota')
+            .eq('delivery_pin', pinDigitado.trim())
+            .select('id');
+
+        if (error) {
+            alert('Erro ao concluir a entrega. Tente novamente.');
+            console.error(error);
+            return;
         }
-    };
+        if (!data || data.length === 0) {
+            alert('PIN incorreto! Confirme com o cliente.');
+            return;
+        }
+        alert('Entrega finalizada com sucesso!');
+        loadAll();
+    }
   </script>
 </body>
 </html>

@@ -13,6 +13,7 @@ let cart = loadCart();
 let allStores = [];
 let allProducts = [];
 let productsById = {};
+let ratingsByStore = {};
 let activeCategory = null;
 let searchTerm = '';
 
@@ -61,10 +62,19 @@ function normalize(str) {
 async function loadStoresAndProducts() {
     const container = document.getElementById('stores-container');
 
-    const [{ data: stores, error: storeErr }, { data: products, error: prodErr }] = await Promise.all([
+    const [{ data: stores, error: storeErr }, { data: products, error: prodErr }, { data: reviews }] = await Promise.all([
         sb.from('stores').select('*').eq('is_active', true).eq('is_paused', false).order('name'),
-        sb.from('products').select('*').eq('is_paused', false).order('name')
+        sb.from('products').select('*').eq('is_paused', false).order('name'),
+        sb.from('reviews').select('store_id, rating')
     ]);
+
+    // Nota média por loja (se a consulta de avaliações falhar, a vitrine segue sem nota)
+    ratingsByStore = {};
+    (reviews || []).forEach(r => {
+        const agg = ratingsByStore[r.store_id] || (ratingsByStore[r.store_id] = { sum: 0, count: 0 });
+        agg.sum += r.rating;
+        agg.count += 1;
+    });
 
     if (storeErr || prodErr) {
         console.error('Erro ao carregar vitrine:', storeErr || prodErr);
@@ -125,6 +135,12 @@ function renderStores() {
     ).join('');
 }
 
+function ratingBadge(storeId) {
+    const agg = ratingsByStore[storeId];
+    if (!agg || agg.count === 0) return '';
+    return `<span class="text-[10px] font-bold text-amber-600">★ ${(agg.sum / agg.count).toFixed(1).replace('.', ',')} <span class="font-normal text-slate-400">(${agg.count})</span></span>`;
+}
+
 // Loja do tipo orçamento: só divulgação + botão pra pedir orçamento
 function renderQuoteStore(store) {
     return `
@@ -149,7 +165,10 @@ function renderCatalogStore(store, storeProducts) {
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
             <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(store.name)}</h3>
+                    <div class="flex items-center gap-1.5">
+                        <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(store.name)}</h3>
+                        ${ratingBadge(store.id)}
+                    </div>
                     ${store.category ? `<p class="text-[11px] text-slate-500">${escapeHtml(store.category)}</p>` : ''}
                     ${store.address_line ? `<p class="text-[10px] text-slate-400">📍 ${escapeHtml(store.address_line)}</p>` : ''}
                 </div>
