@@ -23,8 +23,8 @@ function freshDb() {
     const now = new Date().toISOString();
     return {
         stores: [
-            { id: S1, name: "Padaria d'Ouro <b>x</b>", category: 'Padaria', whatsapp_number: '47999706651', address_line: 'Av. 10', delivery_fee: 5, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: null, description: 'Pães' },
-            { id: S2, name: 'Baratissimo', category: 'Mercado', whatsapp_number: null, address_line: 'Av. 20', delivery_fee: 0, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: 'outra-conta' },
+            { id: S1, name: "Padaria d'Ouro <b>x</b>", category: 'Padaria', whatsapp_number: '47999706651', address_line: 'Av. 10', delivery_fee: 5, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: null, description: 'Pães', slug: 'padaria-ouro' },
+            { id: S2, name: 'Baratissimo', category: 'Mercado', whatsapp_number: null, address_line: 'Av. 20', delivery_fee: 0, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: 'outra-conta', slug: 'baratissimo' },
             { id: S3, name: 'BOA! Lavagem', category: 'Serviços', whatsapp_number: '47999706651', address_line: '', delivery_fee: 0, is_active: true, is_paused: false, listing_type: 'orcamento', owner_id: USER.id, description: 'Lavagem' },
         ],
         products: [
@@ -43,7 +43,7 @@ function freshDb() {
               delivery_address: { client_name: 'Caio', address: 'Rua 3', payment_method: 'Pix' }, order_items: [] },
         ],
         reviews: [
-            { store_id: S1, rating: 5, comment: '<b>bom</b>', created_at: now },
+            { store_id: S1, rating: 5, comment: '<b>bom</b> demais', created_at: now },
             { store_id: S1, rating: 4, comment: null, created_at: now },
         ],
         posts: [{ id: 'm1', post_type: 'desapego', title: 'Sofá <i>x</i>', description: 'bom', price: null, author_name: 'Zé', author_whatsapp: '48999990000', is_active: true, created_at: now }],
@@ -121,7 +121,7 @@ function select(db, table, url) {
         return rows;
     };
     switch (table) {
-        case 'stores': return byEq(byEq(db.stores, 'id'), 'owner_id');
+        case 'stores': return byEq(byEq(byEq(db.stores, 'id'), 'owner_id'), 'slug');
         case 'products': return byEq(byEq(db.products, 'id'), 'store_id');
         case 'orders': return byEq(byEq(db.orders, 'id'), 'store_id');
         case 'reviews': return byEq(db.reviews, 'store_id');

@@ -39,7 +39,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   e ativar/desativar, lista de pedidos recentes com filtro por status e botão de cancelar.
 - [x] **4. Cliente cancela pedido ainda "novo".** _(26/09/2026, PR #7)_ Função `cancel_order_public(id)` que só cancela se o
   status for `novo`; botão na página de acompanhamento.
-- [ ] **5. Página própria de cada loja** (`loja.html?slug=`): cabeçalho, avaliações, cardápio e link
+- [x] **5. Página própria de cada loja** _(26/09/2026, PR #8)_ (`loja.html?slug=`): cabeçalho, avaliações, cardápio e link
   compartilhável; vitrine e QR do balcão (`13_printable_table_qr.html`) apontando para ela.
 - [ ] **6. Horário de funcionamento.** Colunas de horário por dia da semana; vitrine mostra
   "Fechado — abre às X" e `place_order` recusa fora do horário; lojista configura no painel.

@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Display de Balcão — Av. das Tipuanas Local</title>
+    <title>Display de Balcão — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -31,7 +33,7 @@
             <div class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase border border-emerald-100">
                 🌿 Av. das Tipuanas
             </div>
-            <h1 class="text-2xl font-black text-slate-900 leading-tight">Compre do Vizinho</h1>
+            <h1 id="qr-title" class="text-2xl font-black text-slate-900 leading-tight">Compre do Vizinho</h1>
             <p class="text-xs text-slate-500 font-medium">Faça seu pedido direto pelo celular</p>
         </div>
 
@@ -64,15 +66,29 @@
     </div>
 
     <script>
-        // Gera o QR Code dinamicamente apontando para o link oficial da plataforma
-        new QRCode(document.getElementById("qrcode"), {
-            text: "https://avenidadastipuanas.online",
-            width: 140,
-            height: 140,
-            colorDark: "#065f46",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
+        // Com ?slug=, o QR aponta para a página própria da loja; sem, para a vitrine do bairro.
+        // A URL usa o domínio em que o site está aberto (produção ou preview).
+        const slug = new URLSearchParams(window.location.search).get('slug');
+        const baseUrl = new URL('.', window.location.href).href;
+        const target = slug ? `${baseUrl}loja.html?slug=${encodeURIComponent(slug)}` : baseUrl;
+
+        if (typeof QRCode === 'function') {
+            new QRCode(document.getElementById("qrcode"), {
+                text: target,
+                width: 140,
+                height: 140,
+                colorDark: "#065f46",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+        document.getElementById('qrcode').dataset.target = target;
+
+        if (slug) {
+            sb.from('stores').select('name').eq('slug', slug).maybeSingle().then(({ data }) => {
+                if (data) document.getElementById('qr-title').textContent = data.name;
+            });
+        }
     </script>
 </body>
 </html>
