@@ -225,6 +225,45 @@ test('admin: admin vê métricas (comissão só sobre entregues)', { loggedIn: t
     assert.strictEqual(await page.textContent('#total-gmv'), 'R$ 30.00');
 });
 
+test('admin: edita loja, define dono, cancela pedido e desativa entregador', { loggedIn: true }, async (page, db) => {
+    db.admin = true;
+    db.couriers.push({ id: 'c1', name: 'Joao <b>', phone: '48911112222', vehicle: 'Moto', is_active: true, user_id: 'x' });
+    await page.goto(BASE + '14_admin_analytics_dashboard.html');
+    await page.waitForSelector('[data-edit-store]');
+    assert.ok((await page.innerHTML('#stores-admin-table')).includes('sem dono'), 'loja sem dono sinalizada');
+    assert.ok(!(await page.$('#couriers-admin-list b')), 'nome do entregador escapado');
+
+    // Edita a loja S2 (sem WhatsApp) e define o dono
+    await page.click(`[data-edit-store="${S2}"]`);
+    await page.waitForSelector('#store-editor [name="whatsapp_number"]');
+    await page.fill('#store-editor [name="whatsapp_number"]', '47999706651');
+    await page.click('#store-editor button[type="submit"]');
+    await page.waitForSelector('text=Dados salvos');
+    const patch = db.writes.find(x => x.table === 'stores' && x.method === 'PATCH');
+    assert.strictEqual(patch.body.whatsapp_number, '47999706651');
+
+    await page.click(`[data-edit-store="${S2}"]`);
+    await page.fill('#store-editor [data-role="owner-email"]', 'naoexiste@x.dev');
+    await page.click('#store-editor [data-role="owner-save"]');
+    await page.waitForSelector('text=Nenhuma conta com esse e-mail');
+    await page.fill('#store-editor [data-role="owner-email"]', USER.email);
+    await page.click('#store-editor [data-role="owner-save"]');
+    await page.waitForSelector('text=Dono definido');
+    assert.strictEqual(db.stores.find(x => x.id === S2).owner_id, USER.id);
+
+    // Pedidos em aberto: cancela um
+    await page.waitForSelector('[data-cancel-order]');
+    await page.click('[data-cancel-order]');
+    await page.waitForTimeout(200);
+    assert.ok(db.writes.some(x => x.table === 'orders' && x.method === 'PATCH' && x.body.status === 'cancelado'));
+
+    // Entregador
+    await page.click('[data-toggle-courier="c1"]');
+    await page.waitForTimeout(200);
+    const cw = db.writes.find(x => x.table === 'couriers' && x.method === 'PATCH');
+    assert.strictEqual(cw.body.is_active, false);
+});
+
 // ---------------------------------------------------------------- Runner
 (async () => {
     const only = process.argv[2];

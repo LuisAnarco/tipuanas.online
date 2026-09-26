@@ -34,7 +34,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   rodando nos PRs. Usar o Chromium já instalado quando existir (`/opt/pw-browsers`).
 - [x] **2. Lojista edita os dados da loja.** _(26/09/2026, PR #5)_ Tela/aba no painel para alterar nome, categoria, descrição,
   WhatsApp, endereço, taxa de entrega e tipo (catálogo/orçamento). Hoje só dá para pausar.
-- [ ] **3. Admin gerencia lojas e entregadores.** No painel admin: editar qualquer loja (inclusive
+- [x] **3. Admin gerencia lojas e entregadores.** _(26/09/2026, PR #6)_ No painel admin: editar qualquer loja (inclusive
   WhatsApp — a "Lanchonete Av. das Tipuanas" está sem número), ver/definir dono, listar entregadores
   e ativar/desativar, lista de pedidos recentes com filtro por status e botão de cancelar.
 - [ ] **4. Cliente cancela pedido ainda "novo".** Função `cancel_order_public(id)` que só cancela se o
