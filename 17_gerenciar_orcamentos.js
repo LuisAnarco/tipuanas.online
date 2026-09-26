@@ -60,6 +60,15 @@ async function initPanel() {
     document.getElementById('repasse-section').classList.remove('hidden');
     document.getElementById('requests-section').classList.remove('hidden');
     updatePauseUI(store.is_paused);
+    renderStoreSettings(document.getElementById('store-settings'), store, {
+        onSaved: saved => {
+            document.getElementById('store-title').textContent = saved.name;
+            // Virou comércio com cardápio: o painel certo é o de pedidos
+            if (saved.listing_type !== 'orcamento') {
+                window.location.href = `04_merchant_portal.html?store=${saved.id}`;
+            }
+        }
+    });
 
     fetchRequests();
     subscribeToRequests();

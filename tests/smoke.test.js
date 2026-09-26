@@ -156,6 +156,35 @@ test('lojista: loja de outra conta é recusada e cadastro cria loja com dono', {
     assert.strictEqual(w.body[0].owner_id, USER.id);
 });
 
+test('lojista: edita os dados da loja', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#store-settings summary');
+    assert.strictEqual(await page.inputValue('#store-settings [name="name"]'), "Padaria d'Ouro <b>x</b>", 'nome carregado sem virar HTML');
+    await page.click('#store-settings summary');
+    await page.fill('#store-settings [name="name"]', 'Padaria Nova');
+    await page.fill('#store-settings [name="whatsapp_number"]', '(47) 99970-6651');
+    await page.fill('#store-settings [name="delivery_fee"]', '7');
+    await page.click('#store-settings button[type="submit"]');
+    await page.waitForSelector('text=Dados salvos');
+    const w = db.writes.find(x => x.table === 'stores' && x.method === 'PATCH');
+    assert.strictEqual(w.body.whatsapp_number, '47999706651', 'WhatsApp só com dígitos');
+    assert.strictEqual(w.body.delivery_fee, 7);
+    assert.ok(!('owner_id' in w.body) && !('is_active' in w.body), 'não mexe em dono/ativação');
+    assert.strictEqual(await page.textContent('#store-title'), 'Padaria Nova');
+});
+
+test('lojista: WhatsApp inválido não é salvo', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#store-settings summary');
+    await page.click('#store-settings summary');
+    await page.fill('#store-settings [name="whatsapp_number"]', '123');
+    await page.click('#store-settings button[type="submit"]');
+    await page.waitForSelector('text=WhatsApp deve ter DDD');
+    assert.ok(!db.writes.some(x => x.table === 'stores' && x.method === 'PATCH'));
+});
+
 test('lojista: cardápio carrega com login', { loggedIn: true }, async (page, db) => {
     await page.goto(BASE + '15_gerenciar_cardapio.html?store=' + S1);
     await page.waitForSelector('#products-list button');
