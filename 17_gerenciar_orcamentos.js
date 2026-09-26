@@ -30,18 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initPanel() {
+    const user = await requireLogin({
+        title: 'Painel de Orçamentos',
+        subtitle: 'Entre com o e-mail do seu negócio para ver as solicitações.'
+    });
     const urlParams = new URLSearchParams(window.location.search);
-    const storeId = urlParams.get('store') || localStorage.getItem(STORE_ID_KEY);
 
-    if (!storeId) {
-        document.getElementById('no-store-section').classList.remove('hidden');
-        return;
-    }
+    const { store } = await resolveMerchantStore(user);
 
-    const { data: store, error } = await sb.from('stores').select('*').eq('id', storeId).single();
-
-    if (error || !store) {
-        console.error('Loja não encontrada:', error);
+    if (!store) {
         document.getElementById('no-store-section').classList.remove('hidden');
         return;
     }

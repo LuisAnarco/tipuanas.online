@@ -44,10 +44,28 @@ Projeto `avenidadastipuanas.online`. Tabelas usadas: `stores`, `products`, `orde
 
 Comissão: 8% fixo sobre pedidos **entregues** (`PLATFORM_COMMISSION_RATE` em `config.js`).
 
-## Pendência importante antes de escalar: segurança
+## Login e segurança
 
-Hoje não há login. O painel do lojista é identificado só pelo `?store=<id>` na URL, e as políticas
-de RLS liberam leitura e escrita para qualquer um com a chave pública (`anon`). Isso é aceitável
-para o piloto com poucas lojas conhecidas, mas qualquer pessoa com conhecimento técnico consegue
-alterar pedidos, produtos e lojas. O próximo passo é Supabase Auth (login por e-mail/WhatsApp para
-lojista, entregador e admin) + RLS por `owner_id`.
+Login por **link no e-mail** (Supabase Auth, sem senha) para lojista, entregador e admin — código em
+`auth.js`. O cliente que compra continua sem login.
+
+| Quem | Como é identificado | O que pode |
+|---|---|---|
+| Cliente | sem login | faz pedido, acompanha e avalia só pelo link do pedido (funções `place_order`, `get_order_public`, `get_orders_*`, `create_service_request`, ...) |
+| Lojista | `stores.owner_id = auth.uid()` | só a própria loja, produtos, pedidos e orçamentos |
+| Entregador | `couriers.user_id = auth.uid()` | fila de corridas livres e as próprias; aceite e PIN via `accept_ride` / `finish_ride` |
+| Admin | `profiles.role = 'admin'` (e-mails em `admin_emails` viram admin no 1º login) | tudo |
+
+Lojas cadastradas antes do login não têm dono: o primeiro lojista que abrir o painel dela logado
+pode vincular (`claim_store`). Só o admin muda dono ou ativação de loja.
+
+Migrações em `supabase/migrations/`:
+- `20260925_auth_01_funcoes_e_politicas.sql` — **aplicada**. Só adiciona (funções e políticas novas).
+- `20260925_auth_02_bloqueio_acesso_publico.sql` — **aplicar só depois de publicar este front-end**.
+  Remove o acesso público de escrita/leitura que o site antigo usa.
+
+Configuração no painel do Supabase (Authentication):
+- **URL Configuration**: *Site URL* = domínio do site e, em *Redirect URLs*, `https://SEU-DOMINIO/**`
+  (e `http://localhost:8000/**` para testes locais).
+- **Emails / SMTP**: o envio padrão do Supabase tem limite baixo de e-mails por hora; para uso real,
+  configure um SMTP próprio (ex.: Resend, Brevo) e traduza o modelo "Magic Link" para português.

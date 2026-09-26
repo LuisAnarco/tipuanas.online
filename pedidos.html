@@ -49,8 +49,6 @@
             cancelado: { label: 'Cancelado', cls: 'bg-slate-100 text-slate-500 border-slate-200' }
         };
 
-        const ORDER_SELECT = 'id, status, total_amount, created_at, is_takeout, store_id, stores(name), order_items(quantity, products(name))';
-
         document.addEventListener('DOMContentLoaded', () => {
             const phoneInput = document.getElementById('phone-input');
             let client = {};
@@ -64,7 +62,10 @@
         });
 
         function readIds() {
-            try { return JSON.parse(localStorage.getItem(MY_ORDERS_KEY)) || []; } catch (e) { return []; }
+            try {
+                const ids = JSON.parse(localStorage.getItem(MY_ORDERS_KEY)) || [];
+                return ids.filter(id => /^[0-9a-f-]{36}$/i.test(id)); // id inválido derrubaria a consulta toda
+            } catch (e) { return []; }
         }
 
         async function loadDeviceOrders() {
@@ -73,7 +74,8 @@
                 renderOrders([], 'Nenhum pedido feito neste aparelho ainda. Busque pelo seu WhatsApp acima.');
                 return;
             }
-            const { data, error } = await sb.from('orders').select(ORDER_SELECT).in('id', ids).order('created_at', { ascending: false });
+            // Funções no banco devolvem só o resumo (sem endereço/PIN): cliente não tem login
+            const { data, error } = await sb.rpc('get_orders_public', { p_ids: ids });
             if (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 renderOrders([], 'Não foi possível carregar seus pedidos agora.');
@@ -90,12 +92,7 @@
             }
             document.getElementById('orders-list').innerHTML = '<p class="text-center text-xs text-slate-400 py-8">Buscando...</p>';
 
-            const { data, error } = await sb
-                .from('orders')
-                .select(ORDER_SELECT)
-                .eq('delivery_address->>client_phone', phone)
-                .order('created_at', { ascending: false })
-                .limit(30);
+            const { data, error } = await sb.rpc('get_orders_by_phone', { p_phone: phone });
 
             if (error) {
                 console.error('Erro ao buscar por telefone:', error);

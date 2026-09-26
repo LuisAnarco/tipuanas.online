@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="auth.js"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen p-4 md:p-6">
   <div class="max-w-4xl mx-auto">
@@ -16,7 +17,6 @@
         <p id="courier-name" class="text-xs text-gray-500"></p>
       </div>
       <div class="flex items-center gap-3">
-        <button id="logout-btn" class="hidden text-xs text-gray-500 hover:text-black underline">Sair</button>
         <a href="index.html" class="text-sm text-gray-600 hover:text-black">Ir para Vitrine</a>
       </div>
     </header>
@@ -34,7 +34,7 @@
         <button id="su-submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-lg text-sm">Cadastrar e ver corridas</button>
         <p id="su-error" class="hidden text-xs text-red-600"></p>
       </div>
-      <p class="text-[11px] text-gray-400">Já é cadastrado em outro aparelho? Preencha o mesmo WhatsApp que a gente encontra seu cadastro.</p>
+      <p class="text-[11px] text-gray-400">Seu cadastro fica vinculado ao e-mail com que você entrou — em outro aparelho, é só entrar com o mesmo e-mail.</p>
     </section>
 
     <!-- Painel -->
@@ -74,16 +74,14 @@
   </div>
 
   <script>
-    const COURIER_KEY = 'tipuanas_courier_id';
+    // Sem delivery_pin: o PIN só é conferido no banco (finish_ride)
+    const RIDE_COLUMNS = 'id, store_id, status, total_amount, delivery_fee, delivery_address, created_at, courier_ref';
+    let currentUser = null;
     let courier = null;
     let storesCache = {};
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('su-submit').addEventListener('click', cadastrar);
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            localStorage.removeItem(COURIER_KEY);
-            window.location.reload();
-        });
         // Delegação: botões das corridas
         document.getElementById('panel-section').addEventListener('click', event => {
             const accept = event.target.closest('[data-accept]');
@@ -95,14 +93,18 @@
     });
 
     async function init() {
-        const courierId = localStorage.getItem(COURIER_KEY);
-        if (courierId) {
-            const { data } = await sb.from('couriers').select('*').eq('id', courierId).maybeSingle();
-            if (data && data.is_active) {
-                startPanel(data);
-                return;
-            }
-            localStorage.removeItem(COURIER_KEY);
+        currentUser = await requireLogin({
+            title: 'Painel do Entregador',
+            subtitle: 'Entre com o seu e-mail para ver e aceitar corridas.'
+        });
+
+        const { data } = await sb.from('couriers').select('*').eq('user_id', currentUser.id).maybeSingle();
+        if (data && data.is_active) {
+            startPanel(data);
+            return;
+        }
+        if (data && !data.is_active) {
+            document.getElementById('signup-section').innerHTML = '<p class="text-sm text-gray-600">Seu cadastro de entregador está desativado. Fale com a administração do Tipuanas.online.</p>';
         }
         document.getElementById('signup-section').classList.remove('hidden');
     }
@@ -123,32 +125,26 @@
         btn.disabled = true;
         btn.textContent = 'Salvando...';
 
-        // Mesmo WhatsApp = mesmo entregador (troca de aparelho)
-        const { data: existing } = await sb.from('couriers').select('*').eq('phone', phone).eq('is_active', true).limit(1);
-        let record = existing && existing[0];
+        const { data, error } = await sb.from('couriers')
+            .insert([{ name, phone, vehicle: vehicle || null, user_id: currentUser.id }])
+            .select();
 
-        if (!record) {
-            const { data, error } = await sb.from('couriers').insert([{ name, phone, vehicle: vehicle || null }]).select();
-            if (error || !data || !data[0]) {
-                console.error('Erro ao cadastrar entregador:', error);
-                errorEl.textContent = 'Não foi possível cadastrar agora. Tente novamente.';
-                errorEl.classList.remove('hidden');
-                btn.disabled = false;
-                btn.textContent = 'Cadastrar e ver corridas';
-                return;
-            }
-            record = data[0];
+        if (error || !data || !data[0]) {
+            console.error('Erro ao cadastrar entregador:', error);
+            errorEl.textContent = 'Não foi possível cadastrar agora. Tente novamente.';
+            errorEl.classList.remove('hidden');
+            btn.disabled = false;
+            btn.textContent = 'Cadastrar e ver corridas';
+            return;
         }
 
-        localStorage.setItem(COURIER_KEY, record.id);
         document.getElementById('signup-section').classList.add('hidden');
-        startPanel(record);
+        startPanel(data[0]);
     }
 
     function startPanel(record) {
         courier = record;
         document.getElementById('courier-name').textContent = `${record.name}${record.vehicle ? ` • ${record.vehicle}` : ''}`;
-        document.getElementById('logout-btn').classList.remove('hidden');
         document.getElementById('panel-section').classList.remove('hidden');
         loadAll();
         sb.channel('public:orders:entregador')
@@ -159,11 +155,11 @@
     async function loadAll() {
         // pronto = aguardando entregador aceitar; em_rota sem entregador = corrida antiga (antes do cadastro)
         const [available, mine, history] = await Promise.all([
-            sb.from('orders').select('*')
+            sb.from('orders').select(RIDE_COLUMNS)
                 .or('status.eq.pronto,and(status.eq.em_rota,courier_ref.is.null)')
                 .not('is_takeout', 'is', true) // retirada pelo próprio cliente não vira corrida
                 .order('created_at', { ascending: true }),
-            sb.from('orders').select('*').eq('status', 'em_rota').eq('courier_ref', courier.id).order('created_at', { ascending: true }),
+            sb.from('orders').select(RIDE_COLUMNS).eq('status', 'em_rota').eq('courier_ref', courier.id).order('created_at', { ascending: true }),
             sb.from('orders').select('id, store_id, delivery_fee, created_at, delivery_address').eq('status', 'entregue').eq('courier_ref', courier.id).order('created_at', { ascending: false }).limit(100)
         ]);
 
@@ -261,21 +257,15 @@
     }
 
     async function aceitarCorrida(orderId) {
-        // Só aceita se ainda estiver livre — evita dois entregadores na mesma corrida
-        const { data, error } = await sb
-            .from('orders')
-            .update({ status: 'em_rota', courier_ref: courier.id })
-            .eq('id', orderId)
-            .eq('status', 'pronto')
-            .is('courier_ref', null)
-            .select('id');
+        // A função no banco só aceita se a corrida ainda estiver livre
+        const { data: accepted, error } = await sb.rpc('accept_ride', { p_order_id: orderId });
 
         if (error) {
             alert('Não foi possível aceitar a corrida. Tente novamente.');
             console.error(error);
             return;
         }
-        if (!data || data.length === 0) {
+        if (!accepted) {
             alert('Essa corrida já foi aceita por outro entregador.');
         }
         loadAll();
@@ -285,21 +275,15 @@
         const pinDigitado = prompt('Digite o PIN de 4 dígitos informado pelo cliente:');
         if (pinDigitado === null) return;
 
-        // Confere o PIN no banco (e não no HTML da página)
-        const { data, error } = await sb
-            .from('orders')
-            .update({ status: 'entregue', courier_ref: courier.id })
-            .eq('id', orderId)
-            .eq('status', 'em_rota')
-            .eq('delivery_pin', pinDigitado.trim())
-            .select('id');
+        // O PIN é conferido no banco (não vem para o navegador)
+        const { data: finished, error } = await sb.rpc('finish_ride', { p_order_id: orderId, p_pin: pinDigitado.trim() });
 
         if (error) {
             alert('Erro ao concluir a entrega. Tente novamente.');
             console.error(error);
             return;
         }
-        if (!data || data.length === 0) {
+        if (!finished) {
             alert('PIN incorreto! Confirme com o cliente.');
             return;
         }

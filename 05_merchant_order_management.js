@@ -27,6 +27,7 @@ const CATEGORY_OPTIONS = {
 };
 
 const STORE_ID_KEY = 'tipuanas_store_id';
+let currentUser = null;
 let currentStore = null;
 let ordersChannel = null;
 const notifier = typeof MerchantNotificationService === 'function' ? new MerchantNotificationService() : null;
@@ -36,37 +37,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Descobre qual loja está acessando o painel: primeiro pela URL (?store=),
- * depois pelo que foi salvo no navegador. Se não achar nenhuma, mostra o
- * formulário de cadastro rápido.
+ * Exige login e descobre qual loja o lojista gerencia (ver resolveMerchantStore
+ * em auth.js). Se a conta ainda não tem loja, mostra o cadastro rápido.
  */
 async function initMerchantPanel() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let storeId = urlParams.get('store') || localStorage.getItem(STORE_ID_KEY);
+    currentUser = await requireLogin({
+        title: 'Painel do Lojista',
+        subtitle: 'Entre com o seu e-mail para ver os pedidos e gerenciar sua loja.'
+    });
 
-    if (!storeId) {
-        showBootstrap();
-        return;
-    }
+    const { store, message } = await resolveMerchantStore(currentUser);
 
-    const { data: store, error } = await sb.from('stores').select('*').eq('id', storeId).single();
-
-    if (error || !store) {
-        console.error('Loja não encontrada:', error);
-        localStorage.removeItem(STORE_ID_KEY);
-        showBootstrap();
+    if (!store) {
+        showBootstrap(message);
         return;
     }
 
     // Lojas do tipo "orçamento" não usam cardápio/carrinho — têm painel próprio
     if (store.listing_type === 'orcamento') {
-        localStorage.setItem(STORE_ID_KEY, store.id);
         window.location.href = `17_gerenciar_orcamentos.html?store=${store.id}`;
         return;
     }
 
     currentStore = store;
-    localStorage.setItem(STORE_ID_KEY, store.id);
+    const urlParams = new URLSearchParams(window.location.search);
 
     // Garante que a URL sempre reflita a loja atual (facilita salvar/compartilhar o link)
     if (urlParams.get('store') !== store.id) {
@@ -79,8 +73,13 @@ async function initMerchantPanel() {
     subscribeToNewOrders();
 }
 
-function showBootstrap() {
+function showBootstrap(message) {
     document.getElementById('bootstrap-section').classList.remove('hidden');
+    if (message) {
+        const errorEl = document.getElementById('bs-error');
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+    }
     atualizarCategorias();
 }
 
@@ -164,6 +163,7 @@ async function criarLoja() {
         delivery_fee: fee,
         description: description || null,
         listing_type: listingType,
+        owner_id: currentUser.id,
         is_active: true,
         is_paused: false
     }]).select();

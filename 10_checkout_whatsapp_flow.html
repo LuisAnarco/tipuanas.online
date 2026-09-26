@@ -256,87 +256,39 @@
             const groups = groupByStore(cart);
             const storeIds = Object.keys(groups);
 
-            // Confere lojas e preços direto no banco: o carrinho fica no navegador e
-            // pode estar desatualizado (produto pausado, preço alterado, loja fechada).
-            const [{ data: stores, error: storeErr }, { data: products, error: prodErr }] = await Promise.all([
-                sb.from('stores').select('*').in('id', storeIds),
-                sb.from('products').select('id, name, price, is_paused, store_id').in('id', cart.map(i => i.id))
-            ]);
-
-            if (storeErr || prodErr) {
-                console.error('Erro ao conferir carrinho:', storeErr || prodErr);
-                showError('Não foi possível confirmar as lojas do pedido. Tente novamente.');
-                resetSubmitButton();
-                return;
-            }
-
-            const storesById = {};
-            (stores || []).forEach(s => { storesById[s.id] = s; });
-            const productsById = {};
-            (products || []).forEach(p => { productsById[p.id] = p; });
+            // O pedido é criado por uma função no banco (place_order): ela confere se a
+            // loja está aberta, usa os preços atuais, calcula a taxa e gera o PIN — o
+            // carrinho do navegador pode estar desatualizado ou ter sido adulterado.
+            const SKIP_REASONS = {
+                store_unavailable: 'loja fechada no momento',
+                items_unavailable: 'itens indisponíveis',
+                invalid_customer: 'dados de entrega incompletos'
+            };
 
             const confirmations = [];
             const skipped = [];
             const doneStoreIds = [];
 
             for (const storeId of storeIds) {
-                const store = storesById[storeId];
-                const storeName = store ? store.name : groups[storeId][0].storeName;
+                const storeName = groups[storeId][0].storeName;
 
-                if (!store || !store.is_active || store.is_paused) {
-                    skipped.push(`${storeName} (loja fechada no momento)`);
-                    continue;
-                }
+                const { data: result, error } = await sb.rpc('place_order', {
+                    p_store_id: storeId,
+                    p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity })),
+                    p_customer: { name, phone, address, payment_method: payment, notes },
+                    p_is_takeout: takeout
+                });
 
-                // Usa preço/nome atuais do banco e descarta itens que saíram do cardápio
-                const items = groups[storeId]
-                    .filter(item => productsById[item.id] && !productsById[item.id].is_paused)
-                    .map(item => ({ ...item, name: productsById[item.id].name, price: Number(productsById[item.id].price) }));
-
-                if (items.length === 0) {
-                    skipped.push(`${storeName} (itens indisponíveis)`);
-                    continue;
-                }
-
-                const deliveryFee = takeout ? 0 : Number(store.delivery_fee || 0);
-                const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-                const total = subtotal + deliveryFee;
-                const pin = Math.floor(1000 + Math.random() * 9000).toString();
-
-                const { data: inserted, error } = await sb.from('orders').insert([{
-                    store_id: storeId,
-                    status: 'novo',
-                    total_amount: total,
-                    delivery_fee: deliveryFee,
-                    is_takeout: takeout,
-                    delivery_pin: pin,
-                    delivery_address: {
-                        client_name: name,
-                        client_phone: phone,
-                        address: address || null,
-                        payment_method: payment,
-                        notes: notes || null
-                    }
-                }]).select();
-
-                if (error || !inserted || !inserted[0]) {
+                if (error || !result) {
                     console.error('Erro ao registrar pedido:', error);
-                    skipped.push(`${storeName} (erro ao registrar)`);
+                    const code = error && Object.keys(SKIP_REASONS).find(k => (error.message || '').includes(k));
+                    skipped.push(`${storeName} (${code ? SKIP_REASONS[code] : 'erro ao registrar'})`);
                     continue;
                 }
 
-                const orderId = inserted[0].id;
-
-                const { error: itemsError } = await sb.from('order_items').insert(items.map(item => ({
-                    order_id: orderId,
-                    product_id: item.id,
-                    quantity: item.quantity,
-                    unit_price: item.price
-                })));
-                if (itemsError) {
-                    console.error('Erro ao registrar itens do pedido:', itemsError);
-                }
-
+                const orderId = result.id;
+                const deliveryFee = Number(result.delivery_fee);
+                const total = Number(result.total);
                 const trackUrl = new URL(`11_order_tracking_realtime.html?id=${orderId}`, window.location.href).href;
 
                 let message = `*NOVO PEDIDO - TIPUANAS.ONLINE*\n`;
@@ -347,8 +299,8 @@
                 message += `💳 *Pagamento:* ${payment}\n`;
                 if (notes) message += `📝 *Obs:* ${notes}\n`;
                 message += `\n*ITENS:*\n`;
-                items.forEach(item => {
-                    message += `• ${item.quantity}x ${item.name} (${formatBRL(item.price * item.quantity)})\n`;
+                result.items.forEach(item => {
+                    message += `• ${item.quantity}x ${item.name} (${formatBRL(item.unit_price * item.quantity)})\n`;
                 });
                 if (deliveryFee > 0) {
                     message += `\n🛵 *Taxa de entrega:* ${formatBRL(deliveryFee)}`;
@@ -356,13 +308,13 @@
                 message += `\n💰 *Total:* ${formatBRL(total)}`;
                 message += `\n\n🔎 Acompanhamento: ${trackUrl}`;
 
-                const whatsappNumber = toWhatsappNumber(store.whatsapp_number);
+                const whatsappNumber = toWhatsappNumber(result.store && result.store.whatsapp_number);
 
                 confirmations.push({
-                    storeName,
+                    storeName: (result.store && result.store.name) || storeName,
                     total,
                     orderId,
-                    pin,
+                    pin: result.pin,
                     waLink: whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}` : null,
                     trackLink: `11_order_tracking_realtime.html?id=${orderId}`
                 });

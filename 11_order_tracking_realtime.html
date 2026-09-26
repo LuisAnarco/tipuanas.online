@@ -188,30 +188,34 @@
             document.getElementById('status-desc').innerHTML = 'Confira o link recebido ou veja em <a href="pedidos.html" class="underline text-emerald-700">Meus pedidos</a>.';
         }
 
+        // O cliente não tem login: o pedido é lido por uma função no banco que só
+        // devolve este pedido (o id no link funciona como senha). Sem login não dá
+        // para ouvir o Realtime, então a página consulta de novo a cada 15s.
+        const POLL_MS = 15000;
+        let pollTimer = null;
+
         async function trackOrder(id) {
-            const { data: order, error } = await sb
-                .from('orders')
-                .select('*, stores(name, whatsapp_number, address_line), order_items(quantity, unit_price, products(name)), reviews(id)')
-                .eq('id', id)
-                .single();
+            const { data: order, error } = await sb.rpc('get_order_public', { p_id: id });
 
             if (error || !order) {
-                showNotFound();
+                if (!pollTimer) showNotFound();
                 return;
             }
 
-            isTakeout = !!order.is_takeout;
-            orderStoreId = order.store_id;
-            // reviews.order_id é único, então o PostgREST pode devolver objeto ou lista
-            alreadyReviewed = Array.isArray(order.reviews) ? order.reviews.length > 0 : !!order.reviews;
-            renderDetails(order);
+            if (!pollTimer) {
+                isTakeout = !!order.is_takeout;
+                orderStoreId = order.store_id;
+                alreadyReviewed = !!order.has_review;
+                renderDetails(order);
+            }
             updateUI(order);
 
-            // Supabase Realtime para ouvir atualizações no status
-            sb.channel(`order:${id}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` }, payload => {
-                    updateUI(payload.new);
-                }).subscribe();
+            clearTimeout(pollTimer);
+            if (!['entregue', 'cancelado'].includes(order.status)) {
+                pollTimer = setTimeout(() => trackOrder(id), POLL_MS);
+            } else {
+                pollTimer = true; // parou de consultar, mas a página já foi montada
+            }
         }
 
         function renderDetails(order) {

@@ -106,15 +106,15 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Enviando...';
 
-            const { data, error } = await sb.from('service_requests').insert([{
-                store_id: storeId,
-                client_name: name,
-                client_whatsapp: whatsapp,
-                necessity_description: description,
-                status: 'solicitado'
-            }]).select();
+            // Criado por função no banco: o cliente não tem login nem acesso direto à tabela
+            const { data: requestId, error } = await sb.rpc('create_service_request', {
+                p_store_id: storeId,
+                p_name: name,
+                p_whatsapp: whatsapp,
+                p_description: description
+            });
 
-            if (error || !data || !data[0]) {
+            if (error || !requestId) {
                 console.error('Erro ao criar solicitação:', error);
                 errorEl.textContent = 'Não foi possível enviar. Tente novamente em instantes.';
                 errorEl.classList.remove('hidden');
@@ -123,9 +123,8 @@
                 return;
             }
 
-            const request = data[0];
             document.getElementById('form-section').classList.add('hidden');
-            document.getElementById('tracking-link').href = `19_acompanhar_orcamento.html?id=${request.id}`;
+            document.getElementById('tracking-link').href = `19_acompanhar_orcamento.html?id=${requestId}`;
             document.getElementById('confirm-section').classList.remove('hidden');
 
             // Avisa o prestador via WhatsApp

@@ -6,7 +6,6 @@
  * ==============================================================================
  */
 
-const STORE_ID_KEY = 'tipuanas_store_id';
 let currentStore = null;
 let editingProductId = null;
 
@@ -15,24 +14,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initMenuPage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const storeId = urlParams.get('store') || localStorage.getItem(STORE_ID_KEY);
+    const user = await requireLogin({
+        title: 'Gerenciar Cardápio',
+        subtitle: 'Entre com o e-mail da sua loja para editar os produtos.'
+    });
 
-    if (!storeId) {
-        document.getElementById('no-store-section').classList.remove('hidden');
-        return;
-    }
+    const { store } = await resolveMerchantStore(user);
 
-    const { data: store, error } = await sb.from('stores').select('*').eq('id', storeId).single();
-
-    if (error || !store) {
-        console.error('Loja não encontrada:', error);
+    if (!store) {
         document.getElementById('no-store-section').classList.remove('hidden');
         return;
     }
 
     currentStore = store;
-    localStorage.setItem(STORE_ID_KEY, store.id);
 
     document.getElementById('store-title').textContent = store.name;
     document.getElementById('nav-pedidos').href = `04_merchant_portal.html?store=${store.id}`;
