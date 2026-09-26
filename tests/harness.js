@@ -168,6 +168,12 @@ async function openPage(browser, db, { loggedIn = false } = {}) {
             return route.fulfill({ status: 200, contentType: type, body: fs.readFileSync(file) });
         }
         if (url.href.includes('supabase-js@2')) return route.fulfill({ status: 200, contentType: 'application/javascript', body: UMD });
+        if (url.pathname.startsWith('/storage/v1/object/')) {
+            db.uploads = db.uploads || [];
+            const raw = req.postDataBuffer() || Buffer.alloc(0);
+            db.uploads.push({ path: url.pathname.replace('/storage/v1/object/', ''), head: raw.subarray(0, 400).toString('latin1'), size: raw.length });
+            return json(200, { Key: url.pathname.replace('/storage/v1/object/', '') });
+        }
         if (url.pathname.startsWith('/auth/v1/otp')) {
             db.otp = { ...JSON.parse(req.postData() || '{}'), url: url.href };
             return json(200, {});
