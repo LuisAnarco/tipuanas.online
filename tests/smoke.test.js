@@ -401,6 +401,25 @@ test('admin: edita loja, define dono, cancela pedido e desativa entregador', { l
     assert.strictEqual(cw.body.is_active, false);
 });
 
+test('PWA: manifest válido, ícones no repositório e todas as telas ligadas ao app', {}, async (page, db) => {
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..');
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, '07_client_pwa_manifest.json'), 'utf8'));
+    for (const icon of manifest.icons) {
+        assert.ok(!/^https?:/.test(icon.src), 'ícone local: ' + icon.src);
+        assert.ok(fs.existsSync(path.join(root, icon.src)), 'ícone existe: ' + icon.src);
+    }
+    assert.ok(manifest.icons.some(i => i.purpose === 'maskable'), 'ícone maskable');
+    for (const f of fs.readdirSync(root).filter(n => n.endsWith('.html'))) {
+        const html = fs.readFileSync(path.join(root, f), 'utf8');
+        assert.ok(html.includes('rel="manifest" href="07_client_pwa_manifest.json"'), 'manifest em ' + f);
+        assert.ok(html.includes('name="theme-color"'), 'theme-color em ' + f);
+    }
+    await page.goto(BASE + 'sw.js');
+    assert.ok((await page.content()).includes('CACHE_VERSION'));
+});
+
 // ---------------------------------------------------------------- Runner
 (async () => {
     const only = process.argv[2];

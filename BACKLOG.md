@@ -45,7 +45,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   "Fechado — abre às X" e `place_order` recusa fora do horário; lojista configura no painel.
 - [x] **7. Fotos de produtos.** _(26/09/2026, PR #10)_ Upload no cardápio para Supabase Storage (bucket público de leitura,
   escrita só do dono da loja), exibindo em `products.image_url`.
-- [ ] **8. PWA de verdade.** Ícones próprios no repositório (hoje o manifest aponta para flaticon),
+- [x] **8. PWA de verdade.** _(26/09/2026, PR #11)_ Ícones próprios no repositório (hoje o manifest aponta para flaticon),
   service worker simples para cache da vitrine, `manifest` e `theme-color` em todas as telas.
 - [ ] **9. Cupons de desconto.** Usar a tabela `coupons` já existente: lojista cria cupom; checkout
   aplica via `place_order` (validação no banco).
