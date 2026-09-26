@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="store-settings.js"></script>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
     <div class="max-w-4xl mx-auto p-4">
@@ -112,6 +113,9 @@
                 </button>
             </div>
         </div>
+
+        <!-- Dados da loja (editáveis pelo dono) -->
+        <div id="store-settings"></div>
 
         <!-- Meu Repasse: quanto a loja já recebeu / vai receber, descontada a comissão da plataforma -->
         <section id="repasse-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">

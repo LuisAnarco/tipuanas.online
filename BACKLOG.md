@@ -32,7 +32,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   simulados (vitrine, checkout via `place_order`, acompanhamento, meus pedidos, painel do lojista com
   login, cardápio, entregador, admin, orçamento). `package.json` com `npm test`, e GitHub Action
   rodando nos PRs. Usar o Chromium já instalado quando existir (`/opt/pw-browsers`).
-- [ ] **2. Lojista edita os dados da loja.** Tela/aba no painel para alterar nome, categoria, descrição,
+- [x] **2. Lojista edita os dados da loja.** _(26/09/2026, PR #5)_ Tela/aba no painel para alterar nome, categoria, descrição,
   WhatsApp, endereço, taxa de entrega e tipo (catálogo/orçamento). Hoje só dá para pausar.
 - [ ] **3. Admin gerencia lojas e entregadores.** No painel admin: editar qualquer loja (inclusive
   WhatsApp — a "Lanchonete Av. das Tipuanas" está sem número), ver/definir dono, listar entregadores

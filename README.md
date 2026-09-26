@@ -14,7 +14,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
 | Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por" |
-| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro da loja, pedidos em tempo real, alerta sonoro, pausa, repasse, avaliações |
+| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro e edição dos dados da loja, pedidos em tempo real, alerta sonoro, pausa, repasse, avaliações |
 | Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos |
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html` | Display com QR Code para o balcão |
@@ -22,7 +22,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Admin | `14_admin_analytics_dashboard.html` | GMV, comissão, recorrência, ranking de produtos, ativar/desativar lojas |
 
 Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
-carregam ele), `06_push_notification_service.js` (alertas do lojista), `07_client_pwa_manifest.json`,
+carregam ele), `store-settings.js` (formulário "Dados da loja", usado pelo lojista e pelo admin), `06_push_notification_service.js` (alertas do lojista), `07_client_pwa_manifest.json`,
 `02_schema_design.json`, `12_merchant_pitch_script.md` e `Claude outputs/` (roadmap e estudos).
 
 ## Rodando localmente

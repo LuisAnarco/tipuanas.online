@@ -121,6 +121,15 @@ function showMerchantPanel(store) {
     document.getElementById('orders-section').classList.remove('hidden');
     updatePauseUI(store.is_paused);
     loadReviews(store.id);
+    renderStoreSettings(document.getElementById('store-settings'), store, {
+        onSaved: saved => {
+            document.getElementById('store-title').textContent = saved.name;
+            // Virou loja de serviços: o painel certo é o de orçamentos
+            if (saved.listing_type === 'orcamento') {
+                window.location.href = `17_gerenciar_orcamentos.html?store=${saved.id}`;
+            }
+        }
+    });
 }
 
 /**

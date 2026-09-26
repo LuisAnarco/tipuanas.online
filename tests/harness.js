@@ -182,6 +182,12 @@ async function openPage(browser, db, { loggedIn = false } = {}) {
                     if (table === 'stores') db.stores.push(...rows);
                     return json(201, rows);
                 }
+                if (method === 'PATCH') {
+                    // Aplica a alteração nas linhas filtradas por id (como o PostgREST)
+                    const rows = select(db, table, url);
+                    rows.forEach(r => Object.assign(r, body));
+                    return json(200, rows);
+                }
                 return json(200, []);
             }
             const rows = select(db, table, url);
