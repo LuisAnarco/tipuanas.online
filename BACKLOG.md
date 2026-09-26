@@ -37,7 +37,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 - [x] **3. Admin gerencia lojas e entregadores.** _(26/09/2026, PR #6)_ No painel admin: editar qualquer loja (inclusive
   WhatsApp — a "Lanchonete Av. das Tipuanas" está sem número), ver/definir dono, listar entregadores
   e ativar/desativar, lista de pedidos recentes com filtro por status e botão de cancelar.
-- [ ] **4. Cliente cancela pedido ainda "novo".** Função `cancel_order_public(id)` que só cancela se o
+- [x] **4. Cliente cancela pedido ainda "novo".** _(26/09/2026, PR #7)_ Função `cancel_order_public(id)` que só cancela se o
   status for `novo`; botão na página de acompanhamento.
 - [ ] **5. Página própria de cada loja** (`loja.html?slug=`): cabeçalho, avaliações, cardápio e link
   compartilhável; vitrine e QR do balcão (`13_printable_table_qr.html`) apontando para ela.

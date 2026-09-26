@@ -81,6 +81,23 @@ test('acompanhamento: cliente avalia pedido entregue', {}, async (page, db) => {
     assert.strictEqual(w.body[0].store_id, S1);
 });
 
+test('acompanhamento: cliente cancela pedido ainda novo', {}, async (page, db) => {
+    db.orderStatus = 'novo';
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#cancel-order-btn:not(.hidden)');
+    await page.click('#cancel-order-btn');
+    await page.waitForSelector('#cancel-order-btn.hidden', { state: 'attached' });
+    assert.strictEqual(await page.textContent('#status-title'), 'Pedido Cancelado');
+    assert.ok(db.calls.some(c => c.fn === 'cancel_order_public' && c.body.p_id === O1));
+});
+
+test('acompanhamento: sem botão de cancelar depois que a loja aceita', {}, async (page, db) => {
+    db.orderStatus = 'em_preparacao';
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#order-details:not(.hidden)');
+    assert.ok(!(await isShown(page, '#cancel-order-btn')));
+});
+
 test('meus pedidos: histórico do aparelho e busca por WhatsApp', {}, async (page, db) => {
     await page.addInitScript(id => localStorage.setItem('tipuanas_my_orders', JSON.stringify([id, 'lixo'])), O1);
     await page.goto(BASE + 'pedidos.html');

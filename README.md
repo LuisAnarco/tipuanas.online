@@ -10,7 +10,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 |---|---|---|
 | Cliente | `index.html` + `09_multistore_cart.js` | Vitrine com busca, filtro por categoria, nota das lojas e carrinho multi-loja |
 | Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada), cria um pedido por loja e abre o WhatsApp de cada uma |
-| Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento em tempo real com PIN de entrega e avaliação da loja após a entrega |
+| Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento com PIN de entrega, cancelamento enquanto o pedido é "novo" e avaliação da loja após a entrega |
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
 | Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por" |
@@ -77,6 +77,7 @@ Migrações em `supabase/migrations/`:
 - `20260925_auth_02_bloqueio_acesso_publico.sql` — **aplicada em 26/09/2026**, depois da publicação
   do front-end com login. Remove o acesso público de escrita/leitura.
 - `20260926_protege_trechos_codigo.sql` — **aplicada**.
+- `20260926_cancelamento_pelo_cliente.sql` — **aplicada**. Função `cancel_order_public` (só cancela pedido `novo`).
 - `20260926_admin_donos_de_loja.sql` — **aplicada**. Funções `admin_store_owners` / `admin_set_store_owner` (só admin).
 
 Configuração no painel do Supabase (Authentication):
