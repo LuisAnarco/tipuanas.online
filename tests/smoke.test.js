@@ -123,6 +123,52 @@ test('horário: checkout explica loja fora do horário', {}, async (page, db) =>
     await page.waitForSelector('text=fora do horário de funcionamento');
 });
 
+test('cupom: checkout mostra desconto e envia o código só para a loja do cupom', {}, async (page, db) => {
+    await page.goto(BASE + 'index.html');
+    await page.evaluate(([s1, s2]) => localStorage.setItem('tipuanas_cart', JSON.stringify([
+        { id: 'p2', name: 'Sonho', price: 6, storeId: s1, storeName: 'Padaria', quantity: 5 },
+        { id: 'p3', name: 'Arroz', price: 25, storeId: s2, storeName: 'Baratissimo', quantity: 1 },
+    ])), [S1, S2]);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.fill('#coupon-code', 'naoexiste');
+    await page.click('#coupon-apply');
+    await page.waitForSelector('text=Cupom não encontrado');
+    await page.fill('#coupon-code', 'dez10');
+    await page.click('#coupon-apply');
+    await page.waitForSelector('text=10% de desconto');
+    assert.ok((await page.innerHTML('#checkout-items')).includes('-R$ 3.00'), 'prévia do desconto na loja do cupom');
+    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 52.00', '30 + 25 - 3');
+
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Av 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#confirmation-view:not(.hidden)');
+    const calls = db.calls.filter(c => c.fn === 'place_order');
+    assert.strictEqual(calls.find(c => c.body.p_store_id === S1).body.p_coupon, 'DEZ10');
+    assert.strictEqual(calls.find(c => c.body.p_store_id === S2).body.p_coupon, null, 'outra loja sem cupom');
+    assert.ok(decodeURIComponent(await page.innerHTML('#confirmation-cards')).includes('Cupom DEZ10'), 'cupom na mensagem do WhatsApp');
+});
+
+test('cupom: lojista cria e desativa cupom', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#coupons-list [data-toggle-coupon]');
+    await page.fill('#coupon-form [name="code"]', 'bem vindo!');
+    await page.fill('#coupon-form [name="discount_value"]', '150');
+    await page.click('#coupon-form button');
+    await page.waitForSelector('text=porcentagem até 100');
+    await page.fill('#coupon-form [name="discount_value"]', '15');
+    await page.click('#coupon-form button');
+    await page.waitForFunction(() => document.querySelector('#coupon-form [name="code"]').value === '');
+    const ins = db.writes.find(x => x.table === 'coupons' && x.method === 'POST');
+    assert.strictEqual(ins.body[0].code, 'BEMVINDO', 'código normalizado');
+    assert.strictEqual(ins.body[0].store_id, S1);
+    await page.click('[data-toggle-coupon="cp1"]');
+    await page.waitForTimeout(200);
+    assert.strictEqual(db.writes.find(x => x.table === 'coupons' && x.method === 'PATCH').body.is_active, false);
+});
+
 test('checkout: cria pedido via place_order, WhatsApp com 55 e pula loja fechada', {}, async (page, db) => {
     await page.goto(BASE + 'index.html');
     await page.evaluate(([s1, s2]) => localStorage.setItem('tipuanas_cart', JSON.stringify([

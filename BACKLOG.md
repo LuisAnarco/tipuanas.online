@@ -47,7 +47,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   escrita só do dono da loja), exibindo em `products.image_url`.
 - [x] **8. PWA de verdade.** _(26/09/2026, PR #11)_ Ícones próprios no repositório (hoje o manifest aponta para flaticon),
   service worker simples para cache da vitrine, `manifest` e `theme-color` em todas as telas.
-- [ ] **9. Cupons de desconto.** Usar a tabela `coupons` já existente: lojista cria cupom; checkout
+- [x] **9. Cupons de desconto.** _(26/09/2026, PR #12)_ Usar a tabela `coupons` já existente: lojista cria cupom; checkout
   aplica via `place_order` (validação no banco).
 - [ ] **10. Mural: moderação e validade.** Posts expiram em 30 dias; autor remove o próprio post com
   um código gerado na publicação; admin remove qualquer post.

@@ -48,6 +48,7 @@ function freshDb() {
         ],
         posts: [{ id: 'm1', post_type: 'desapego', title: 'Sofá <i>x</i>', description: 'bom', price: null, author_name: 'Zé', author_whatsapp: '48999990000', is_active: true, created_at: now }],
         couriers: [],
+        coupons: [{ id: 'cp1', store_id: S1, code: 'DEZ10', discount_type: 'percentage', discount_value: 10, min_order_value: 0, is_active: true }],
         admin: false,
         orderStatus: 'entregue', // status devolvido por get_order_public
         calls: [],   // chamadas de RPC: { fn, body }
@@ -82,7 +83,13 @@ function rpc(db, fn, body) {
             });
             const subtotal = items.reduce((a, i) => a + i.unit_price * i.quantity, 0);
             const fee = body.p_is_takeout ? 0 : store.delivery_fee;
-            return { id: 'bbbbbbbb-0000-0000-0000-00000000000' + db.calls.length, pin: '4321', subtotal, delivery_fee: fee, total: subtotal + fee, items, store: { name: store.name, whatsapp_number: store.whatsapp_number } };
+            let discount = 0;
+            if (body.p_coupon) {
+                const c = db.coupons.find(x => x.code === body.p_coupon && x.store_id === store.id && x.is_active);
+                if (!c) throw { status: 400, body: { code: 'P0001', message: 'invalid_coupon' } };
+                discount = Math.round(Math.min(subtotal, c.discount_type === 'percentage' ? subtotal * c.discount_value / 100 : c.discount_value) * 100) / 100;
+            }
+            return { id: 'bbbbbbbb-0000-0000-0000-00000000000' + db.calls.length, pin: '4321', subtotal, discount, coupon_code: body.p_coupon || null, delivery_fee: fee, total: subtotal - discount + fee, items, store: { name: store.name, whatsapp_number: store.whatsapp_number } };
         }
         case 'get_order_public': {
             const o = db.orders.find(x => x.id === body.p_id);
@@ -97,6 +104,12 @@ function rpc(db, fn, body) {
             if (db.orderStatus !== 'novo') return false;
             db.orderStatus = 'cancelado';
             return true;
+        }
+        case 'check_coupon': {
+            const c = db.coupons.find(x => x.code === String(body.p_code).toUpperCase() && x.is_active);
+            if (!c) return null;
+            const st = db.stores.find(x => x.id === c.store_id);
+            return { code: c.code, store_id: c.store_id, store_name: st.name, discount_type: c.discount_type, discount_value: c.discount_value, min_order_value: c.min_order_value };
         }
         case 'accept_ride': return true;
         case 'finish_ride': return body.p_pin === '1234';
@@ -128,6 +141,7 @@ function select(db, table, url) {
         case 'reviews': return byEq(db.reviews, 'store_id');
         case 'community_posts': return db.posts;
         case 'couriers': return db.couriers;
+        case 'coupons': return byEq(db.coupons, 'store_id');
         default: return [];
     }
 }

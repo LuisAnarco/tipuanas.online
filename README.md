@@ -10,12 +10,12 @@ via CDN) em cima do Supabase, publicado na Vercel.
 |---|---|---|
 | Cliente | `index.html` + `09_multistore_cart.js` | Vitrine com busca, filtro por categoria, nota das lojas e carrinho multi-loja |
 | Cliente | `loja.html?slug=` | Página própria da loja: dados, avaliações, cardápio e botão de compartilhar (link do QR do balcão) |
-| Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada), cria um pedido por loja e abre o WhatsApp de cada uma |
+| Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto), cria um pedido por loja e abre o WhatsApp de cada uma |
 | Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento com PIN de entrega, cancelamento enquanto o pedido é "novo" e avaliação da loja após a entrega |
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
 | Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por" |
-| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro e edição dos dados da loja, pedidos em tempo real, alerta sonoro, pausa, repasse, avaliações |
+| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro e edição dos dados da loja, pedidos em tempo real, alerta sonoro, pausa, repasse, avaliações, cupons |
 | Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos, com foto (reduzida no navegador e enviada ao Storage) |
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html?slug=` | Display com QR Code para o balcão, apontando para a página da loja |
@@ -84,6 +84,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_cancelamento_pelo_cliente.sql` — **aplicada**. Função `cancel_order_public` (só cancela pedido `novo`).
 - `20260926_admin_donos_de_loja.sql` — **aplicada**. Funções `admin_store_owners` / `admin_set_store_owner` (só admin).
 - `20260926_fotos_de_produtos.sql` — **aplicada**. Bucket público `product-images` (até 2 MB, JPG/PNG/WEBP); só o dono da loja (ou admin) grava em `<store_id>/...`.
+- `20260926_cupons.sql` — **aplicada**. `orders.coupon_code`/`discount_amount`, `check_coupon` e `place_order(..., p_coupon)` aplicando o desconto no servidor.
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 
 Configuração no painel do Supabase (Authentication):

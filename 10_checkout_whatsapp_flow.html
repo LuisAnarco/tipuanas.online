@@ -85,6 +85,15 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Observações (opcional)</label>
                     <input type="text" id="client-notes" placeholder="Ex: sem cebola, troco pra R$ 50, interfone 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
                 </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Cupom de desconto (opcional)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="coupon-code" maxlength="20" placeholder="Ex: BEMVINDO" class="flex-1 text-xs p-2.5 rounded-xl border border-slate-200 uppercase focus:outline-none focus:border-emerald-500">
+                        <button type="button" id="coupon-apply" class="text-xs font-bold px-3 rounded-xl border border-emerald-300 text-emerald-700">Aplicar</button>
+                    </div>
+                    <p id="coupon-status" class="hidden text-[11px] mt-1"></p>
+                </div>
             </div>
         </div>
 
@@ -117,6 +126,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             prefillClient();
             renderCheckout();
+
+            document.getElementById('coupon-apply').addEventListener('click', applyCoupon);
 
             // Delegação para os botões de quantidade (evita onclick com texto do banco)
             document.getElementById('checkout-items').addEventListener('click', event => {
@@ -166,6 +177,55 @@
             renderCheckout();
         }
 
+        // Cupom: conferido no banco (check_coupon) só para mostrar a prévia; quem
+        // aplica de verdade o desconto é o place_order, no servidor.
+        let appliedCoupon = null;
+
+        function couponPreview(storeId, subtotal) {
+            const c = appliedCoupon;
+            if (!c || c.store_id !== storeId || subtotal < Number(c.min_order_value || 0)) return 0;
+            const d = c.discount_type === 'percentage' ? subtotal * Number(c.discount_value) / 100 : Number(c.discount_value);
+            return Math.round(Math.min(subtotal, d) * 100) / 100;
+        }
+
+        function couponLine(storeId, subtotal) {
+            const c = appliedCoupon;
+            if (!c || c.store_id !== storeId) return '';
+            const d = couponPreview(storeId, subtotal);
+            return d > 0
+                ? `<div class="flex justify-between text-[11px] font-bold text-emerald-700 mt-0.5"><span>Cupom ${escapeHtml(c.code)}</span><span>-${formatBRL(d)}</span></div>`
+                : `<p class="text-[10px] text-amber-700 mt-0.5">Cupom ${escapeHtml(c.code)}: pedido mínimo de ${formatBRL(c.min_order_value)} nesta loja.</p>`;
+        }
+
+        async function applyCoupon() {
+            const input = document.getElementById('coupon-code');
+            const statusEl = document.getElementById('coupon-status');
+            const code = input.value.trim().toUpperCase();
+            const show = (msg, ok) => {
+                statusEl.textContent = msg;
+                statusEl.className = `text-[11px] mt-1 ${ok ? 'text-emerald-700' : 'text-red-600'}`;
+            };
+            if (!code) {
+                appliedCoupon = null;
+                statusEl.className = 'hidden';
+                renderCheckout();
+                return;
+            }
+            const { data, error } = await sb.rpc('check_coupon', { p_code: code });
+            if (error || !data) {
+                appliedCoupon = null;
+                show('Cupom não encontrado ou inativo.', false);
+            } else if (!cart.some(i => i.storeId === data.store_id)) {
+                appliedCoupon = null;
+                show(`Este cupom é da loja ${data.store_name}, que não está no seu carrinho.`, false);
+            } else {
+                appliedCoupon = data;
+                const label = data.discount_type === 'percentage' ? `${Number(data.discount_value)}% de desconto` : `${formatBRL(data.discount_value)} de desconto`;
+                show(`✓ ${label} em ${data.store_name}`, true);
+            }
+            renderCheckout();
+        }
+
         function renderCheckout() {
             const container = document.getElementById('checkout-items');
             const totalEl = document.getElementById('checkout-total-price');
@@ -183,7 +243,7 @@
             const storeIds = Object.keys(groups);
             document.getElementById('multi-store-note').classList.toggle('hidden', storeIds.length <= 1);
 
-            const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+            let total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
             container.innerHTML = storeIds.map(storeId => {
                 const items = groups[storeId];
@@ -208,9 +268,11 @@
                             <span>Subtotal da loja (sem taxa de entrega)</span>
                             <span>${formatBRL(subtotal)}</span>
                         </div>
+                        ${couponLine(storeId, subtotal)}
                     </div>
                 `;
             }).join('');
+            total -= storeIds.reduce((acc, id) => acc + couponPreview(id, groups[id].reduce((a, i) => a + i.price * i.quantity, 0)), 0);
 
             totalEl.textContent = formatBRL(total);
         }
@@ -267,7 +329,9 @@
                 store_unavailable: 'loja fechada no momento',
                 store_closed: 'fora do horário de funcionamento',
                 items_unavailable: 'itens indisponíveis',
-                invalid_customer: 'dados de entrega incompletos'
+                invalid_customer: 'dados de entrega incompletos',
+                invalid_coupon: 'cupom inválido',
+                coupon_min_order: 'pedido abaixo do mínimo do cupom'
             };
 
             const confirmations = [];
@@ -281,7 +345,8 @@
                     p_store_id: storeId,
                     p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity })),
                     p_customer: { name, phone, address, payment_method: payment, notes },
-                    p_is_takeout: takeout
+                    p_is_takeout: takeout,
+                    p_coupon: appliedCoupon && appliedCoupon.store_id === storeId ? appliedCoupon.code : null
                 });
 
                 if (error || !result) {
@@ -307,6 +372,9 @@
                 result.items.forEach(item => {
                     message += `• ${item.quantity}x ${item.name} (${formatBRL(item.unit_price * item.quantity)})\n`;
                 });
+                if (Number(result.discount) > 0) {
+                    message += `\n🏷️ *Cupom ${result.coupon_code}:* -${formatBRL(result.discount)}`;
+                }
                 if (deliveryFee > 0) {
                     message += `\n🛵 *Taxa de entrega:* ${formatBRL(deliveryFee)}`;
                 }

@@ -150,6 +150,24 @@
             </div>
         </section>
 
+        <!-- Cupons de desconto -->
+        <section id="coupons-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
+            <h2 class="text-sm font-bold text-gray-800 mb-1">🏷️ Cupons de desconto</h2>
+            <p class="text-xs text-gray-500 mb-3">O cliente digita o código no checkout. O desconto vale só para produtos da sua loja.</p>
+            <form id="coupon-form" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                <input name="code" required maxlength="20" placeholder="Código (ex: BEMVINDO)" class="col-span-2 md:col-span-1 p-2 rounded-lg border border-gray-300 uppercase">
+                <select name="discount_type" class="p-2 rounded-lg border border-gray-300 bg-white">
+                    <option value="percentage">% do pedido</option>
+                    <option value="fixed">R$ fixo</option>
+                </select>
+                <input name="discount_value" type="number" min="0.5" step="0.5" required placeholder="Valor" class="p-2 rounded-lg border border-gray-300">
+                <input name="min_order_value" type="number" min="0" step="0.5" placeholder="Pedido mínimo (R$)" class="p-2 rounded-lg border border-gray-300">
+                <button class="col-span-2 md:col-span-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg px-3 py-2">Criar cupom</button>
+            </form>
+            <p id="coupon-error" class="hidden text-xs text-red-600 mt-2"></p>
+            <div id="coupons-list" class="mt-3 space-y-2 text-xs"></div>
+        </section>
+
         <!-- Avaliações dos clientes -->
         <section id="reviews-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
             <div class="flex items-center justify-between mb-3">
