@@ -115,6 +115,8 @@ function showMerchantPanel(store) {
     document.getElementById('merchant-nav').classList.remove('hidden');
     document.getElementById('merchant-nav').classList.add('flex');
     document.getElementById('nav-cardapio').href = `15_gerenciar_cardapio.html?store=${store.id}`;
+    document.getElementById('nav-store-page').href = `loja.html?slug=${encodeURIComponent(store.slug || '')}`;
+    document.getElementById('nav-qr').href = `13_printable_table_qr.html?slug=${encodeURIComponent(store.slug || '')}`;
     document.getElementById('quick-actions').classList.remove('hidden');
     document.getElementById('quick-actions').classList.add('grid');
     document.getElementById('repasse-section').classList.remove('hidden');

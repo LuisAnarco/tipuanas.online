@@ -31,6 +31,34 @@ test('vitrine: lista lojas, escapa HTML, busca, categoria e carrinho', {}, async
     assert.ok(!html.includes('Sonho'), 'filtro por categoria');
 });
 
+test('página da loja: só a loja do slug, com avaliações e carrinho', {}, async (page, db) => {
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector('#stores-container a[href="loja.html?slug=padaria-ouro"]');
+
+    await page.goto(BASE + 'loja.html?slug=padaria-ouro');
+    await page.waitForSelector('[data-add-product="p1"]');
+    const html = await page.innerHTML('#stores-container');
+    assert.ok(!html.includes('Arroz'), 'não mostra produto de outra loja');
+    const header = await page.innerHTML('#store-header');
+    assert.ok(header.includes('★ 4,5') && header.includes('demais'), 'nota e comentário');
+    assert.ok(!(await page.$('#store-header b')), 'comentário escapado');
+    assert.ok(header.includes('wa.me/5547999706651'));
+    await page.click('[data-add-product="p2"]');
+    assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
+});
+
+test('página da loja: slug inexistente mostra aviso', {}, async (page, db) => {
+    await page.goto(BASE + 'loja.html?slug=nao-existe');
+    await page.waitForSelector('text=Loja não encontrada');
+});
+
+test('QR do balcão aponta para a página da loja', {}, async (page, db) => {
+    await page.goto(BASE + '13_printable_table_qr.html?slug=padaria-ouro');
+    await page.waitForFunction(() => document.getElementById('qr-title').textContent.includes('Padaria'));
+    const target = await page.getAttribute('#qrcode', 'data-target');
+    assert.strictEqual(target, 'http://local/loja.html?slug=padaria-ouro');
+});
+
 test('checkout: cria pedido via place_order, WhatsApp com 55 e pula loja fechada', {}, async (page, db) => {
     await page.goto(BASE + 'index.html');
     await page.evaluate(([s1, s2]) => localStorage.setItem('tipuanas_cart', JSON.stringify([

@@ -4,6 +4,8 @@
  * ARQUIVO: 09_multistore_cart.js
  * DESCRIÇÃO: Vitrine do bairro — carrega lojas/produtos do Supabase, busca,
  *            filtro por categoria e carrinho multi-loja (localStorage).
+ *            Também serve a página própria da loja (loja.html?slug=), que
+ *            mostra só aquela loja, com cabeçalho e avaliações.
  * ==============================================================================
  */
 
@@ -16,6 +18,11 @@ let productsById = {};
 let ratingsByStore = {};
 let activeCategory = null;
 let searchTerm = '';
+
+// Na página da loja (<body data-page="loja">) a vitrine mostra só a loja do ?slug=
+const STORE_SLUG = document.body && document.body.dataset.page === 'loja'
+    ? new URLSearchParams(window.location.search).get('slug')
+    : null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadStoresAndProducts();
@@ -35,13 +42,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = event.target.closest('[data-add-product]');
         if (btn) addToCart(btn.dataset.addProduct);
     });
-    document.getElementById('category-chips').addEventListener('click', event => {
-        const chip = event.target.closest('[data-category]');
-        if (!chip) return;
-        activeCategory = chip.dataset.category || null;
-        renderCategoryChips();
-        renderStores();
-    });
+    const chipsEl = document.getElementById('category-chips');
+    if (chipsEl) {
+        chipsEl.addEventListener('click', event => {
+            const chip = event.target.closest('[data-category]');
+            if (!chip) return;
+            activeCategory = chip.dataset.category || null;
+            renderCategoryChips();
+            renderStores();
+        });
+    }
 });
 
 function loadCart() {
@@ -61,6 +71,7 @@ function normalize(str) {
  */
 async function loadStoresAndProducts() {
     const container = document.getElementById('stores-container');
+    if (STORE_SLUG !== null) return loadSingleStore(container);
 
     const [{ data: stores, error: storeErr }, { data: products, error: prodErr }, { data: reviews }] = await Promise.all([
         sb.from('stores').select('*').eq('is_active', true).eq('is_paused', false).order('name'),
@@ -91,8 +102,100 @@ async function loadStoresAndProducts() {
     renderStores();
 }
 
+/**
+ * Página própria da loja: cabeçalho, avaliações e cardápio de uma loja só
+ */
+async function loadSingleStore(container) {
+    const header = document.getElementById('store-header');
+    const { data: store } = await sb.from('stores').select('*').eq('slug', STORE_SLUG || '').maybeSingle();
+
+    if (!store || !store.is_active) {
+        header.innerHTML = '';
+        container.innerHTML = `<div class="text-center py-10 space-y-2">
+            <p class="text-sm font-bold text-slate-700">Loja não encontrada</p>
+            <a href="index.html" class="text-xs text-emerald-700 underline">Ver todas as lojas do bairro</a></div>`;
+        return;
+    }
+
+    document.title = `${store.name} — Tipuanas.online`;
+
+    const [{ data: products }, { data: reviews }] = await Promise.all([
+        sb.from('products').select('*').eq('store_id', store.id).eq('is_paused', false).order('name'),
+        sb.from('reviews').select('rating, comment, created_at').eq('store_id', store.id).order('created_at', { ascending: false })
+    ]);
+
+    allStores = [store];
+    allProducts = products || [];
+    productsById = {};
+    allProducts.forEach(p => { productsById[p.id] = p; });
+    ratingsByStore = {};
+    (reviews || []).forEach(r => {
+        const agg = ratingsByStore[store.id] || (ratingsByStore[store.id] = { sum: 0, count: 0 });
+        agg.sum += r.rating;
+        agg.count += 1;
+    });
+
+    renderStoreHeader(store, reviews || []);
+
+    if (store.is_paused) {
+        container.innerHTML = `<p class="text-center text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3">Esta loja está fechada no momento. Volte mais tarde!</p>`;
+        return;
+    }
+    renderStores();
+}
+
+function renderStoreHeader(store, reviews) {
+    const header = document.getElementById('store-header');
+    const agg = ratingsByStore[store.id];
+    const whatsapp = toWhatsappNumber(store.whatsapp_number);
+    const recent = reviews.filter(r => r.comment).slice(0, 3);
+
+    header.innerHTML = `
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-2">
+            <div class="flex items-start justify-between gap-2">
+                <div>
+                    <h2 class="text-lg font-extrabold text-slate-900">${escapeHtml(store.name)}</h2>
+                    ${store.category ? `<p class="text-xs text-slate-500">${escapeHtml(store.category)}</p>` : ''}
+                </div>
+                ${agg ? `<span class="shrink-0 text-sm font-bold text-amber-600">★ ${(agg.sum / agg.count).toFixed(1).replace('.', ',')} <span class="text-[10px] font-normal text-slate-400">(${agg.count})</span></span>` : ''}
+            </div>
+            ${store.description ? `<p class="text-xs text-slate-600">${escapeHtml(store.description)}</p>` : ''}
+            <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                ${store.address_line ? `<span>📍 ${escapeHtml(store.address_line)}</span>` : ''}
+                ${store.listing_type !== 'orcamento' ? `<span>🛵 ${Number(store.delivery_fee) > 0 ? `Entrega ${formatBRL(store.delivery_fee)}` : 'Entrega grátis'}</span>` : ''}
+            </div>
+            <div class="flex gap-2 pt-1">
+                ${whatsapp ? `<a href="https://wa.me/${whatsapp}" target="_blank" rel="noopener" class="flex-1 text-center text-xs font-semibold border border-emerald-200 text-emerald-700 rounded-xl py-2">💬 WhatsApp</a>` : ''}
+                <button id="share-store-btn" class="flex-1 text-xs font-semibold border border-slate-200 text-slate-600 rounded-xl py-2">🔗 Compartilhar</button>
+            </div>
+            ${recent.length ? `<div class="border-t border-slate-100 pt-2 space-y-1.5">
+                ${recent.map(r => `<p class="text-[11px] text-slate-600"><span class="text-amber-500">${'★'.repeat(r.rating)}</span> ${escapeHtml(r.comment)}</p>`).join('')}
+            </div>` : ''}
+        </div>
+    `;
+
+    document.getElementById('share-store-btn').addEventListener('click', async () => {
+        const url = window.location.href;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: store.name, text: `Peça na ${store.name} pelo Tipuanas.online`, url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                alert('Link copiado!');
+            }
+        } catch (e) { /* compartilhamento cancelado */ }
+    });
+}
+
+/** Link da página própria da loja (na vitrine geral) */
+function storeLink(store, inner) {
+    if (STORE_SLUG !== null || !store.slug) return inner;
+    return `<a href="loja.html?slug=${encodeURIComponent(store.slug)}" class="hover:underline">${inner}</a>`;
+}
+
 function renderCategoryChips() {
     const chipsEl = document.getElementById('category-chips');
+    if (!chipsEl) return;
     const categories = [...new Set(allStores.map(s => s.category).filter(Boolean))].sort();
 
     if (categories.length < 2) {
@@ -147,7 +250,7 @@ function renderQuoteStore(store) {
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
             <div class="border-b border-slate-100 pb-2">
                 <div class="flex items-center gap-1.5">
-                    <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(store.name)}</h3>
+                    <h3 class="font-bold text-slate-900 text-sm">${storeLink(store, escapeHtml(store.name))}</h3>
                     <span class="text-[9px] bg-amber-50 text-amber-700 font-bold px-1.5 py-0.5 rounded-full border border-amber-100">Sob Orçamento</span>
                 </div>
                 ${store.category ? `<p class="text-[11px] text-slate-500">${escapeHtml(store.category)}</p>` : ''}
@@ -166,7 +269,7 @@ function renderCatalogStore(store, storeProducts) {
             <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
                 <div>
                     <div class="flex items-center gap-1.5">
-                        <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(store.name)}</h3>
+                        <h3 class="font-bold text-slate-900 text-sm">${storeLink(store, escapeHtml(store.name))}</h3>
                         ${ratingBadge(store.id)}
                     </div>
                     ${store.category ? `<p class="text-[11px] text-slate-500">${escapeHtml(store.category)}</p>` : ''}
