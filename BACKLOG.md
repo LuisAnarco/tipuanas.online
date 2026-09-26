@@ -49,7 +49,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   service worker simples para cache da vitrine, `manifest` e `theme-color` em todas as telas.
 - [x] **9. Cupons de desconto.** _(26/09/2026, PR #12)_ Usar a tabela `coupons` já existente: lojista cria cupom; checkout
   aplica via `place_order` (validação no banco).
-- [ ] **10. Mural: moderação e validade.** Posts expiram em 30 dias; autor remove o próprio post com
+- [x] **10. Mural: moderação e validade.** _(26/09/2026, PR #13)_ Posts expiram em 30 dias; autor remove o próprio post com
   um código gerado na publicação; admin remove qualquer post.
 - [ ] **11. Acabamento de publicação.** `vercel.json` com URLs limpas e cabeçalhos de segurança,
   página 404, títulos/descrições para SEO e pré-visualização no WhatsApp (Open Graph).

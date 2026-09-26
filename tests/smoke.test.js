@@ -273,6 +273,37 @@ test('mural: lista posts escapados e publica', {}, async (page, db) => {
     assert.ok((await page.innerHTML('#posts-list')).includes('wa.me/5548999990000'));
 });
 
+test('mural: publica via função, guarda a chave e o autor remove o próprio anúncio', {}, async (page, db) => {
+    await page.goto(BASE + '20_mural_vizinhanca.html');
+    await page.waitForSelector('#posts-list h3');
+    assert.ok((await page.innerHTML('#posts-list')).includes('vence em 10 dia(s)'));
+    assert.ok(!(await page.$('[data-remove-post]')), 'sem botão de remover em anúncio alheio');
+
+    await page.click('#tab-postar');
+    await page.fill('#mp-title', 'Bicicleta aro 20');
+    await page.fill('#mp-name', 'Ana');
+    await page.fill('#mp-whatsapp', '48999990000');
+    await page.click('#mp-submit');
+    await page.waitForSelector('[data-remove-post="m2"]');
+    assert.ok(db.calls.some(c => c.fn === 'create_community_post' && c.body.p_title === 'Bicicleta aro 20'));
+    assert.ok(!db.writes.some(w => w.table === 'community_posts'), 'não grava direto na tabela');
+
+    await page.click('[data-remove-post="m2"]');
+    await page.waitForFunction(() => !document.querySelector('[data-remove-post="m2"]'));
+    assert.ok(db.calls.some(c => c.fn === 'remove_community_post' && c.body.p_key === 'chave-m2'));
+});
+
+test('mural: admin remove anúncio', { loggedIn: true }, async (page, db) => {
+    db.admin = true;
+    await page.goto(BASE + '14_admin_analytics_dashboard.html');
+    await page.waitForSelector('[data-remove-mural="m1"]');
+    assert.ok(!(await page.$('#mural-admin-list i')), 'título escapado');
+    await page.click('[data-remove-mural="m1"]');
+    await page.waitForTimeout(200);
+    const w = db.writes.find(x => x.table === 'community_posts' && x.method === 'PATCH');
+    assert.strictEqual(w.body.is_active, false);
+});
+
 // ---------------------------------------------------------------- Login
 test('login: sem sessão mostra tela de e-mail e envia link para a página atual', {}, async (page, db) => {
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);

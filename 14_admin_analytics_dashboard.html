@@ -110,6 +110,12 @@
             <div id="orders-admin-list" class="space-y-2 text-xs text-slate-300"></div>
         </section>
 
+        <!-- Mural da Vizinhança (moderação) -->
+        <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-3">
+            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Mural da Vizinhança</h2>
+            <div id="mural-admin-list" class="space-y-2 text-xs text-slate-300"></div>
+        </section>
+
         <!-- Entregadores -->
         <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-3">
             <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Entregadores</h2>
@@ -150,6 +156,10 @@
             document.getElementById('orders-admin-list').addEventListener('click', event => {
                 const btn = event.target.closest('[data-cancel-order]');
                 if (btn) cancelOrderAdmin(btn.dataset.cancelOrder);
+            });
+            document.getElementById('mural-admin-list').addEventListener('click', event => {
+                const btn = event.target.closest('[data-remove-mural]');
+                if (btn) removeMuralPost(btn.dataset.removeMural);
             });
             document.getElementById('couriers-admin-list').addEventListener('click', event => {
                 const btn = event.target.closest('[data-toggle-courier]');
@@ -227,6 +237,7 @@
             ordersCache = orders;
             renderAdminOrders();
             loadCouriers(delivered);
+            loadMuralAdmin();
         }
 
         function renderStoresTable(stores, delivered, quotes) {

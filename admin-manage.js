@@ -175,3 +175,43 @@ async function toggleCourier(courierId) {
     }
     loadAdminMetrics();
 }
+
+// ---------------------------------------------------------------- Mural
+async function loadMuralAdmin() {
+    const el = document.getElementById('mural-admin-list');
+    const { data, error } = await sb.from('community_posts')
+        .select('id, post_type, title, author_name, author_whatsapp, created_at, expires_at, is_active')
+        .eq('is_active', true)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(50);
+    if (error) {
+        console.error('Erro ao buscar o mural:', error);
+        el.innerHTML = '<p class="text-red-400">Não foi possível carregar o mural.</p>';
+        return;
+    }
+    if (!data || data.length === 0) {
+        el.innerHTML = '<p class="text-slate-500">Nenhum anúncio ativo.</p>';
+        return;
+    }
+    el.innerHTML = data.map(p => `
+        <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+            <div class="min-w-0">
+                <p class="font-semibold text-white">${p.post_type === 'desapego' ? '🎁' : '🔎'} ${escapeHtml(p.title)}</p>
+                <p class="text-[10px] text-slate-400">${escapeHtml(p.author_name)} • ${escapeHtml(p.author_whatsapp)} • vence ${new Date(p.expires_at).toLocaleDateString('pt-BR')}</p>
+            </div>
+            <button data-remove-mural="${escapeHtml(p.id)}" class="text-[10px] text-red-400 border border-red-400/40 rounded px-2 py-0.5 hover:bg-red-500/10">Remover</button>
+        </div>
+    `).join('');
+}
+
+async function removeMuralPost(postId) {
+    if (!confirm('Remover este anúncio do mural?')) return;
+    const { error } = await sb.from('community_posts').update({ is_active: false }).eq('id', postId);
+    if (error) {
+        alert('Não foi possível remover o anúncio.');
+        console.error(error);
+        return;
+    }
+    loadMuralAdmin();
+}

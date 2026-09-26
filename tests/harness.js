@@ -46,7 +46,7 @@ function freshDb() {
             { store_id: S1, rating: 5, comment: '<b>bom</b> demais', created_at: now },
             { store_id: S1, rating: 4, comment: null, created_at: now },
         ],
-        posts: [{ id: 'm1', post_type: 'desapego', title: 'Sofá <i>x</i>', description: 'bom', price: null, author_name: 'Zé', author_whatsapp: '48999990000', is_active: true, created_at: now }],
+        posts: [{ id: 'm1', post_type: 'desapego', title: 'Sofá <i>x</i>', description: 'bom', price: null, author_name: 'Zé', author_whatsapp: '48999990000', is_active: true, created_at: now, expires_at: new Date(Date.now() + 10 * 86400000).toISOString() }],
         couriers: [],
         coupons: [{ id: 'cp1', store_id: S1, code: 'DEZ10', discount_type: 'percentage', discount_value: 10, min_order_value: 0, is_active: true }],
         admin: false,
@@ -111,6 +111,18 @@ function rpc(db, fn, body) {
             const st = db.stores.find(x => x.id === c.store_id);
             return { code: c.code, store_id: c.store_id, store_name: st.name, discount_type: c.discount_type, discount_value: c.discount_value, min_order_value: c.min_order_value };
         }
+        case 'create_community_post': {
+            const id = 'm' + (db.posts.length + 1);
+            db.posts.push({ id, post_type: body.p_type, title: body.p_title, description: body.p_description, price: body.p_price,
+                author_name: body.p_author_name, author_whatsapp: body.p_author_whatsapp, is_active: true,
+                created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 86400000).toISOString() });
+            return { id, key: 'chave-' + id };
+        }
+        case 'remove_community_post': {
+            if (body.p_key !== 'chave-' + body.p_id) return false;
+            db.posts = db.posts.filter(p => p.id !== body.p_id);
+            return true;
+        }
         case 'accept_ride': return true;
         case 'finish_ride': return body.p_pin === '1234';
         case 'create_service_request': return 'cccccccc-0000-0000-0000-000000000001';
@@ -139,7 +151,7 @@ function select(db, table, url) {
         case 'products': return byEq(byEq(db.products, 'id'), 'store_id');
         case 'orders': return byEq(byEq(db.orders, 'id'), 'store_id');
         case 'reviews': return byEq(db.reviews, 'store_id');
-        case 'community_posts': return db.posts;
+        case 'community_posts': return db.posts.filter(p => !url.searchParams.get('post_type') || url.searchParams.get('post_type') === 'eq.' + p.post_type);
         case 'couriers': return db.couriers;
         case 'coupons': return byEq(db.coupons, 'store_id');
         default: return [];
