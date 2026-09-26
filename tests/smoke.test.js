@@ -59,6 +59,70 @@ test('QR do balcão aponta para a página da loja', {}, async (page, db) => {
     assert.strictEqual(target, 'http://local/loja.html?slug=padaria-ouro');
 });
 
+test('horário: vitrine mostra loja fechada e esconde o botão de adicionar', {}, async (page, db) => {
+    // Loja S1 só abre às segundas de madrugada (00:00-00:01): quase sempre fechada
+    const closedDay = db.stores.find(s => s.id === S1);
+    closedDay.opening_hours = { '1': '00:00-00:01' };
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector('[data-add-product="p3"]');
+    const status = await page.evaluate(h => storeOpenStatus(h, new Date('2026-09-28T15:00:00-03:00')), closedDay.opening_hours);
+    assert.deepStrictEqual(status, { open: false, label: 'abre seg às 00:00' });
+    const nowStatus = await page.evaluate(h => storeOpenStatus(h), closedDay.opening_hours);
+    if (!nowStatus.open) {
+        assert.ok(await page.$('[data-role="closed-badge"]'), 'selo de fechada');
+        assert.ok(!(await page.$('[data-add-product="p1"]')), 'sem botão de adicionar na loja fechada');
+    }
+});
+
+test('horário: regra de abertura igual à do banco', {}, async (page, db) => {
+    await page.goto(BASE + 'index.html');
+    const r = await page.evaluate(() => {
+        const h = { '1': '08:00-18:00', '5': '18:00-02:00' };
+        const t = s => storeOpenStatus(h, new Date(s));
+        return [
+            t('2026-09-28T15:00:00-03:00').open,   // seg 15h
+            t('2026-09-28T19:00:00-03:00').open,   // seg 19h
+            t('2026-10-02T23:00:00-03:00').open,   // sex 23h
+            t('2026-10-03T01:30:00-03:00').open,   // sáb 01h30 (faixa de sexta)
+            t('2026-10-03T03:00:00-03:00').label,  // sáb 03h
+            storeOpenStatus(null).open
+        ];
+    });
+    assert.deepStrictEqual(r, [true, false, true, true, 'abre seg às 08:00', true]);
+});
+
+test('horário: lojista salva horário de funcionamento', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#store-settings summary');
+    await page.click('#store-settings summary');
+    await page.check('#store-settings [data-role="uses-hours"]');
+    await page.check('#store-settings [data-day="1"] [data-role="day-open"]');
+    await page.fill('#store-settings [data-day="1"] [data-role="day-from"]', '09:00');
+    await page.fill('#store-settings [data-day="1"] [data-role="day-to"]', '17:30');
+    await page.check('#store-settings [data-day="5"] [data-role="day-open"]');
+    await page.fill('#store-settings [data-day="5"] [data-role="day-from"]', '18:00');
+    await page.fill('#store-settings [data-day="5"] [data-role="day-to"]', '02:00');
+    await page.click('#store-settings button[type="submit"]');
+    await page.waitForSelector('text=Dados salvos');
+    const w = db.writes.find(x => x.table === 'stores' && x.method === 'PATCH');
+    assert.deepStrictEqual(w.body.opening_hours, { '1': '09:00-17:30', '5': '18:00-02:00' });
+});
+
+test('horário: checkout explica loja fora do horário', {}, async (page, db) => {
+    const s1 = db.stores.find(s => s.id === S1);
+    s1.opening_hours = { '1': '00:00-00:01' };
+    s1.closedForTest = true;
+    await page.goto(BASE + 'index.html');
+    await page.evaluate(id => localStorage.setItem('tipuanas_cart', JSON.stringify([{ id: 'p1', name: 'x', price: 1, storeId: id, storeName: 'Padaria', quantity: 1 }])), S1);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Av 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('text=fora do horário de funcionamento');
+});
+
 test('checkout: cria pedido via place_order, WhatsApp com 55 e pula loja fechada', {}, async (page, db) => {
     await page.goto(BASE + 'index.html');
     await page.evaluate(([s1, s2]) => localStorage.setItem('tipuanas_cart', JSON.stringify([

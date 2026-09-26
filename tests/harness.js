@@ -75,6 +75,7 @@ function rpc(db, fn, body) {
         case 'place_order': {
             const store = db.stores.find(s => s.id === body.p_store_id);
             if (!store || store.id === S2) throw { status: 400, body: { code: 'P0001', message: 'store_unavailable' } };
+            if (store.opening_hours && store.closedForTest) throw { status: 400, body: { code: 'P0001', message: 'store_closed' } };
             const items = body.p_items.map(it => {
                 const p = db.products.find(x => x.id === it.product_id);
                 return { product_id: p.id, name: p.name, quantity: it.quantity, unit_price: p.price };

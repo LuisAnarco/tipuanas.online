@@ -160,6 +160,12 @@ function renderStoreHeader(store, reviews) {
                 ${agg ? `<span class="shrink-0 text-sm font-bold text-amber-600">★ ${(agg.sum / agg.count).toFixed(1).replace('.', ',')} <span class="text-[10px] font-normal text-slate-400">(${agg.count})</span></span>` : ''}
             </div>
             ${store.description ? `<p class="text-xs text-slate-600">${escapeHtml(store.description)}</p>` : ''}
+            ${(() => {
+                const st = storeOpenStatus(store.opening_hours);
+                return store.opening_hours && Object.keys(store.opening_hours).length
+                    ? `<p class="text-[11px] font-bold ${st.open ? 'text-emerald-700' : 'text-slate-500'}">${st.open ? '🟢 Aberta agora' : `🔴 Fechada · ${escapeHtml(st.label)}`}</p>`
+                    : '';
+            })()}
             <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
                 ${store.address_line ? `<span>📍 ${escapeHtml(store.address_line)}</span>` : ''}
                 ${store.listing_type !== 'orcamento' ? `<span>🛵 ${Number(store.delivery_fee) > 0 ? `Entrega ${formatBRL(store.delivery_fee)}` : 'Entrega grátis'}</span>` : ''}
@@ -264,6 +270,7 @@ function renderQuoteStore(store) {
 }
 
 function renderCatalogStore(store, storeProducts) {
+    const status = storeOpenStatus(store.opening_hours);
     return `
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
             <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
@@ -275,9 +282,9 @@ function renderCatalogStore(store, storeProducts) {
                     ${store.category ? `<p class="text-[11px] text-slate-500">${escapeHtml(store.category)}</p>` : ''}
                     ${store.address_line ? `<p class="text-[10px] text-slate-400">📍 ${escapeHtml(store.address_line)}</p>` : ''}
                 </div>
-                <span class="shrink-0 text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-100">
+                ${status.open ? `<span class="shrink-0 text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-100">
                     ${Number(store.delivery_fee) > 0 ? `Taxa: ${formatBRL(store.delivery_fee)}` : 'Entrega grátis'}
-                </span>
+                </span>` : `<span data-role="closed-badge" class="shrink-0 text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full border border-slate-200">Fechada · ${escapeHtml(status.label)}</span>`}
             </div>
             ${store.description ? `<p class="text-[11px] text-slate-500">${escapeHtml(store.description)}</p>` : ''}
 
@@ -292,9 +299,9 @@ function renderCatalogStore(store, storeProducts) {
                                 <p class="text-xs font-extrabold text-emerald-600 mt-0.5">${formatBRL(product.price)}</p>
                             </div>
                         </div>
-                        <button data-add-product="${escapeHtml(product.id)}" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">
+                        ${status.open ? `<button data-add-product="${escapeHtml(product.id)}" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">
                             + Adicionar
-                        </button>
+                        </button>` : `<span class="shrink-0 text-[10px] text-slate-400">Fechada</span>`}
                     </div>
                 `).join('') : '<p class="text-[11px] text-slate-400">Nenhum produto cadastrado nesta loja.</p>'}
             </div>
