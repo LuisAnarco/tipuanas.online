@@ -34,6 +34,18 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
+## Testes
+
+```bash
+npm install
+npm test          # todos os testes
+npm test -- lojista   # só os que têm "lojista" no nome
+```
+
+`tests/smoke.test.js` abre as páginas reais num Chromium (Playwright) com o Supabase, o login e as
+CDNs simulados em `tests/harness.js` — não precisa de rede nem de banco. Roda também no GitHub
+Actions em cada PR (`.github/workflows/tests.yml`). Ao criar uma tela ou fluxo, acrescente um teste.
+
 ## Banco (Supabase)
 
 Projeto `avenidadastipuanas.online`. Tabelas usadas: `stores`, `products`, `orders`, `order_items`,
