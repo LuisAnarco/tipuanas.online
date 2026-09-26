@@ -300,6 +300,34 @@ test('lojista: cardápio carrega com login', { loggedIn: true }, async (page, db
     assert.ok(!(await page.$('#products-list img')), 'descrição escapada');
 });
 
+test('cardápio: produto novo com foto reduzida e enviada para a pasta da loja', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '15_gerenciar_cardapio.html?store=' + S1);
+    await page.waitForSelector('#products-list button');
+
+    // Gera uma imagem 2000x1500 no próprio navegador para simular foto de celular
+    const png = await page.evaluate(async () => {
+        const c = document.createElement('canvas');
+        c.width = 2000; c.height = 1500;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#c33'; ctx.fillRect(0, 0, 2000, 1500);
+        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+        return Array.from(new Uint8Array(await blob.arrayBuffer()));
+    });
+    await page.fill('#np-name', 'Bolo');
+    await page.fill('#np-price', '20');
+    await page.setInputFiles('#np-photo', { name: 'bolo.png', mimeType: 'image/png', buffer: Buffer.from(png) });
+    await page.click('button[onclick="adicionarProduto()"]');
+    await page.waitForFunction(() => document.getElementById('np-name').value === '');
+
+    assert.strictEqual(db.uploads.length, 1);
+    assert.ok(db.uploads[0].path.startsWith(`product-images/${S1}/`), 'foto na pasta da loja: ' + db.uploads[0].path);
+    assert.ok(db.uploads[0].head.includes('image/jpeg'), 'convertida para JPEG');
+    assert.ok(db.uploads[0].size < png.length, `reduzida (${db.uploads[0].size} < ${png.length} bytes)`);
+    const ins = db.writes.find(x => x.table === 'products' && x.method === 'POST');
+    assert.ok(ins.body[0].image_url.includes(`/storage/v1/object/public/product-images/${S1}/`), 'URL pública salva no produto');
+});
+
 test('lojista: painel de orçamentos carrega com login', { loggedIn: true }, async (page, db) => {
     await page.goto(BASE + '17_gerenciar_orcamentos.html?store=' + S3);
     await page.waitForSelector('#requests-section:not(.hidden)');

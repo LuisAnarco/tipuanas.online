@@ -9,6 +9,32 @@
 let currentStore = null;
 let editingProductId = null;
 
+const PHOTO_BUCKET = 'product-images';
+const PHOTO_MAX_SIDE = 900; // px — foto de celular vira ~100-200 KB
+
+/**
+ * Reduz a foto no navegador (JPEG, lado maior até PHOTO_MAX_SIDE) e envia para
+ * o Storage na pasta da loja (<store_id>/...). Devolve a URL pública.
+ * O banco só aceita o envio de quem é dono da loja (ou admin).
+ */
+async function uploadProductPhoto(file) {
+    if (!file) return null;
+    if (!file.type.startsWith('image/')) throw new Error('Escolha um arquivo de imagem.');
+
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+
+    const path = `${currentStore.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if (error) throw error;
+    return sb.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initMenuPage();
 });
@@ -74,12 +100,19 @@ function renderProducts(products) {
                         </div>
                     </div>
                     <input id="edit-desc-${p.id}" type="text" value="${escapeHtml(p.description || '')}" placeholder="Descrição (opcional)" class="w-full text-xs p-2 rounded border border-gray-300">
+                    <div class="flex flex-wrap items-center gap-3 text-xs">
+                        ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" class="w-12 h-12 rounded object-cover">` : ''}
+                        <label class="flex items-center gap-2">Trocar foto: <input id="edit-photo-${p.id}" type="file" accept="image/*" class="text-xs"></label>
+                        ${p.image_url ? `<label class="flex items-center gap-1"><input id="edit-remove-photo-${p.id}" type="checkbox"> Remover foto</label>` : ''}
+                    </div>
                 </div>
             `;
         }
 
         return `
             <div class="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row justify-between md:items-center gap-3 ${p.is_paused ? 'bg-gray-50 opacity-60' : ''}">
+                <div class="flex items-center gap-3">
+                ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" class="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0">` : '<div class="w-14 h-14 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center text-gray-300 text-xl">📷</div>'}
                 <div>
                     <div class="flex items-center gap-2">
                         <p class="font-bold text-gray-900">${escapeHtml(p.name)}</p>
@@ -87,6 +120,7 @@ function renderProducts(products) {
                     </div>
                     ${p.description ? `<p class="text-xs text-gray-500">${escapeHtml(p.description)}</p>` : ''}
                     <p class="text-sm font-extrabold text-emerald-600 mt-1">R$ ${Number(p.price).toFixed(2)}</p>
+                </div>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="iniciarEdicao('${p.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-3 py-1.5 rounded-lg">Editar</button>
@@ -113,11 +147,22 @@ async function adicionarProduto() {
     }
     errorEl.classList.add('hidden');
 
+    let imageUrl = null;
+    try {
+        imageUrl = await uploadProductPhoto(document.getElementById('np-photo').files[0]);
+    } catch (e) {
+        console.error('Erro ao enviar foto:', e);
+        errorEl.textContent = 'Não foi possível enviar a foto (use JPG, PNG ou WEBP). O produto não foi salvo.';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
     const { error } = await sb.from('products').insert([{
         store_id: currentStore.id,
         name,
         description: description || null,
         price,
+        image_url: imageUrl,
         is_paused: false
     }]);
 
@@ -131,6 +176,7 @@ async function adicionarProduto() {
     document.getElementById('np-name').value = '';
     document.getElementById('np-description').value = '';
     document.getElementById('np-price').value = '';
+    document.getElementById('np-photo').value = '';
     loadProducts();
 }
 
@@ -154,9 +200,21 @@ async function salvarEdicao(productId) {
         return;
     }
 
+    const changes = { name, description: description || null, price };
+    const removePhoto = document.getElementById(`edit-remove-photo-${productId}`);
+    if (removePhoto && removePhoto.checked) changes.image_url = null;
+    try {
+        const newPhoto = await uploadProductPhoto(document.getElementById(`edit-photo-${productId}`).files[0]);
+        if (newPhoto) changes.image_url = newPhoto;
+    } catch (e) {
+        console.error('Erro ao enviar foto:', e);
+        alert('Não foi possível enviar a foto (use JPG, PNG ou WEBP).');
+        return;
+    }
+
     const { error } = await sb
         .from('products')
-        .update({ name, description: description || null, price })
+        .update(changes)
         .eq('id', productId);
 
     if (error) {

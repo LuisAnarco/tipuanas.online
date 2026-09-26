@@ -16,7 +16,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
 | Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por" |
 | Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro e edição dos dados da loja, pedidos em tempo real, alerta sonoro, pausa, repasse, avaliações |
-| Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos |
+| Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos, com foto (reduzida no navegador e enviada ao Storage) |
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html?slug=` | Display com QR Code para o balcão, apontando para a página da loja |
 | Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho, aceite exclusivo, PIN conferido no banco, histórico e ganhos |
@@ -83,6 +83,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_protege_trechos_codigo.sql` — **aplicada**.
 - `20260926_cancelamento_pelo_cliente.sql` — **aplicada**. Função `cancel_order_public` (só cancela pedido `novo`).
 - `20260926_admin_donos_de_loja.sql` — **aplicada**. Funções `admin_store_owners` / `admin_set_store_owner` (só admin).
+- `20260926_fotos_de_produtos.sql` — **aplicada**. Bucket público `product-images` (até 2 MB, JPG/PNG/WEBP); só o dono da loja (ou admin) grava em `<store_id>/...`.
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 
 Configuração no painel do Supabase (Authentication):
