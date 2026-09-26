@@ -10,11 +10,6 @@
  * ==============================================================================
  */
 
-// Configuração Oficial do Supabase (projeto real: avenidadastipuanas.online)
-const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 // Mapa de status do pedido (enum order_status do banco) -> rótulo em português
 const STATUS_LABELS = {
     novo: 'Pendente',
@@ -32,49 +27,40 @@ const CATEGORY_OPTIONS = {
 };
 
 const STORE_ID_KEY = 'tipuanas_store_id';
-// Mesma taxa usada no painel admin (14_admin_analytics_dashboard.html). Ainda não há
-// coluna de comissão personalizada por loja no banco — é fixa em 8% pra todo mundo
-// (taxa fixada pro lojista; a plataforma arca com as taxas de pagamento do próprio bolso).
-const PLATFORM_COMMISSION_RATE = 0.08;
+let currentUser = null;
 let currentStore = null;
 let ordersChannel = null;
+const notifier = typeof MerchantNotificationService === 'function' ? new MerchantNotificationService() : null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initMerchantPanel();
 });
 
 /**
- * Descobre qual loja está acessando o painel: primeiro pela URL (?store=),
- * depois pelo que foi salvo no navegador. Se não achar nenhuma, mostra o
- * formulário de cadastro rápido.
+ * Exige login e descobre qual loja o lojista gerencia (ver resolveMerchantStore
+ * em auth.js). Se a conta ainda não tem loja, mostra o cadastro rápido.
  */
 async function initMerchantPanel() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let storeId = urlParams.get('store') || localStorage.getItem(STORE_ID_KEY);
+    currentUser = await requireLogin({
+        title: 'Painel do Lojista',
+        subtitle: 'Entre com o seu e-mail para ver os pedidos e gerenciar sua loja.'
+    });
 
-    if (!storeId) {
-        showBootstrap();
-        return;
-    }
+    const { store, message } = await resolveMerchantStore(currentUser);
 
-    const { data: store, error } = await sb.from('stores').select('*').eq('id', storeId).single();
-
-    if (error || !store) {
-        console.error('Loja não encontrada:', error);
-        localStorage.removeItem(STORE_ID_KEY);
-        showBootstrap();
+    if (!store) {
+        showBootstrap(message);
         return;
     }
 
     // Lojas do tipo "orçamento" não usam cardápio/carrinho — têm painel próprio
     if (store.listing_type === 'orcamento') {
-        localStorage.setItem(STORE_ID_KEY, store.id);
         window.location.href = `17_gerenciar_orcamentos.html?store=${store.id}`;
         return;
     }
 
     currentStore = store;
-    localStorage.setItem(STORE_ID_KEY, store.id);
+    const urlParams = new URLSearchParams(window.location.search);
 
     // Garante que a URL sempre reflita a loja atual (facilita salvar/compartilhar o link)
     if (urlParams.get('store') !== store.id) {
@@ -87,8 +73,13 @@ async function initMerchantPanel() {
     subscribeToNewOrders();
 }
 
-function showBootstrap() {
+function showBootstrap(message) {
     document.getElementById('bootstrap-section').classList.remove('hidden');
+    if (message) {
+        const errorEl = document.getElementById('bs-error');
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+    }
     atualizarCategorias();
 }
 
@@ -129,6 +120,7 @@ function showMerchantPanel(store) {
     document.getElementById('repasse-section').classList.remove('hidden');
     document.getElementById('orders-section').classList.remove('hidden');
     updatePauseUI(store.is_paused);
+    loadReviews(store.id);
 }
 
 /**
@@ -171,6 +163,7 @@ async function criarLoja() {
         delivery_fee: fee,
         description: description || null,
         listing_type: listingType,
+        owner_id: currentUser.id,
         is_active: true,
         is_paused: false
     }]).select();
@@ -290,26 +283,32 @@ function renderOrders(orders) {
         const itemsList = (order.order_items || [])
             .map(it => `${it.quantity}x ${it.products ? it.products.name : 'Item'}`)
             .join(', ');
+        const clientWhatsapp = toWhatsappNumber(addr.client_phone);
+        const createdAt = new Date(order.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const isNew = order.status === 'novo';
 
         return `
-        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-                <div class="flex items-center gap-2">
+        <div class="border ${isNew ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'} rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
                     <span class="font-bold text-gray-900">#${order.id.slice(0, 8)}</span>
-                    <span class="text-xs text-gray-500">• ${addr.client_name || 'Cliente'}</span>
-                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${STATUS_LABELS[order.status] || order.status}</span>
+                    <span class="text-xs text-gray-500">• ${escapeHtml(addr.client_name || 'Cliente')}</span>
+                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${STATUS_LABELS[order.status] || escapeHtml(order.status)}</span>
+                    <span class="text-[10px] text-gray-400">${createdAt}</span>
                 </div>
-                ${itemsList ? `<p class="text-xs text-gray-700 mt-1">🛒 ${itemsList}</p>` : ''}
-                <p class="text-xs text-gray-600 mt-1">📍 ${order.is_takeout ? 'Retirada no local' : (addr.address || 'Endereço não informado')}</p>
-                <p class="text-xs text-gray-500 mt-0.5">💳 ${addr.payment_method || '—'} | PIN: <strong class="text-emerald-600">${order.delivery_pin || '----'}</strong></p>
+                ${itemsList ? `<p class="text-xs text-gray-700 mt-1">🛒 ${escapeHtml(itemsList)}</p>` : ''}
+                <p class="text-xs text-gray-600 mt-1">📍 ${order.is_takeout ? 'Retirada no local' : escapeHtml(addr.address || 'Endereço não informado')}</p>
+                ${addr.notes ? `<p class="text-xs text-gray-600 mt-0.5">📝 ${escapeHtml(addr.notes)}</p>` : ''}
+                <p class="text-xs text-gray-500 mt-0.5">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>
+                ${clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="inline-block text-[11px] text-emerald-700 hover:underline mt-1">💬 Falar com o cliente (${escapeHtml(addr.client_phone)})</a>` : ''}
             </div>
-            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                <span class="font-bold text-gray-900 text-sm">R$ ${Number(order.total_amount).toFixed(2)}</span>
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end shrink-0">
+                <span class="font-bold text-gray-900 text-sm">${formatBRL(order.total_amount)}</span>
                 <select onchange="updateOrderStatus('${order.id}', this.value)" class="text-xs border border-gray-300 rounded p-1.5 bg-white">
                     <option value="novo" ${order.status === 'novo' ? 'selected' : ''}>Pendente</option>
                     <option value="em_preparacao" ${order.status === 'em_preparacao' ? 'selected' : ''}>Em Preparação</option>
-                    <option value="pronto" ${order.status === 'pronto' ? 'selected' : ''}>Pronto p/ Retirada (entregador)</option>
-                    <option value="em_rota" ${order.status === 'em_rota' ? 'selected' : ''}>A Caminho</option>
+                    <option value="pronto" ${order.status === 'pronto' ? 'selected' : ''}>${order.is_takeout ? 'Pronto p/ Cliente Retirar' : 'Pronto p/ Retirada (entregador)'}</option>
+                    ${order.is_takeout ? '' : `<option value="em_rota" ${order.status === 'em_rota' ? 'selected' : ''}>A Caminho</option>`}
                     <option value="entregue" ${order.status === 'entregue' ? 'selected' : ''}>Concluído</option>
                     <option value="cancelado" ${order.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
                 </select>
@@ -323,6 +322,11 @@ function renderOrders(orders) {
  * Atualiza o status de um pedido no banco de dados
  */
 async function updateOrderStatus(orderId, newStatus) {
+    if (newStatus === 'cancelado' && !confirm('Cancelar este pedido? Avise o cliente pelo WhatsApp.')) {
+        fetchOrders();
+        return;
+    }
+
     const { error } = await sb
         .from('orders')
         .update({ status: newStatus })
@@ -339,12 +343,16 @@ async function updateOrderStatus(orderId, newStatus) {
  * Atualiza os indicadores do topo do painel
  */
 function updateMetrics(orders) {
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((acc, order) => acc + Number(order.total_amount), 0);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    // "Hoje" = pedidos criados desde a meia-noite, sem contar cancelados
+    const todayOrders = orders.filter(o => new Date(o.created_at) >= startOfToday && o.status !== 'cancelado');
+    const totalOrders = todayOrders.length;
+    const totalRevenue = todayOrders.reduce((acc, order) => acc + Number(order.total_amount), 0);
     const pendingCount = orders.filter(o => o.status === 'novo').length;
 
     document.getElementById('total-orders-today').textContent = totalOrders;
-    document.getElementById('total-revenue-today').textContent = `R$ ${totalRevenue.toFixed(2)}`;
+    document.getElementById('total-revenue-today').textContent = formatBRL(totalRevenue);
     document.getElementById('pending-badge').textContent = `${pendingCount} Pendentes`;
 
     updateRepasse(orders);
@@ -355,6 +363,41 @@ function updateMetrics(orders) {
  * menos a comissão da plataforma. Pedidos pendentes/cancelados não entram na conta
  * ainda (só quando o pedido realmente é entregue é que a comissão é devida).
  */
+/**
+ * Nota média e últimos comentários deixados pelos clientes após a entrega
+ */
+async function loadReviews(storeId) {
+    const { data: reviews, error } = await sb
+        .from('reviews')
+        .select('rating, comment, created_at')
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar avaliações:', error);
+        return;
+    }
+
+    const section = document.getElementById('reviews-section');
+    section.classList.remove('hidden');
+
+    if (!reviews || reviews.length === 0) {
+        document.getElementById('reviews-average').textContent = '';
+        document.getElementById('reviews-list').innerHTML = '<p class="text-gray-400">Nenhuma avaliação ainda. Elas aparecem aqui quando o cliente avalia um pedido entregue.</p>';
+        return;
+    }
+
+    const avg = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
+    document.getElementById('reviews-average').textContent = `★ ${avg.toFixed(1).replace('.', ',')} (${reviews.length})`;
+    document.getElementById('reviews-list').innerHTML = reviews.slice(0, 5).map(r => `
+        <div class="border-b border-gray-100 last:border-none pb-2">
+            <span class="text-amber-500">${'★'.repeat(r.rating)}<span class="text-gray-300">${'★'.repeat(5 - r.rating)}</span></span>
+            <span class="text-[10px] text-gray-400 ml-1">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span>
+            ${r.comment ? `<p class="mt-0.5">${escapeHtml(r.comment)}</p>` : ''}
+        </div>
+    `).join('');
+}
+
 function updateRepasse(orders) {
     const completed = orders.filter(o => o.status === 'entregue');
     const gross = completed.reduce((acc, o) => acc + Number(o.total_amount), 0);
@@ -365,6 +408,20 @@ function updateRepasse(orders) {
     document.getElementById('repasse-gross').textContent = `R$ ${gross.toFixed(2)}`;
     document.getElementById('repasse-commission').textContent = `R$ ${commission.toFixed(2)}`;
     document.getElementById('repasse-net').textContent = `R$ ${net.toFixed(2)}`;
+}
+
+/**
+ * Botão "Ativar alertas": som + notificação do navegador a cada pedido novo.
+ * Precisa de clique porque o navegador bloqueia áudio/permissão automáticos.
+ */
+async function ativarAlertas() {
+    if (!notifier) return;
+    await notifier.enable();
+    notifier.playNotificationSound();
+    const btn = document.getElementById('alerts-btn');
+    btn.textContent = notifier.hasPermission ? '🔔 Alertas ativos' : '🔔 Som ativo';
+    btn.disabled = true;
+    btn.classList.add('opacity-70');
 }
 
 /**
@@ -383,6 +440,7 @@ function subscribeToNewOrders() {
             table: 'orders',
             filter: `store_id=eq.${currentStore.id}`
         }, payload => {
+            if (payload.eventType === 'INSERT' && notifier) notifier.notifyNewOrder(payload.new);
             fetchOrders();
         })
         .subscribe();

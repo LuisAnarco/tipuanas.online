@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
     <title>Painel Admin — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 antialiased">
 
     <div class="max-w-5xl mx-auto space-y-6">
-        
+
         <!-- Header Admin -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800 p-6 rounded-2xl border border-slate-700/60 shadow-xl">
             <div>
@@ -23,99 +26,223 @@
                 <p class="text-xs text-slate-400 mt-1">Gestão Financeira & Operacional • Tipuanas.online</p>
             </div>
             <div class="flex items-center gap-3">
+                <select id="period" class="text-xs bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
+                    <option value="7">Últimos 7 dias</option>
+                    <option value="30" selected>Últimos 30 dias</option>
+                    <option value="0">Todo o período</option>
+                </select>
                 <a href="index.html" class="text-xs text-slate-400 hover:text-emerald-400 underline">Ir para Vitrine</a>
-                <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 text-xs px-3 py-1 rounded-full border border-emerald-500/20 font-bold">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sistema Ativo
-                </span>
             </div>
         </header>
 
         <!-- Métricas Principais -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
-                <p class="text-xs text-slate-400 font-medium">GMV Total (Vendas)</p>
+                <p class="text-xs text-slate-400 font-medium">GMV (pedidos entregues)</p>
                 <p id="total-gmv" class="text-2xl font-black text-emerald-400 mt-1">R$ 0,00</p>
             </div>
             <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
                 <p class="text-xs text-slate-400 font-medium">Comissão da Plataforma (8%)</p>
                 <p id="total-commission" class="text-2xl font-black text-emerald-300 mt-1">R$ 0,00</p>
+                <p id="quote-commission" class="text-[10px] text-slate-500 mt-1"></p>
             </div>
             <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
-                <p class="text-xs text-slate-400 font-medium">Total de Pedidos</p>
+                <p class="text-xs text-slate-400 font-medium">Pedidos</p>
                 <p id="total-orders-count" class="text-2xl font-black text-slate-100 mt-1">0</p>
+                <p id="orders-breakdown" class="text-[10px] text-slate-500 mt-1"></p>
             </div>
             <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
-                <p class="text-xs text-slate-400 font-medium">Lojas Ativas</p>
-                <p id="total-stores-count" class="text-2xl font-black text-slate-100 mt-1">0</p>
+                <p class="text-xs text-slate-400 font-medium">Clientes / Recorrência</p>
+                <p id="total-clients" class="text-2xl font-black text-slate-100 mt-1">0</p>
+                <p id="repeat-rate" class="text-[10px] text-slate-500 mt-1"></p>
             </div>
         </div>
 
         <!-- Tabela de Vendas por Loja -->
         <main class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-4">
-            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Desempenho por Estabelecimento</h2>
-            
+            <div class="flex justify-between items-center">
+                <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Desempenho por Estabelecimento</h2>
+                <span id="total-stores-count" class="text-[11px] text-slate-400"></span>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs text-slate-300">
                     <thead class="bg-slate-900/60 text-slate-400 uppercase text-[10px]">
                         <tr>
                             <th class="p-3">Loja</th>
-                            <th class="p-3">Categoria</th>
-                            <th class="p-3">Pedidos</th>
-                            <th class="p-3">Faturamento Total</th>
+                            <th class="p-3">Tipo</th>
+                            <th class="p-3">Pedidos entregues</th>
+                            <th class="p-3">Faturamento</th>
                             <th class="p-3">Comissão Devida</th>
+                            <th class="p-3">Situação</th>
                         </tr>
                     </thead>
                     <tbody id="stores-admin-table" class="divide-y divide-slate-700/50">
                         <tr>
-                            <td colspan="5" class="text-center text-slate-500 py-6">Carregando dados financeiros...</td>
+                            <td colspan="6" class="text-center text-slate-500 py-6">Carregando dados financeiros...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </main>
 
+        <!-- Produtos mais vendidos -->
+        <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-3">
+            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Produtos Mais Vendidos</h2>
+            <ol id="top-products" class="space-y-1.5 text-xs text-slate-300 list-decimal list-inside"></ol>
+        </section>
+
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let storesCache = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await requireLogin({ title: 'Painel Admin', subtitle: 'Acesso restrito à administração do Tipuanas.online.' });
+            if (!(await isAdminUser())) {
+                document.querySelector('.max-w-5xl').innerHTML = `
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700/60 text-center space-y-2">
+                        <p class="text-lg font-bold text-white">Acesso restrito</p>
+                        <p class="text-xs text-slate-400">Esta conta não é de administrador.</p>
+                        <button onclick="signOut()" class="text-xs text-emerald-400 underline">Entrar com outra conta</button>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('period').addEventListener('change', loadAdminMetrics);
+            document.getElementById('stores-admin-table').addEventListener('click', event => {
+                const btn = event.target.closest('[data-toggle-store]');
+                if (btn) toggleStoreActive(btn.dataset.toggleStore);
+            });
             loadAdminMetrics();
         });
 
+        function periodStart() {
+            const days = Number(document.getElementById('period').value);
+            if (!days) return null;
+            const d = new Date();
+            d.setDate(d.getDate() - days);
+            return d.toISOString();
+        }
+
         async function loadAdminMetrics() {
-            const { data: stores } = await sb.from('stores').select('*');
-            const { data: orders } = await sb.from('orders').select('*');
+            const since = periodStart();
 
-            if (!stores || !orders) return;
+            let ordersQuery = sb.from('orders').select('id, store_id, status, total_amount, delivery_fee, delivery_address, created_at, order_items(quantity, unit_price, products(name))');
+            let quotesQuery = sb.from('service_requests').select('store_id, platform_commission, paid_at').not('paid_at', 'is', null);
+            if (since) {
+                ordersQuery = ordersQuery.gte('created_at', since);
+                quotesQuery = quotesQuery.gte('paid_at', since);
+            }
 
-            const totalGmv = orders.reduce((acc, o) => acc + Number(o.total_amount), 0);
-            const totalCommission = totalGmv * 0.08; // 8% de taxa cobrada pela plataforma (fixa pro lojista; taxas de pagamento saem daqui)
+            const [{ data: stores, error: storesErr }, { data: orders, error: ordersErr }, { data: quotes }] = await Promise.all([
+                sb.from('stores').select('*').order('name'),
+                ordersQuery,
+                quotesQuery
+            ]);
 
-            document.getElementById('total-gmv').textContent = `R$ ${totalGmv.toFixed(2)}`;
-            document.getElementById('total-commission').textContent = `R$ ${totalCommission.toFixed(2)}`;
+            if (storesErr || ordersErr || !stores || !orders) {
+                console.error('Erro ao carregar métricas:', storesErr || ordersErr);
+                document.getElementById('stores-admin-table').innerHTML = `<tr><td colspan="6" class="text-center text-red-400 py-6">Não foi possível carregar os dados.</td></tr>`;
+                return;
+            }
+            storesCache = stores;
+
+            // Comissão só é devida sobre pedido entregue (mesma regra do "Meu Repasse" do lojista)
+            const delivered = orders.filter(o => o.status === 'entregue');
+            const cancelled = orders.filter(o => o.status === 'cancelado');
+            const open = orders.length - delivered.length - cancelled.length;
+            const totalGmv = delivered.reduce((acc, o) => acc + Number(o.total_amount), 0);
+            const totalCommission = totalGmv * PLATFORM_COMMISSION_RATE;
+            const quoteCommission = (quotes || []).reduce((acc, q) => acc + Number(q.platform_commission || 0), 0);
+
+            document.getElementById('total-gmv').textContent = formatBRL(totalGmv);
+            document.getElementById('total-commission').textContent = formatBRL(totalCommission + quoteCommission);
+            document.getElementById('quote-commission').textContent = quoteCommission > 0
+                ? `${formatBRL(totalCommission)} pedidos + ${formatBRL(quoteCommission)} orçamentos`
+                : '';
             document.getElementById('total-orders-count').textContent = orders.length;
-            document.getElementById('total-stores-count').textContent = stores.length;
+            document.getElementById('orders-breakdown').textContent = `${delivered.length} entregues • ${open} em aberto • ${cancelled.length} cancelados`;
 
-            // Preenche tabela
-            const tableBody = document.getElementById('stores-admin-table');
-            tableBody.innerHTML = stores.map(store => {
-                const storeOrders = orders.filter(o => o.store_id === store.id);
+            // Recorrência: clientes (por telefone) com mais de um pedido não cancelado
+            const byClient = {};
+            orders.filter(o => o.status !== 'cancelado').forEach(o => {
+                const phone = o.delivery_address && o.delivery_address.client_phone;
+                if (phone) byClient[phone] = (byClient[phone] || 0) + 1;
+            });
+            const clients = Object.keys(byClient).length;
+            const repeat = Object.values(byClient).filter(n => n > 1).length;
+            document.getElementById('total-clients').textContent = clients;
+            document.getElementById('repeat-rate').textContent = clients > 0
+                ? `${Math.round((repeat / clients) * 100)}% voltaram a pedir`
+                : 'Identificados pelo WhatsApp informado no pedido';
+
+            const activeCount = stores.filter(s => s.is_active).length;
+            document.getElementById('total-stores-count').textContent = `${activeCount} ativas de ${stores.length}`;
+
+            renderStoresTable(stores, delivered, quotes || []);
+            renderTopProducts(delivered);
+        }
+
+        function renderStoresTable(stores, delivered, quotes) {
+            document.getElementById('stores-admin-table').innerHTML = stores.map(store => {
+                const storeOrders = delivered.filter(o => o.store_id === store.id);
                 const storeGmv = storeOrders.reduce((acc, o) => acc + Number(o.total_amount), 0);
-                const commission = storeGmv * 0.08;
+                const storeQuoteCommission = quotes.filter(q => q.store_id === store.id).reduce((acc, q) => acc + Number(q.platform_commission || 0), 0);
+                const commission = storeGmv * PLATFORM_COMMISSION_RATE + storeQuoteCommission;
+
+                const situation = !store.is_active
+                    ? '<span class="text-red-400 font-bold">Desativada</span>'
+                    : store.is_paused ? '<span class="text-amber-400 font-bold">Pausada</span>' : '<span class="text-emerald-400 font-bold">Ativa</span>';
 
                 return `
-                    <tr class="hover:bg-slate-700/30">
-                        <td class="p-3 font-bold text-white">${store.name}</td>
-                        <td class="p-3 text-slate-400">${store.category || '—'}</td>
+                    <tr class="hover:bg-slate-700/30 ${store.is_active ? '' : 'opacity-60'}">
+                        <td class="p-3">
+                            <p class="font-bold text-white">${escapeHtml(store.name)}</p>
+                            <p class="text-[10px] text-slate-500">${escapeHtml(store.category || '—')}${store.whatsapp_number ? '' : ' • <span class="text-amber-400">sem WhatsApp</span>'}</p>
+                        </td>
+                        <td class="p-3 text-slate-400">${store.listing_type === 'orcamento' ? 'Orçamento' : 'Catálogo'}</td>
                         <td class="p-3 font-semibold">${storeOrders.length}</td>
-                        <td class="p-3 font-bold text-emerald-400">R$ ${storeGmv.toFixed(2)}</td>
-                        <td class="p-3 font-bold text-emerald-300">R$ ${commission.toFixed(2)}</td>
+                        <td class="p-3 font-bold text-emerald-400">${formatBRL(storeGmv)}</td>
+                        <td class="p-3 font-bold text-emerald-300">${formatBRL(commission)}</td>
+                        <td class="p-3">
+                            <div class="flex items-center gap-2">
+                                ${situation}
+                                <button data-toggle-store="${escapeHtml(store.id)}" class="text-[10px] border border-slate-600 hover:bg-slate-700 rounded px-2 py-0.5">${store.is_active ? 'Desativar' : 'Ativar'}</button>
+                            </div>
+                        </td>
                     </tr>
                 `;
-            }).join('');
+            }).join('') || `<tr><td colspan="6" class="text-center text-slate-500 py-6">Nenhuma loja cadastrada.</td></tr>`;
+        }
+
+        function renderTopProducts(delivered) {
+            const totals = {};
+            delivered.forEach(o => (o.order_items || []).forEach(it => {
+                const name = it.products ? it.products.name : 'Item removido';
+                totals[name] = totals[name] || { qty: 0, revenue: 0 };
+                totals[name].qty += it.quantity;
+                totals[name].revenue += it.quantity * Number(it.unit_price);
+            }));
+            const top = Object.entries(totals).sort((a, b) => b[1].qty - a[1].qty).slice(0, 10);
+            document.getElementById('top-products').innerHTML = top.length
+                ? top.map(([name, t]) => `<li><span class="font-semibold text-white">${escapeHtml(name)}</span> — ${t.qty} un. • ${formatBRL(t.revenue)}</li>`).join('')
+                : '<li class="list-none text-slate-500">Sem pedidos entregues no período.</li>';
+        }
+
+        async function toggleStoreActive(storeId) {
+            const store = storesCache.find(s => s.id === storeId);
+            if (!store) return;
+            const action = store.is_active ? 'desativar' : 'ativar';
+            if (!confirm(`Deseja ${action} "${store.name}"? ${store.is_active ? 'A loja some da vitrine.' : 'A loja volta a aparecer na vitrine.'}`)) return;
+
+            const { error } = await sb.from('stores').update({ is_active: !store.is_active }).eq('id', storeId);
+            if (error) {
+                alert('Não foi possível atualizar a loja.');
+                console.error(error);
+                return;
+            }
+            loadAdminMetrics();
         }
     </script>
 </body>

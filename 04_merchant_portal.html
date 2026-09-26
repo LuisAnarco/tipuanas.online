@@ -6,6 +6,8 @@
     <title>Painel do Comerciante - Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
     <div class="max-w-4xl mx-auto p-4">
@@ -33,7 +35,7 @@
         <!-- Bootstrap: cadastro rápido da loja, quando ainda não há loja identificada -->
         <section id="bootstrap-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
             <h2 class="text-lg font-bold text-gray-800 mb-1">Cadastre sua loja</h2>
-            <p class="text-xs text-gray-500 mb-4">Isso leva menos de 2 minutos. Depois de criar, guarde o link que aparece na tela — é o acesso ao seu painel daqui pra frente.</p>
+            <p class="text-xs text-gray-500 mb-4">Isso leva menos de 2 minutos. A loja fica vinculada ao seu e-mail — pra voltar ao painel depois, é só entrar com ele.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Como funciona o seu negócio?</label>
@@ -86,7 +88,7 @@
 
         <!-- Confirmação com o link do painel, mostrada uma vez após criar a loja -->
         <section id="link-section" class="hidden bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
-            <p class="text-sm font-bold text-emerald-800">Loja criada! Guarde este link — é o seu painel.</p>
+            <p class="text-sm font-bold text-emerald-800">Loja criada! Pra voltar depois, acesse este endereço e entre com o seu e-mail.</p>
             <p id="store-link" class="text-xs text-emerald-700 break-all bg-white rounded p-2 mt-2 border border-emerald-100"></p>
         </section>
 
@@ -97,7 +99,7 @@
                 <p id="total-orders-today" class="text-2xl font-bold text-gray-800">0</p>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <p class="text-xs text-gray-500">Faturamento Estimado</p>
+                <p class="text-xs text-gray-500">Faturamento Hoje</p>
                 <p id="total-revenue-today" class="text-2xl font-bold text-emerald-600">R$ 0,00</p>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between">
@@ -138,11 +140,23 @@
             </div>
         </section>
 
+        <!-- Avaliações dos clientes -->
+        <section id="reviews-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold text-gray-800">Avaliações dos Clientes</h2>
+                <span id="reviews-average" class="text-sm font-bold text-amber-600"></span>
+            </div>
+            <div id="reviews-list" class="space-y-2 text-xs text-gray-700"></div>
+        </section>
+
         <!-- Seção Principal: Pedidos em Tempo Real -->
         <main id="orders-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-bold text-gray-800">Pedidos Recebidos</h2>
-                <span id="pending-badge" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 Pendentes</span>
+                <div class="flex items-center gap-2">
+                    <button id="alerts-btn" onclick="ativarAlertas()" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-2.5 py-1 rounded-full">🔔 Ativar alertas</button>
+                    <span id="pending-badge" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 Pendentes</span>
+                </div>
             </div>
 
             <!-- Lista de Pedidos -->
@@ -152,6 +166,7 @@
         </main>
     </div>
 
+    <script src="06_push_notification_service.js"></script>
     <script src="05_merchant_order_management.js"></script>
 </body>
 </html>

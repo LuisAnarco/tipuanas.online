@@ -6,6 +6,7 @@
     <title>Finalizar Pedido — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -39,17 +40,32 @@
 
         <!-- Dados de Entrega -->
         <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
-            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dados para Entrega</h2>
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Seus Dados</h2>
 
             <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Seu Nome</label>
-                    <input type="text" id="client-name" placeholder="Ex: Maria Silva" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                <div class="flex gap-2 text-xs font-semibold">
+                    <label class="flex-1 flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                        <input type="radio" name="fulfillment" value="delivery" checked onchange="onFulfillmentChange()" class="accent-emerald-600"> 🛵 Entrega
+                    </label>
+                    <label class="flex-1 flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                        <input type="radio" name="fulfillment" value="takeout" onchange="onFulfillmentChange()" class="accent-emerald-600"> 🏪 Retirar na loja
+                    </label>
                 </div>
 
                 <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Seu Nome</label>
+                    <input type="text" id="client-name" autocomplete="name" placeholder="Ex: Maria Silva" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Seu WhatsApp (com DDD)</label>
+                    <input type="tel" id="client-phone" autocomplete="tel" inputmode="tel" placeholder="Ex: 48999998888" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                    <p class="text-[10px] text-slate-400 mt-1">Usado pela loja pra falar com você e pra você achar seus pedidos depois.</p>
+                </div>
+
+                <div id="address-wrap">
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Endereço na Av. das Tipuanas / N°</label>
-                    <input type="text" id="client-address" placeholder="Ex: Av. das Tipuanas, 150 - Apt 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                    <input type="text" id="client-address" autocomplete="street-address" placeholder="Ex: Av. das Tipuanas, 150 - Apt 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
                 </div>
 
                 <div>
@@ -60,8 +76,15 @@
                         <option value="Dinheiro">Dinheiro</option>
                     </select>
                 </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Observações (opcional)</label>
+                    <input type="text" id="client-notes" placeholder="Ex: sem cebola, troco pra R$ 50, interfone 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
             </div>
         </div>
+
+        <p id="checkout-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2"></p>
 
         <!-- Botão WhatsApp -->
         <button id="submit-btn" onclick="submitOrder()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition text-sm flex items-center justify-center gap-2">
@@ -75,22 +98,51 @@
         <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center space-y-1">
             <span class="text-3xl">✅</span>
             <h2 class="text-base font-extrabold text-slate-900">Pedido registrado!</h2>
-            <p class="text-xs text-slate-500">Agora é só confirmar o envio no WhatsApp de cada loja abaixo.</p>
+            <p class="text-xs text-slate-500">Agora é só confirmar o envio no WhatsApp de cada loja abaixo. Seus pedidos também ficam em <a href="pedidos.html" class="underline text-emerald-700">Meus pedidos</a>.</p>
         </div>
         <div id="confirmation-cards" class="space-y-3"></div>
     </main>
 
     <script>
-        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const FALLBACK_WHATSAPP = '5548999999999'; // usado só se a loja ainda não tiver whatsapp_number cadastrado
+        const CART_KEY = 'tipuanas_cart';
+        const CLIENT_KEY = 'tipuanas_client';     // nome/telefone/endereço lembrados neste aparelho
+        const MY_ORDERS_KEY = 'tipuanas_my_orders'; // ids dos pedidos feitos neste aparelho (Meus pedidos)
 
-        let cart = JSON.parse(localStorage.getItem('tipuanas_cart')) || [];
+        let cart = readJson(CART_KEY, []);
 
         document.addEventListener('DOMContentLoaded', () => {
+            prefillClient();
             renderCheckout();
+
+            // Delegação para os botões de quantidade (evita onclick com texto do banco)
+            document.getElementById('checkout-items').addEventListener('click', event => {
+                const btn = event.target.closest('[data-qty]');
+                if (btn) changeQuantity(btn.dataset.id, Number(btn.dataset.qty));
+            });
         });
+
+        function readJson(key, fallback) {
+            try {
+                return JSON.parse(localStorage.getItem(key)) || fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        function prefillClient() {
+            const client = readJson(CLIENT_KEY, {});
+            if (client.name) document.getElementById('client-name').value = client.name;
+            if (client.phone) document.getElementById('client-phone').value = client.phone;
+            if (client.address) document.getElementById('client-address').value = client.address;
+        }
+
+        function isTakeout() {
+            return document.querySelector('input[name="fulfillment"]:checked').value === 'takeout';
+        }
+
+        function onFulfillmentChange() {
+            document.getElementById('address-wrap').classList.toggle('hidden', isTakeout());
+        }
 
         function groupByStore(items) {
             const groups = {};
@@ -101,12 +153,25 @@
             return groups;
         }
 
+        function changeQuantity(productId, delta) {
+            const item = cart.find(i => i.id === productId);
+            if (!item) return;
+            item.quantity += delta;
+            if (item.quantity <= 0) cart = cart.filter(i => i.id !== productId);
+            localStorage.setItem(CART_KEY, JSON.stringify(cart));
+            renderCheckout();
+        }
+
         function renderCheckout() {
             const container = document.getElementById('checkout-items');
             const totalEl = document.getElementById('checkout-total-price');
 
             if (cart.length === 0) {
-                container.innerHTML = '<p class="text-slate-400 py-2">Seu carrinho está vazio.</p>';
+                container.innerHTML = '<p class="text-slate-400 py-2">Seu carrinho está vazio. <a href="index.html" class="underline text-emerald-700">Voltar para a vitrine</a></p>';
+                totalEl.textContent = formatBRL(0);
+                document.getElementById('multi-store-note').classList.add('hidden');
+                document.getElementById('submit-btn').disabled = true;
+                document.getElementById('submit-btn').classList.add('opacity-60');
                 return;
             }
 
@@ -118,43 +183,71 @@
 
             container.innerHTML = storeIds.map(storeId => {
                 const items = groups[storeId];
-                const storeName = items[0].storeName;
                 const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
                 return `
                     <div class="border-b border-slate-100 last:border-none pb-2 last:pb-0">
-                        <p class="text-[11px] font-bold text-emerald-700 mb-1">${storeName}</p>
+                        <p class="text-[11px] font-bold text-emerald-700 mb-1">${escapeHtml(items[0].storeName)}</p>
                         ${items.map(item => `
-                            <div class="flex justify-between items-center py-0.5">
-                                <div><span class="font-bold text-slate-800">${item.quantity}x</span> ${item.name}</div>
-                                <span class="font-semibold text-slate-700">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+                            <div class="flex justify-between items-center gap-2 py-1">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="flex items-center border border-slate-200 rounded-lg shrink-0">
+                                        <button data-id="${escapeHtml(item.id)}" data-qty="-1" class="px-2 py-0.5 font-bold text-slate-500" aria-label="Diminuir">−</button>
+                                        <span class="px-1 font-bold text-slate-800">${item.quantity}</span>
+                                        <button data-id="${escapeHtml(item.id)}" data-qty="1" class="px-2 py-0.5 font-bold text-slate-500" aria-label="Aumentar">+</button>
+                                    </div>
+                                    <span class="truncate">${escapeHtml(item.name)}</span>
+                                </div>
+                                <span class="font-semibold text-slate-700 shrink-0">${formatBRL(item.price * item.quantity)}</span>
                             </div>
                         `).join('')}
                         <div class="flex justify-between text-[10px] text-slate-400 mt-1">
-                            <span>Subtotal da loja</span>
-                            <span>R$ ${subtotal.toFixed(2)}</span>
+                            <span>Subtotal da loja (sem taxa de entrega)</span>
+                            <span>${formatBRL(subtotal)}</span>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            totalEl.textContent = `R$ ${total.toFixed(2)}`;
+            totalEl.textContent = formatBRL(total);
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('checkout-error');
+            el.textContent = msg;
+            el.classList.toggle('hidden', !msg);
+        }
+
+        function resetSubmitButton() {
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-60');
+            submitBtn.innerHTML = '<span>💬 Enviar Pedido no WhatsApp</span>';
         }
 
         async function submitOrder() {
             const name = document.getElementById('client-name').value.trim();
-            const address = document.getElementById('client-address').value.trim();
+            const phone = document.getElementById('client-phone').value.replace(/\D/g, '');
+            const takeout = isTakeout();
+            const address = takeout ? '' : document.getElementById('client-address').value.trim();
             const payment = document.getElementById('payment-method').value;
+            const notes = document.getElementById('client-notes').value.trim();
             const submitBtn = document.getElementById('submit-btn');
 
-            if (!name || !address) {
-                alert('Por favor, preencha seu nome e endereço.');
+            if (!name || (!takeout && !address)) {
+                showError(takeout ? 'Preencha seu nome.' : 'Preencha seu nome e endereço.');
                 return;
             }
-
+            if (phone.length < 10) {
+                showError('Informe seu WhatsApp com DDD (ex: 48999998888).');
+                return;
+            }
             if (cart.length === 0) {
-                alert('Seu carrinho está vazio.');
+                showError('Seu carrinho está vazio.');
                 return;
             }
+            showError('');
+
+            localStorage.setItem(CLIENT_KEY, JSON.stringify({ name, phone, address: address || readJson(CLIENT_KEY, {}).address || '' }));
 
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-60');
@@ -163,125 +256,113 @@
             const groups = groupByStore(cart);
             const storeIds = Object.keys(groups);
 
-            // Busca dados (inclusive whatsapp) de todas as lojas envolvidas no carrinho
-            const { data: stores, error: storeErr } = await sb
-                .from('stores')
-                .select('*')
-                .in('id', storeIds);
-
-            if (storeErr) {
-                console.error('Erro ao buscar lojas:', storeErr);
-                alert('Não foi possível confirmar as lojas do pedido. Tente novamente.');
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-60');
-                submitBtn.innerHTML = '<span>💬 Enviar Pedido no WhatsApp</span>';
-                return;
-            }
-
-            const storesById = {};
-            (stores || []).forEach(s => { storesById[s.id] = s; });
+            // O pedido é criado por uma função no banco (place_order): ela confere se a
+            // loja está aberta, usa os preços atuais, calcula a taxa e gera o PIN — o
+            // carrinho do navegador pode estar desatualizado ou ter sido adulterado.
+            const SKIP_REASONS = {
+                store_unavailable: 'loja fechada no momento',
+                items_unavailable: 'itens indisponíveis',
+                invalid_customer: 'dados de entrega incompletos'
+            };
 
             const confirmations = [];
+            const skipped = [];
+            const doneStoreIds = [];
 
             for (const storeId of storeIds) {
-                const items = groups[storeId];
-                const store = storesById[storeId];
-                const deliveryFee = store ? Number(store.delivery_fee || 0) : 0;
-                const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-                const total = subtotal + deliveryFee;
-                const pin = Math.floor(1000 + Math.random() * 9000).toString();
+                const storeName = groups[storeId][0].storeName;
 
-                const { data: inserted, error } = await sb.from('orders').insert([{
-                    store_id: storeId,
-                    status: 'novo',
-                    total_amount: total,
-                    delivery_fee: deliveryFee,
-                    is_takeout: false,
-                    delivery_pin: pin,
-                    delivery_address: {
-                        client_name: name,
-                        address: address,
-                        payment_method: payment
-                    }
-                }]).select();
+                const { data: result, error } = await sb.rpc('place_order', {
+                    p_store_id: storeId,
+                    p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity })),
+                    p_customer: { name, phone, address, payment_method: payment, notes },
+                    p_is_takeout: takeout
+                });
 
-                if (error) {
+                if (error || !result) {
                     console.error('Erro ao registrar pedido:', error);
+                    const code = error && Object.keys(SKIP_REASONS).find(k => (error.message || '').includes(k));
+                    skipped.push(`${storeName} (${code ? SKIP_REASONS[code] : 'erro ao registrar'})`);
                     continue;
                 }
 
-                const orderId = inserted && inserted[0] ? inserted[0].id : null;
+                const orderId = result.id;
+                const deliveryFee = Number(result.delivery_fee);
+                const total = Number(result.total);
+                const trackUrl = new URL(`11_order_tracking_realtime.html?id=${orderId}`, window.location.href).href;
 
-                // Registra os itens do pedido na tabela relacional order_items
-                if (orderId) {
-                    const orderItemsPayload = items.map(item => ({
-                        order_id: orderId,
-                        product_id: item.id,
-                        quantity: item.quantity,
-                        unit_price: item.price
-                    }));
-                    const { error: itemsError } = await sb.from('order_items').insert(orderItemsPayload);
-                    if (itemsError) {
-                        console.error('Erro ao registrar itens do pedido:', itemsError);
-                    }
-                }
-
-                const whatsappNumber = (store && store.whatsapp_number) ? store.whatsapp_number.replace(/\D/g, '') : FALLBACK_WHATSAPP;
-
-                let message = `*NOVO PEDIDO - AV. DAS TIPUANAS LOCAL*\n\n`;
+                let message = `*NOVO PEDIDO - TIPUANAS.ONLINE*\n`;
+                message += `Pedido #${orderId.slice(0, 8)}\n\n`;
                 message += `👤 *Cliente:* ${name}\n`;
-                message += `📍 *Endereço:* ${address}\n`;
+                message += `📱 *WhatsApp:* ${phone}\n`;
+                message += takeout ? `🏪 *Retirada na loja*\n` : `📍 *Endereço:* ${address}\n`;
                 message += `💳 *Pagamento:* ${payment}\n`;
-                message += `🔑 *PIN de Segurança:* ${pin}\n\n`;
-                message += `*ITENS:* \n`;
-                items.forEach(item => {
-                    message += `• ${item.quantity}x ${item.name} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
+                if (notes) message += `📝 *Obs:* ${notes}\n`;
+                message += `\n*ITENS:*\n`;
+                result.items.forEach(item => {
+                    message += `• ${item.quantity}x ${item.name} (${formatBRL(item.unit_price * item.quantity)})\n`;
                 });
                 if (deliveryFee > 0) {
-                    message += `\n🛵 *Taxa de entrega:* R$ ${deliveryFee.toFixed(2)}`;
+                    message += `\n🛵 *Taxa de entrega:* ${formatBRL(deliveryFee)}`;
                 }
-                message += `\n💰 *Total:* R$ ${total.toFixed(2)}`;
+                message += `\n💰 *Total:* ${formatBRL(total)}`;
+                message += `\n\n🔎 Acompanhamento: ${trackUrl}`;
+
+                const whatsappNumber = toWhatsappNumber(result.store && result.store.whatsapp_number);
 
                 confirmations.push({
-                    storeName: store ? store.name : 'Loja',
+                    storeName: (result.store && result.store.name) || storeName,
                     total,
                     orderId,
-                    waLink: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`,
-                    trackLink: orderId ? `11_order_tracking_realtime.html?id=${orderId}` : null,
-                    usedFallback: !(store && store.whatsapp_number)
+                    pin: result.pin,
+                    waLink: whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}` : null,
+                    trackLink: `11_order_tracking_realtime.html?id=${orderId}`
                 });
+                doneStoreIds.push(storeId);
             }
 
-            localStorage.removeItem('tipuanas_cart');
+            // Guarda os pedidos neste aparelho (tela "Meus pedidos")
+            if (confirmations.length > 0) {
+                const myOrders = readJson(MY_ORDERS_KEY, []);
+                confirmations.forEach(c => myOrders.unshift(c.orderId));
+                localStorage.setItem(MY_ORDERS_KEY, JSON.stringify([...new Set(myOrders)].slice(0, 50)));
+            }
+
+            // Tira do carrinho só o que virou pedido — o resto continua lá
+            cart = cart.filter(item => !doneStoreIds.includes(item.storeId));
+            localStorage.setItem(CART_KEY, JSON.stringify(cart));
 
             if (confirmations.length === 0) {
-                alert('Não foi possível registrar seu pedido. Tente novamente em instantes.');
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-60');
-                submitBtn.innerHTML = '<span>💬 Enviar Pedido no WhatsApp</span>';
+                showError(`Não foi possível registrar seu pedido: ${skipped.join('; ')}.`);
+                resetSubmitButton();
+                renderCheckout();
                 return;
             }
 
-            showConfirmation(confirmations);
+            showConfirmation(confirmations, skipped);
         }
 
-        function showConfirmation(confirmations) {
+        function showConfirmation(confirmations, skipped) {
             document.getElementById('checkout-view').classList.add('hidden');
             const confirmationView = document.getElementById('confirmation-view');
             confirmationView.classList.remove('hidden');
+            window.scrollTo(0, 0);
 
-            const cardsContainer = document.getElementById('confirmation-cards');
-            cardsContainer.innerHTML = confirmations.map(c => `
+            const skippedHtml = skipped.length > 0
+                ? `<p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Não enviado: ${escapeHtml(skipped.join('; '))}. Esses itens continuam no seu carrinho.</p>`
+                : '';
+
+            document.getElementById('confirmation-cards').innerHTML = skippedHtml + confirmations.map(c => `
                 <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2.5">
                     <div class="flex justify-between items-center">
-                        <h3 class="font-bold text-sm text-slate-900">${c.storeName}</h3>
-                        <span class="font-extrabold text-emerald-600 text-sm">R$ ${c.total.toFixed(2)}</span>
+                        <h3 class="font-bold text-sm text-slate-900">${escapeHtml(c.storeName)}</h3>
+                        <span class="font-extrabold text-emerald-600 text-sm">${formatBRL(c.total)}</span>
                     </div>
-                    ${c.usedFallback ? `<p class="text-[10px] text-amber-600">Esta loja ainda não tem WhatsApp cadastrado — enviando para o número padrão da rede.</p>` : ''}
-                    <a href="${c.waLink}" target="_blank" rel="noopener" class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
-                        💬 Enviar para esta loja no WhatsApp
-                    </a>
-                    ${c.trackLink ? `<a href="${c.trackLink}" class="block w-full text-center border border-slate-200 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-50">Acompanhar este pedido</a>` : ''}
+                    <p class="text-[11px] text-slate-500">PIN de entrega: <strong class="text-emerald-700 font-mono">${c.pin}</strong> — informe ao entregador.</p>
+                    ${c.waLink
+                        ? `<a href="${c.waLink}" target="_blank" rel="noopener" class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">💬 Enviar para esta loja no WhatsApp</a>`
+                        : `<p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Esta loja ainda não tem WhatsApp cadastrado. Seu pedido já chegou no painel dela — é só acompanhar abaixo.</p>`}
+                    <a href="${c.trackLink}" class="block w-full text-center border border-slate-200 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-50">Acompanhar este pedido</a>
                 </div>
             `).join('');
         }

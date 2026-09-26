@@ -6,6 +6,7 @@
     <title>Solicitar Orçamento — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -64,10 +65,6 @@
     </main>
 
     <script>
-        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         const urlParams = new URLSearchParams(window.location.search);
         const storeId = urlParams.get('store');
         let store = null;
@@ -109,15 +106,15 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Enviando...';
 
-            const { data, error } = await sb.from('service_requests').insert([{
-                store_id: storeId,
-                client_name: name,
-                client_whatsapp: whatsapp,
-                necessity_description: description,
-                status: 'solicitado'
-            }]).select();
+            // Criado por função no banco: o cliente não tem login nem acesso direto à tabela
+            const { data: requestId, error } = await sb.rpc('create_service_request', {
+                p_store_id: storeId,
+                p_name: name,
+                p_whatsapp: whatsapp,
+                p_description: description
+            });
 
-            if (error || !data || !data[0]) {
+            if (error || !requestId) {
                 console.error('Erro ao criar solicitação:', error);
                 errorEl.textContent = 'Não foi possível enviar. Tente novamente em instantes.';
                 errorEl.classList.remove('hidden');
@@ -126,15 +123,14 @@
                 return;
             }
 
-            const request = data[0];
             document.getElementById('form-section').classList.add('hidden');
-            document.getElementById('tracking-link').href = `19_acompanhar_orcamento.html?id=${request.id}`;
+            document.getElementById('tracking-link').href = `19_acompanhar_orcamento.html?id=${requestId}`;
             document.getElementById('confirm-section').classList.remove('hidden');
 
             // Avisa o prestador via WhatsApp
             if (store && store.whatsapp_number) {
                 const msg = encodeURIComponent(`Olá! Nova solicitação de orçamento em Tipuanas.online:\n\nCliente: ${name}\nWhatsApp: ${whatsapp}\nNecessidade: ${description}\n\nAcesse seu painel para agendar a visita e enviar a proposta.`);
-                window.open(`https://wa.me/55${store.whatsapp_number}?text=${msg}`, '_blank');
+                window.open(`https://wa.me/${toWhatsappNumber(store.whatsapp_number)}?text=${msg}`, '_blank');
             }
         }
     </script>

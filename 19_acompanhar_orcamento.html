@@ -6,6 +6,7 @@
     <title>Acompanhar Orçamento — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -69,11 +70,6 @@
     </main>
 
     <script>
-        const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const PLATFORM_COMMISSION_RATE = 0.08;
-
         const urlParams = new URLSearchParams(window.location.search);
         const requestId = urlParams.get('id');
         let currentRequest = null;
@@ -87,31 +83,37 @@
             }
         });
 
+        // Cliente sem login: lê pela função no banco (o id do link é a "senha") e
+        // consulta de novo a cada 20s, já que o Realtime exige login.
+        let pollTimer = null;
+
         async function trackRequest(id) {
-            const { data: request, error } = await sb.from('service_requests').select('*').eq('id', id).single();
-            if (error || !request) return;
+            const { data, error } = await sb.rpc('get_service_request_public', { p_id: id });
+            if (error || !data || !data.request) {
+                if (error) console.error('Erro ao buscar solicitação:', error);
+                if (!currentRequest) {
+                    document.getElementById('status-title').textContent = 'Solicitação Não Encontrada';
+                    document.getElementById('status-desc').textContent = 'Confira o link recebido ao pedir o orçamento.';
+                }
+                return;
+            }
 
-            updateUI(request);
-            loadUpdates(id);
+            updateUI(data.request);
+            renderUpdates(data.updates || []);
 
-            sb.channel(`service_request:${id}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'service_requests', filter: `id=eq.${id}` }, payload => {
-                    updateUI(payload.new);
-                })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'service_updates', filter: `service_request_id=eq.${id}` }, () => {
-                    loadUpdates(id);
-                })
-                .subscribe();
+            clearTimeout(pollTimer);
+            if (!['concluido', 'cancelado', 'rejeitado'].includes(data.request.status)) {
+                pollTimer = setTimeout(() => trackRequest(id), 20000);
+            }
         }
 
-        async function loadUpdates(id) {
-            const { data } = await sb.from('service_updates').select('*').eq('service_request_id', id).order('created_at', { ascending: true });
+        function renderUpdates(data) {
             if (!data || data.length === 0) return;
 
             document.getElementById('updates-card').classList.remove('hidden');
             document.getElementById('updates-list').innerHTML = data.map(u => `
                 <div class="border-l-2 border-emerald-200 pl-3 py-1">
-                    <p>${u.note}</p>
+                    <p>${escapeHtml(u.note)}</p>
                     <p class="text-[10px] text-slate-400 mt-0.5">${new Date(u.created_at).toLocaleString('pt-BR')}</p>
                 </div>
             `).join('');
@@ -167,33 +169,32 @@
 
         async function responderProposta(decision) {
             if (!currentRequest) return;
-            const { error } = await sb.from('service_requests').update({
-                status: decision,
-                client_decision_at: new Date().toISOString()
-            }).eq('id', currentRequest.id);
+            const { error } = await sb.rpc('respond_service_proposal', {
+                p_id: currentRequest.id,
+                p_accept: decision === 'aceito'
+            });
 
             if (error) {
                 alert('Não foi possível registrar sua resposta. Tente novamente.');
                 console.error(error);
+                return;
             }
+            trackRequest(currentRequest.id);
         }
 
         // Simulação de pagamento — sem gateway real integrado ainda (Efí entra numa fase futura).
         // O prestador/cliente confirmam aqui que o pagamento foi acertado por fora do checkout.
         async function confirmarPagamento() {
             if (!currentRequest) return;
-            const commission = Number(currentRequest.proposal_amount) * PLATFORM_COMMISSION_RATE;
-
-            const { error } = await sb.from('service_requests').update({
-                status: 'pago',
-                paid_at: new Date().toISOString(),
-                platform_commission: commission
-            }).eq('id', currentRequest.id);
+            // Comissão calculada no banco (8%, mesma taxa do PLATFORM_COMMISSION_RATE)
+            const { error } = await sb.rpc('client_confirm_service_payment', { p_id: currentRequest.id });
 
             if (error) {
                 alert('Não foi possível confirmar o pagamento. Tente novamente.');
                 console.error(error);
+                return;
             }
+            trackRequest(currentRequest.id);
         }
     </script>
 </body>

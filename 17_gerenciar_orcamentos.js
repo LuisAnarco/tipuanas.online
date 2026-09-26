@@ -9,10 +9,6 @@
  * ==============================================================================
  */
 
-const SUPABASE_URL = 'https://fdhnzdjxbztyomzhunxw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaG56ZGp4Ynp0eW9temh1bnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU4MTQsImV4cCI6MjEwNDMxMTgxNH0.5HC_ZMgtXdQWbMrhw0jzMWcmYee902crA6rbl3F42aI';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const STATUS_LABELS = {
     solicitado: 'Novo Pedido',
     visita_agendada: 'Visita Agendada',
@@ -26,8 +22,6 @@ const STATUS_LABELS = {
 };
 
 const STORE_ID_KEY = 'tipuanas_store_id';
-// Mesma taxa fixa usada no resto da plataforma (05_merchant_order_management.js, 14_admin_analytics_dashboard.html)
-const PLATFORM_COMMISSION_RATE = 0.08;
 let currentStore = null;
 let requestsChannel = null;
 
@@ -36,18 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initPanel() {
+    const user = await requireLogin({
+        title: 'Painel de Orçamentos',
+        subtitle: 'Entre com o e-mail do seu negócio para ver as solicitações.'
+    });
     const urlParams = new URLSearchParams(window.location.search);
-    const storeId = urlParams.get('store') || localStorage.getItem(STORE_ID_KEY);
 
-    if (!storeId) {
-        document.getElementById('no-store-section').classList.remove('hidden');
-        return;
-    }
+    const { store } = await resolveMerchantStore(user);
 
-    const { data: store, error } = await sb.from('stores').select('*').eq('id', storeId).single();
-
-    if (error || !store) {
-        console.error('Loja não encontrada:', error);
+    if (!store) {
         document.getElementById('no-store-section').classList.remove('hidden');
         return;
     }
@@ -147,13 +138,13 @@ function renderRequests(requests) {
         <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <span class="font-bold text-gray-900">${req.client_name}</span>
-                    <span class="text-xs text-gray-500">• ${formatWhatsapp(req.client_whatsapp)}</span>
+                    <span class="font-bold text-gray-900">${escapeHtml(req.client_name)}</span>
+                    <span class="text-xs text-gray-500">• ${escapeHtml(formatWhatsapp(req.client_whatsapp))}</span>
                 </div>
                 <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${STATUS_LABELS[req.status] || req.status}</span>
             </div>
-            <p class="text-xs text-gray-700">📝 ${req.necessity_description}</p>
-            <a href="https://wa.me/55${req.client_whatsapp}" target="_blank" class="inline-block text-[11px] text-emerald-600 hover:underline">Chamar no WhatsApp →</a>
+            <p class="text-xs text-gray-700">📝 ${escapeHtml(req.necessity_description)}</p>
+            <a href="https://wa.me/${toWhatsappNumber(req.client_whatsapp)}" target="_blank" rel="noopener" class="inline-block text-[11px] text-emerald-600 hover:underline">Chamar no WhatsApp →</a>
 
             ${renderActionArea(req)}
         </div>
@@ -291,7 +282,7 @@ async function enviarProposta(requestId) {
 
     const req = data[0];
     const msg = encodeURIComponent(`Olá, ${req.client_name}! Sua proposta de orçamento em Tipuanas.online já está disponível: R$ ${Number(req.proposal_amount).toFixed(2)}.\n\nVeja os detalhes e responda aqui: ${window.location.origin}${window.location.pathname.replace('17_gerenciar_orcamentos.html', '19_acompanhar_orcamento.html')}?id=${req.id}`);
-    window.open(`https://wa.me/55${req.client_whatsapp}?text=${msg}`, '_blank');
+    window.open(`https://wa.me/${toWhatsappNumber(req.client_whatsapp)}?text=${msg}`, '_blank');
 
     fetchRequests();
 }
