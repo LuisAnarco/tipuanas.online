@@ -55,6 +55,9 @@ Projeto `avenidadastipuanas.online`. Tabelas usadas: `stores`, `products`, `orde
 `novo → em_preparacao → pronto → em_rota → entregue` (ou `cancelado`). Dados do cliente ficam em
 `orders.delivery_address` (jsonb): `client_name`, `client_phone`, `address`, `payment_method`, `notes`.
 
+Horário: `stores.opening_hours` = `{"0":"HH:MM-HH:MM", ...}` (0 = domingo, fuso de Brasília; nulo = sempre aberta).
+A mesma regra existe no banco (`store_is_open`) e no navegador (`storeOpenStatus` em `config.js`).
+
 Comissão: 8% fixo sobre pedidos **entregues** (`PLATFORM_COMMISSION_RATE` em `config.js`).
 
 ## Login e segurança
@@ -80,6 +83,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_protege_trechos_codigo.sql` — **aplicada**.
 - `20260926_cancelamento_pelo_cliente.sql` — **aplicada**. Função `cancel_order_public` (só cancela pedido `novo`).
 - `20260926_admin_donos_de_loja.sql` — **aplicada**. Funções `admin_store_owners` / `admin_set_store_owner` (só admin).
+- `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 
 Configuração no painel do Supabase (Authentication):
 - **URL Configuration**: *Site URL* = domínio do site e, em *Redirect URLs*, `https://SEU-DOMINIO/**`

@@ -3,7 +3,7 @@
  * PROJETO: TIPUANAS.ONLINE
  * ARQUIVO: store-settings.js
  * DESCRIÇÃO: Formulário "Dados da loja" (nome, categoria, descrição, WhatsApp,
- *            endereço, taxa de entrega e tipo de negócio). Usado no painel do
+ *            endereço, taxa de entrega, tipo de negócio e horário de funcionamento). Usado no painel do
  *            lojista (catálogo e orçamentos) e no painel admin. Quem pode salvar
  *            é decidido pelo banco: dono da loja ou admin (RLS de stores).
  *            Carregar depois do config.js.
@@ -23,6 +23,20 @@ function renderStoreSettings(container, store, opts = {}) {
             ${input}
         </div>`;
     const inputCls = 'w-full text-sm p-2.5 rounded-lg border border-gray-300';
+    const hours = store.opening_hours || {};
+    const usesHours = Object.keys(hours).length > 0;
+    const dayRow = (day, label) => {
+        const [from, to] = String(hours[day] || '').split('-');
+        const openDay = /^\d{2}:\d{2}-\d{2}:\d{2}$/.test(hours[day] || '');
+        return `
+            <div class="flex items-center gap-2 text-xs" data-day="${day}">
+                <label class="w-20 flex items-center gap-1.5"><input type="checkbox" data-role="day-open" ${openDay ? 'checked' : ''} class="accent-emerald-600"> ${label}</label>
+                <input type="time" data-role="day-from" value="${openDay ? from : '08:00'}" class="p-1.5 rounded border border-gray-300">
+                <span>às</span>
+                <input type="time" data-role="day-to" value="${openDay ? to : '18:00'}" class="p-1.5 rounded border border-gray-300">
+            </div>`;
+    };
+    const DAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
     container.innerHTML = `
         <details class="bg-white rounded-lg shadow-sm border border-gray-100 mb-6 group" ${opts.open ? 'open' : ''}>
@@ -42,6 +56,16 @@ function renderStoreSettings(container, store, opts = {}) {
                         <option value="orcamento" ${store.listing_type === 'orcamento' ? 'selected' : ''}>Serviços — sob orçamento</option>
                     </select>`)}
                 ${field('Descrição curta', `<textarea name="description" rows="2" maxlength="300" class="${inputCls}">${escapeHtml(store.description || '')}</textarea>`, 'md:col-span-2')}
+                <div class="md:col-span-2 border border-gray-200 rounded-lg p-3 space-y-2">
+                    <label class="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                        <input type="checkbox" data-role="uses-hours" ${usesHours ? 'checked' : ''} class="accent-emerald-600">
+                        Usar horário de funcionamento (fora dele a loja aparece "Fechada" e não recebe pedidos)
+                    </label>
+                    <div data-role="hours" class="${usesHours ? '' : 'hidden'} space-y-1.5">
+                        ${DAY_LABELS.map((label, day) => dayRow(day, label)).join('')}
+                        <p class="text-[11px] text-gray-400">Horário de Brasília. Pode passar da meia-noite (ex.: 18:00 às 02:00).</p>
+                    </div>
+                </div>
                 <div class="md:col-span-2 flex items-center gap-3">
                     <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm">Salvar dados</button>
                     <span data-role="status" class="text-xs"></span>
@@ -52,6 +76,23 @@ function renderStoreSettings(container, store, opts = {}) {
 
     const form = container.querySelector('form');
     const statusEl = form.querySelector('[data-role="status"]');
+    const usesHoursEl = form.querySelector('[data-role="uses-hours"]');
+    usesHoursEl.addEventListener('change', () => {
+        form.querySelector('[data-role="hours"]').classList.toggle('hidden', !usesHoursEl.checked);
+    });
+
+    // { "1": "08:00-18:00", ... } só com os dias marcados; null = sempre aberta
+    const readHours = () => {
+        if (!usesHoursEl.checked) return null;
+        const result = {};
+        form.querySelectorAll('[data-day]').forEach(row => {
+            if (!row.querySelector('[data-role="day-open"]').checked) return;
+            const from = row.querySelector('[data-role="day-from"]').value;
+            const to = row.querySelector('[data-role="day-to"]').value;
+            if (from && to) result[row.dataset.day] = `${from}-${to}`;
+        });
+        return result;
+    };
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
@@ -67,6 +108,10 @@ function renderStoreSettings(container, store, opts = {}) {
         if (!data.name.trim()) return setStatus('Informe o nome da loja.', false);
         if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) return setStatus('WhatsApp deve ter DDD + número (10 ou 11 dígitos).', false);
         if (!Number.isFinite(fee) || fee < 0) return setStatus('Taxa de entrega inválida.', false);
+        const openingHours = readHours();
+        if (openingHours && Object.keys(openingHours).length === 0) {
+            return setStatus('Marque pelo menos um dia de funcionamento (ou desligue o horário).', false);
+        }
 
         const changes = {
             name: data.name.trim(),
@@ -75,7 +120,8 @@ function renderStoreSettings(container, store, opts = {}) {
             address_line: data.address_line.trim() || null,
             delivery_fee: fee,
             listing_type: data.listing_type,
-            description: data.description.trim() || null
+            description: data.description.trim() || null,
+            opening_hours: openingHours
         };
 
         setStatus('Salvando...', true);

@@ -41,7 +41,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   status for `novo`; botão na página de acompanhamento.
 - [x] **5. Página própria de cada loja** _(26/09/2026, PR #8)_ (`loja.html?slug=`): cabeçalho, avaliações, cardápio e link
   compartilhável; vitrine e QR do balcão (`13_printable_table_qr.html`) apontando para ela.
-- [ ] **6. Horário de funcionamento.** Colunas de horário por dia da semana; vitrine mostra
+- [x] **6. Horário de funcionamento.** _(26/09/2026, PR #9)_ Colunas de horário por dia da semana; vitrine mostra
   "Fechado — abre às X" e `place_order` recusa fora do horário; lojista configura no painel.
 - [ ] **7. Fotos de produtos.** Upload no cardápio para Supabase Storage (bucket público de leitura,
   escrita só do dono da loja), exibindo em `products.image_url`.
