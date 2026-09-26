@@ -10,8 +10,9 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 ## Regras da rotina
 
 1. **Uma entrega por execução**, pequena o bastante para revisar: um item (ou sub-item) do backlog.
-2. Trabalhar numa branch nova a partir da `main` (`claude/rotina-AAAAMMDD-<assunto>`), abrir PR em
-   português com o que mudou e como foi testado.
+2. Trabalhar na branch `claude/finish-project-898xnu` recriada a partir da `main` atualizada
+   (é a única branch em que a sessão da rotina pode publicar), abrir PR em português com o que mudou
+   e como foi testado.
 3. **Testar antes de publicar**: rodar `npm test` (a partir do item 1) e, para o banco, simular os
    papéis (anon / lojista / entregador / admin) em transação com `rollback`, como já feito nas migrações.
 4. **Banco (Supabase `avenidadastipuanas.online`)**: só migrações **aditivas** (tabela, coluna, função,
@@ -20,14 +21,14 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
    destrutivo, abrir o PR **sem** aplicar nem mergear e explicar o motivo.
 5. **Merge**: pode mergear o próprio PR quando os testes passam, o preview da Vercel fica "Ready" e a
    regra 4 foi respeitada. Caso contrário, deixar o PR aberto explicando o bloqueio.
-6. Se houver um PR da rotina ainda aberto, **primeiro terminar/corrigir esse PR** antes de começar outro.
+6. Se houver um PR da rotina ainda aberto (head `claude/finish-project-898xnu`), **primeiro terminar/corrigir esse PR** antes de começar outro.
 7. Manter o padrão do código: HTML + Tailwind CDN + `config.js`/`auth.js`, textos em português,
    sempre `escapeHtml` ao montar HTML com dados do banco, cliente sem login usando funções (RPC).
 8. Atualizar o `README.md` quando mudar telas, tabelas ou fluxo.
 
 ## Itens (prioridade de cima para baixo)
 
-- [ ] **1. Testes automatizados + CI.** Trazer para `tests/` uma suíte Playwright com Supabase e login
+- [x] **1. Testes automatizados + CI.** _(26/09/2026, PR #4)_ Trazer para `tests/` uma suíte Playwright com Supabase e login
   simulados (vitrine, checkout via `place_order`, acompanhamento, meus pedidos, painel do lojista com
   login, cardápio, entregador, admin, orçamento). `package.json` com `npm test`, e GitHub Action
   rodando nos PRs. Usar o Chromium já instalado quando existir (`/opt/pw-browsers`).

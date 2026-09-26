@@ -1,0 +1,9 @@
+# Só o site estático vai para a Vercel
+node_modules
+tests
+supabase
+.github
+package.json
+package-lock.json
+BACKLOG.md
+Claude outputs
