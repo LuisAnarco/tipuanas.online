@@ -19,7 +19,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html` | Display com QR Code para o balcão |
 | Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho, aceite exclusivo, PIN conferido no banco, histórico e ganhos |
-| Admin | `14_admin_analytics_dashboard.html` | GMV, comissão, recorrência, ranking de produtos, ativar/desativar lojas |
+| Admin | `14_admin_analytics_dashboard.html` + `admin-manage.js` | GMV, comissão, recorrência, ranking de produtos; editar lojas e definir dono por e-mail; ativar/desativar lojas e entregadores; pedidos do período com cancelamento |
 
 Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
 carregam ele), `store-settings.js` (formulário "Dados da loja", usado pelo lojista e pelo admin), `06_push_notification_service.js` (alertas do lojista), `07_client_pwa_manifest.json`,
@@ -77,6 +77,7 @@ Migrações em `supabase/migrations/`:
 - `20260925_auth_02_bloqueio_acesso_publico.sql` — **aplicada em 26/09/2026**, depois da publicação
   do front-end com login. Remove o acesso público de escrita/leitura.
 - `20260926_protege_trechos_codigo.sql` — **aplicada**.
+- `20260926_admin_donos_de_loja.sql` — **aplicada**. Funções `admin_store_owners` / `admin_set_store_owner` (só admin).
 
 Configuração no painel do Supabase (Authentication):
 - **URL Configuration**: *Site URL* = domínio do site e, em *Redirect URLs*, `https://SEU-DOMINIO/**`

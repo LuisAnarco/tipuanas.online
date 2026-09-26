@@ -60,6 +60,13 @@ function rpc(db, fn, body) {
     db.calls.push({ fn, body });
     switch (fn) {
         case 'is_admin': return db.admin;
+        case 'admin_store_owners':
+            return db.stores.map(st => ({ store_id: st.id, owner_email: st.owner_id === USER.id ? USER.email : (st.owner_id ? 'outro@teste.dev' : null) }));
+        case 'admin_set_store_owner': {
+            if (body.p_email && body.p_email !== USER.email) throw { status: 400, body: { code: 'P0001', message: 'user_not_found' } };
+            db.stores.find(x => x.id === body.p_store_id).owner_id = body.p_email ? USER.id : null;
+            return body.p_email || null;
+        }
         case 'claim_store': {
             const s = db.stores.find(x => x.id === body.p_store_id);
             s.owner_id = USER.id;
