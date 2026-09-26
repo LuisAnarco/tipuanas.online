@@ -61,8 +61,10 @@ pode vincular (`claim_store`). Só o admin muda dono ou ativação de loja.
 
 Migrações em `supabase/migrations/`:
 - `20260925_auth_01_funcoes_e_politicas.sql` — **aplicada**. Só adiciona (funções e políticas novas).
-- `20260925_auth_02_bloqueio_acesso_publico.sql` — **aplicar só depois de publicar este front-end**.
-  Remove o acesso público de escrita/leitura que o site antigo usa.
+- `20260925_auth_01b_restringe_funcoes.sql` — **aplicada**.
+- `20260925_auth_02_bloqueio_acesso_publico.sql` — **aplicada em 26/09/2026**, depois da publicação
+  do front-end com login. Remove o acesso público de escrita/leitura.
+- `20260926_protege_trechos_codigo.sql` — **aplicada**.
 
 Configuração no painel do Supabase (Authentication):
 - **URL Configuration**: *Site URL* = domínio do site e, em *Redirect URLs*, `https://SEU-DOMINIO/**`
