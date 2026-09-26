@@ -123,6 +123,7 @@ function showMerchantPanel(store) {
     document.getElementById('orders-section').classList.remove('hidden');
     updatePauseUI(store.is_paused);
     loadReviews(store.id);
+    initCoupons(store.id);
     renderStoreSettings(document.getElementById('store-settings'), store, {
         onSaved: saved => {
             document.getElementById('store-title').textContent = saved.name;
@@ -407,6 +408,83 @@ async function loadReviews(storeId) {
             ${r.comment ? `<p class="mt-0.5">${escapeHtml(r.comment)}</p>` : ''}
         </div>
     `).join('');
+}
+
+// ---------------------------------------------------------------- Cupons
+let couponsStoreId = null;
+
+function initCoupons(storeId) {
+    couponsStoreId = storeId;
+    document.getElementById('coupons-section').classList.remove('hidden');
+    const form = document.getElementById('coupon-form');
+    if (!form.dataset.bound) {
+        form.dataset.bound = '1';
+        form.addEventListener('submit', criarCupom);
+        document.getElementById('coupons-list').addEventListener('click', event => {
+            const btn = event.target.closest('[data-toggle-coupon]');
+            if (btn) alternarCupom(btn.dataset.toggleCoupon, btn.dataset.active === 'true');
+        });
+    }
+    loadCoupons();
+}
+
+async function loadCoupons() {
+    const { data, error } = await sb.from('coupons').select('*').eq('store_id', couponsStoreId).order('created_at', { ascending: false });
+    const list = document.getElementById('coupons-list');
+    if (error) {
+        console.error('Erro ao buscar cupons:', error);
+        list.innerHTML = '<p class="text-red-600">Não foi possível carregar os cupons.</p>';
+        return;
+    }
+    if (!data || data.length === 0) {
+        list.innerHTML = '<p class="text-gray-400">Nenhum cupom criado ainda.</p>';
+        return;
+    }
+    list.innerHTML = data.map(c => `
+        <div class="flex flex-wrap justify-between items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 ${c.is_active ? '' : 'opacity-50'}">
+            <div>
+                <span class="font-mono font-bold text-gray-900">${escapeHtml(c.code)}</span>
+                <span class="text-gray-600"> • ${c.discount_type === 'percentage' ? `${Number(c.discount_value)}% de desconto` : `${formatBRL(c.discount_value)} de desconto`}</span>
+                ${Number(c.min_order_value) > 0 ? `<span class="text-gray-400"> • mínimo ${formatBRL(c.min_order_value)}</span>` : ''}
+            </div>
+            <button data-toggle-coupon="${escapeHtml(c.id)}" data-active="${c.is_active}" class="border border-gray-300 rounded px-2 py-0.5 hover:bg-gray-50">${c.is_active ? 'Desativar' : 'Ativar'}</button>
+        </div>
+    `).join('');
+}
+
+async function criarCupom(event) {
+    event.preventDefault();
+    const form = event.target;
+    const errorEl = document.getElementById('coupon-error');
+    const data = Object.fromEntries(new FormData(form).entries());
+    const code = String(data.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const value = Number(data.discount_value);
+    const min = Number(data.min_order_value || 0);
+
+    const fail = msg => { errorEl.textContent = msg; errorEl.classList.remove('hidden'); };
+    if (code.length < 3 || code.length > 20) return fail('O código precisa ter de 3 a 20 letras ou números, sem espaços.');
+    if (!(value > 0) || (data.discount_type === 'percentage' && value > 100)) return fail('Valor de desconto inválido (porcentagem até 100).');
+    errorEl.classList.add('hidden');
+
+    const { error } = await sb.from('coupons').insert([{
+        store_id: couponsStoreId, code, discount_type: data.discount_type, discount_value: value, min_order_value: min, is_active: true
+    }]);
+    if (error) {
+        console.error('Erro ao criar cupom:', error);
+        return fail(error.code === '23505' ? 'Esse código já existe na plataforma. Escolha outro.' : 'Não foi possível criar o cupom.');
+    }
+    form.reset();
+    loadCoupons();
+}
+
+async function alternarCupom(couponId, isActive) {
+    const { error } = await sb.from('coupons').update({ is_active: !isActive }).eq('id', couponId);
+    if (error) {
+        alert('Não foi possível atualizar o cupom.');
+        console.error(error);
+        return;
+    }
+    loadCoupons();
 }
 
 function updateRepasse(orders) {
