@@ -92,6 +92,11 @@ function rpc(db, fn, body) {
         case 'get_orders_public':
         case 'get_orders_by_phone':
             return [{ id: O1, status: 'em_rota', total_amount: 14, created_at: new Date().toISOString(), is_takeout: false, stores: { name: 'Padaria <b>x</b>' }, order_items: [{ quantity: 1, products: { name: 'Sonho' } }] }];
+        case 'cancel_order_public': {
+            if (db.orderStatus !== 'novo') return false;
+            db.orderStatus = 'cancelado';
+            return true;
+        }
         case 'accept_ride': return true;
         case 'finish_ride': return body.p_pin === '1234';
         case 'create_service_request': return 'cccccccc-0000-0000-0000-000000000001';
