@@ -14,13 +14,13 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento com PIN de entrega, cancelamento enquanto o pedido é "novo" e avaliação da loja após a entrega |
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
-| Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por" |
+| Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por": anúncios valem 30 dias; o autor remove o próprio anúncio pelo aparelho em que publicou |
 | Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro e edição dos dados da loja, pedidos em tempo real, alerta sonoro, pausa, repasse, avaliações, cupons |
 | Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos, com foto (reduzida no navegador e enviada ao Storage) |
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html?slug=` | Display com QR Code para o balcão, apontando para a página da loja |
 | Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho, aceite exclusivo, PIN conferido no banco, histórico e ganhos |
-| Admin | `14_admin_analytics_dashboard.html` + `admin-manage.js` | GMV, comissão, recorrência, ranking de produtos; editar lojas e definir dono por e-mail; ativar/desativar lojas e entregadores; pedidos do período com cancelamento |
+| Admin | `14_admin_analytics_dashboard.html` + `admin-manage.js` | GMV, comissão, recorrência, ranking de produtos; editar lojas e definir dono por e-mail; ativar/desativar lojas e entregadores; pedidos do período com cancelamento; moderação do mural |
 
 Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
 carregam ele), `store-settings.js` (formulário "Dados da loja", usado pelo lojista e pelo admin), `06_push_notification_service.js` (alertas do lojista), `07_client_pwa_manifest.json`,
@@ -85,6 +85,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_admin_donos_de_loja.sql` — **aplicada**. Funções `admin_store_owners` / `admin_set_store_owner` (só admin).
 - `20260926_fotos_de_produtos.sql` — **aplicada**. Bucket público `product-images` (até 2 MB, JPG/PNG/WEBP); só o dono da loja (ou admin) grava em `<store_id>/...`.
 - `20260926_cupons.sql` — **aplicada**. `orders.coupon_code`/`discount_amount`, `check_coupon` e `place_order(..., p_coupon)` aplicando o desconto no servidor.
+- `20260926_mural_validade_moderacao.sql` — **aplicada**. `community_posts.expires_at` (30 dias), chaves de remoção em `community_post_keys` (sem acesso pela API), `create_community_post` / `remove_community_post`.
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 
 Configuração no painel do Supabase (Authentication):

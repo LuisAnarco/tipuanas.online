@@ -83,6 +83,7 @@
                     <input id="mp-whatsapp" type="text" placeholder="Ex: 48999998888" class="w-full text-sm p-2.5 rounded-lg border border-slate-300">
                 </div>
             </div>
+            <p class="text-[11px] text-slate-400">O anúncio fica no mural por 30 dias. Neste aparelho aparece o botão para você mesmo remover antes, se quiser.</p>
             <button onclick="publicarPost()" id="mp-submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition active:scale-95">
                 Publicar no Mural
             </button>
@@ -95,6 +96,10 @@
         let currentFilter = 'desapego';
 
         document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('posts-list').addEventListener('click', event => {
+                const btn = event.target.closest('[data-remove-post]');
+                if (btn) removerMeuPost(btn.dataset.removePost);
+            });
             carregarPosts();
         });
 
@@ -120,13 +125,38 @@
             carregarPosts();
         }
 
+        // Chaves de remoção dos anúncios publicados neste aparelho: { id: chave }
+        const MY_POSTS_KEY = 'tipuanas_my_posts';
+        function readMyPosts() {
+            try { return JSON.parse(localStorage.getItem(MY_POSTS_KEY)) || {}; } catch (e) { return {}; }
+        }
+
+        function daysLeft(expiresAt) {
+            return Math.max(0, Math.ceil((new Date(expiresAt) - Date.now()) / 86400000));
+        }
+
+        async function removerMeuPost(postId) {
+            const key = readMyPosts()[postId];
+            if (!key || !confirm('Remover seu anúncio do mural?')) return;
+            const { data: removed, error } = await sb.rpc('remove_community_post', { p_id: postId, p_key: key });
+            if (error || !removed) {
+                alert('Não foi possível remover o anúncio.');
+                if (error) console.error(error);
+                return;
+            }
+            const mine = readMyPosts();
+            delete mine[postId];
+            localStorage.setItem(MY_POSTS_KEY, JSON.stringify(mine));
+            carregarPosts();
+        }
+
         async function carregarPosts() {
             const listEl = document.getElementById('posts-list');
             listEl.innerHTML = `<p class="text-center text-xs text-slate-400 py-8">Carregando publicações...</p>`;
 
             const { data: posts, error } = await sb
                 .from('community_posts')
-                .select('*')
+                .select('id, post_type, title, description, price, author_name, author_whatsapp, created_at, expires_at')
                 .eq('post_type', currentFilter)
                 .eq('is_active', true)
                 .order('created_at', { ascending: false });
@@ -142,6 +172,7 @@
                 return;
             }
 
+            const mine = readMyPosts();
             listEl.innerHTML = posts.map(post => `
                 <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
                     <div class="flex items-center justify-between">
@@ -150,11 +181,12 @@
                     </div>
                     <p class="text-xs text-slate-600">${escapeHtml(post.description)}</p>
                     <div class="flex items-center justify-between pt-2 border-t border-slate-50">
-                        <span class="text-[11px] text-slate-400">${escapeHtml(post.author_name)}</span>
+                        <span class="text-[11px] text-slate-400">${escapeHtml(post.author_name)} · vence em ${daysLeft(post.expires_at)} dia(s)</span>
                         <a href="https://wa.me/${toWhatsappNumber(post.author_whatsapp)}?text=${encodeURIComponent(`Olá! Vi seu anúncio "${post.title}" no Mural da Vizinhança do Tipuanas.online.`)}" target="_blank" rel="noopener" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg">
                             Chamar no WhatsApp
                         </a>
                     </div>
+                    ${mine[post.id] ? `<button data-remove-post="${escapeHtml(post.id)}" class="w-full text-[11px] font-semibold text-red-600 border border-red-200 rounded-lg py-1.5 hover:bg-red-50">Remover meu anúncio</button>` : ''}
                 </div>
             `).join('');
         }
@@ -179,15 +211,20 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Publicando...';
 
-            const { error } = await sb.from('community_posts').insert([{
-                post_type: postType,
-                title,
-                description,
-                price,
-                author_name: name,
-                author_whatsapp: whatsapp,
-                is_active: true
-            }]);
+            // Publicado por função no banco, que devolve a chave para o autor remover depois
+            const { data: created, error } = await sb.rpc('create_community_post', {
+                p_type: postType,
+                p_title: title,
+                p_description: description,
+                p_price: price,
+                p_author_name: name,
+                p_author_whatsapp: whatsapp
+            });
+            if (!error && created) {
+                const mine = readMyPosts();
+                mine[created.id] = created.key;
+                localStorage.setItem(MY_POSTS_KEY, JSON.stringify(mine));
+            }
 
             submitBtn.disabled = false;
             submitBtn.textContent = 'Publicar no Mural';
