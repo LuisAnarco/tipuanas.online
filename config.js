@@ -83,3 +83,10 @@ function storeOpenStatus(hours, now = new Date()) {
     }
     return { open: false, label: 'sem horário de abertura' };
 }
+
+// PWA: registra o service worker (só em HTTPS — produção e previews da Vercel)
+if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker não registrado:', err));
+    });
+}

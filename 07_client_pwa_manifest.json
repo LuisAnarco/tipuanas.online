@@ -1,21 +1,21 @@
 {
   "short_name": "Tipuanas",
-  "name": "Tipuanas.online",
+  "name": "Tipuanas.online — Compre do Vizinho",
+  "description": "Vitrine do comércio local da Av. das Tipuanas: peça direto do vizinho pelo WhatsApp.",
+  "lang": "pt-BR",
   "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/3081/3081559.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/3081/3081559.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
+    { "src": "icons/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "icons/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "icons/icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
   ],
-  "start_url": "/index.html",
+  "start_url": "index.html",
+  "scope": "./",
   "background_color": "#f8fafc",
   "theme_color": "#059669",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "shortcuts": [
+    { "name": "Meus pedidos", "url": "pedidos.html", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mural da Vizinhança", "url": "20_mural_vizinhanca.html", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
 }

@@ -24,7 +24,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 
 Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
 carregam ele), `store-settings.js` (formulário "Dados da loja", usado pelo lojista e pelo admin), `06_push_notification_service.js` (alertas do lojista), `07_client_pwa_manifest.json`,
-`02_schema_design.json`, `12_merchant_pitch_script.md` e `Claude outputs/` (roadmap e estudos).
+`sw.js` (service worker do PWA: rede primeiro, cópia offline dos arquivos do site; nunca guarda dados do Supabase), `icons/` (ícones do app), `02_schema_design.json`, `12_merchant_pitch_script.md` e `Claude outputs/` (roadmap e estudos).
 
 ## Rodando localmente
 
