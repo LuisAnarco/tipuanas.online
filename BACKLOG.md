@@ -51,7 +51,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   aplica via `place_order` (validação no banco).
 - [x] **10. Mural: moderação e validade.** _(26/09/2026, PR #13)_ Posts expiram em 30 dias; autor remove o próprio post com
   um código gerado na publicação; admin remove qualquer post.
-- [ ] **11. Acabamento de publicação.** `vercel.json` com URLs limpas e cabeçalhos de segurança,
+- [x] **11. Acabamento de publicação.** _(26/09/2026, PR #14; URLs limpas ficaram de fora para não quebrar links e QR Codes já impressos)_ `vercel.json` com URLs limpas e cabeçalhos de segurança,
   página 404, títulos/descrições para SEO e pré-visualização no WhatsApp (Open Graph).
 - [ ] **12. Revisão geral.** Rodar revisão de segurança e de código no projeto inteiro, corrigir o
   que for encontrado e propor os próximos itens deste backlog.
