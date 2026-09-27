@@ -3,7 +3,8 @@
  * PROJETO: TIPUANAS.ONLINE
  * ARQUIVO: store-settings.js
  * DESCRIÇÃO: Formulário "Dados da loja" (nome, categoria, descrição, WhatsApp,
- *            endereço, taxa de entrega, tipo de negócio e horário de funcionamento). Usado no painel do
+ *            endereço, taxa de entrega, tempo de preparo, logo, capa, tipo de
+ *            negócio e horário de funcionamento). Usado no painel do
  *            lojista (catálogo e orçamentos) e no painel admin. Quem pode salvar
  *            é decidido pelo banco: dono da loja ou admin (RLS de stores).
  *            Carregar depois do config.js.
@@ -50,11 +51,24 @@ function renderStoreSettings(container, store, opts = {}) {
                 ${field('WhatsApp para pedidos (com DDD)', `<input name="whatsapp_number" inputmode="tel" class="${inputCls}" value="${escapeHtml(store.whatsapp_number || '')}" placeholder="Ex: 48999998888">`)}
                 ${field('Endereço na avenida', `<input name="address_line" maxlength="200" class="${inputCls}" value="${escapeHtml(store.address_line || '')}">`)}
                 ${field('Taxa de entrega (R$)', `<input name="delivery_fee" type="number" min="0" step="0.5" class="${inputCls}" value="${Number(store.delivery_fee || 0)}">`)}
+                ${field('Tempo médio de preparo (min)', `<input name="avg_prep_time_minutes" type="number" min="0" max="240" step="5" class="${inputCls}" value="${Number(store.avg_prep_time_minutes || 0) || ''}" placeholder="Ex: 30">`)}
                 ${field('Tipo de negócio', `
                     <select name="listing_type" class="${inputCls} bg-white">
                         <option value="catalogo" ${store.listing_type !== 'orcamento' ? 'selected' : ''}>Comércio — preço fixo (cardápio)</option>
                         <option value="orcamento" ${store.listing_type === 'orcamento' ? 'selected' : ''}>Serviços — sob orçamento</option>
                     </select>`)}
+                <div class="md:col-span-2 grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="block text-xs font-semibold text-gray-600">Logo (quadrado)</label>
+                        ${store.logo_url ? `<img src="${escapeHtml(store.logo_url)}" alt="" class="w-14 h-14 rounded-xl object-cover border">` : ''}
+                        <input name="logo_file" type="file" accept="image/*" class="w-full text-xs">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-xs font-semibold text-gray-600">Capa da página da loja</label>
+                        ${store.cover_url ? `<img src="${escapeHtml(store.cover_url)}" alt="" class="w-full h-14 rounded-xl object-cover border">` : ''}
+                        <input name="cover_file" type="file" accept="image/*" class="w-full text-xs">
+                    </div>
+                </div>
                 ${field('Descrição curta', `<textarea name="description" rows="2" maxlength="300" class="${inputCls}">${escapeHtml(store.description || '')}</textarea>`, 'md:col-span-2')}
                 <div class="md:col-span-2 border border-gray-200 rounded-lg p-3 space-y-2">
                     <label class="flex items-center gap-2 text-xs font-semibold text-gray-700">
@@ -99,6 +113,7 @@ function renderStoreSettings(container, store, opts = {}) {
         const data = Object.fromEntries(new FormData(form).entries());
         const whatsapp = String(data.whatsapp_number || '').replace(/\D/g, '');
         const fee = Number(data.delivery_fee);
+        const prep = data.avg_prep_time_minutes === '' ? null : Number(data.avg_prep_time_minutes);
 
         const setStatus = (msg, ok) => {
             statusEl.textContent = msg;
@@ -108,6 +123,7 @@ function renderStoreSettings(container, store, opts = {}) {
         if (!data.name.trim()) return setStatus('Informe o nome da loja.', false);
         if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) return setStatus('WhatsApp deve ter DDD + número (10 ou 11 dígitos).', false);
         if (!Number.isFinite(fee) || fee < 0) return setStatus('Taxa de entrega inválida.', false);
+        if (prep !== null && (!Number.isInteger(prep) || prep < 0 || prep > 240)) return setStatus('Tempo de preparo inválido (0 a 240 minutos).', false);
         const openingHours = readHours();
         if (openingHours && Object.keys(openingHours).length === 0) {
             return setStatus('Marque pelo menos um dia de funcionamento (ou desligue o horário).', false);
@@ -121,10 +137,20 @@ function renderStoreSettings(container, store, opts = {}) {
             delivery_fee: fee,
             listing_type: data.listing_type,
             description: data.description.trim() || null,
-            opening_hours: openingHours
+            opening_hours: openingHours,
+            avg_prep_time_minutes: prep
         };
 
         setStatus('Salvando...', true);
+        try {
+            const logo = await uploadImage(store.id, form.querySelector('[name="logo_file"]').files[0], 400);
+            if (logo) changes.logo_url = logo;
+            const cover = await uploadImage(store.id, form.querySelector('[name="cover_file"]').files[0], 1200);
+            if (cover) changes.cover_url = cover;
+        } catch (e) {
+            console.error('Erro ao enviar imagem da loja:', e);
+            return setStatus('Não foi possível enviar a imagem (use JPG, PNG ou WEBP).', false);
+        }
         const { data: rows, error } = await sb.from('stores').update(changes).eq('id', store.id).select();
 
         if (error || !rows || !rows[0]) {

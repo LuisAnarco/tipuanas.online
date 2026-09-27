@@ -29,7 +29,30 @@ function escapeHtml(str) {
 }
 
 function formatBRL(value) {
-    return `R$ ${Number(value || 0).toFixed(2)}`;
+    return `R$ ${Number(value || 0).toFixed(2).replace(".", ",")}`;
+}
+
+/**
+ * Reduz a imagem no navegador (JPEG, lado maior até maxSide) e envia para o
+ * Storage na pasta da loja (product-images/<store_id>/...). Devolve a URL pública.
+ * O banco só aceita o envio de quem é dono da loja (ou admin).
+ */
+async function uploadImage(storeId, file, maxSide = 900) {
+    if (!file) return null;
+    if (!file.type.startsWith('image/')) throw new Error('Escolha um arquivo de imagem.');
+
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+
+    const path = `${storeId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const { error } = await sb.storage.from('product-images').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if (error) throw error;
+    return sb.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 }
 
 /** Só dígitos, com DDI 55 na frente (formato que o wa.me espera). */

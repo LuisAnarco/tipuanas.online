@@ -63,7 +63,20 @@
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Foto (opcional)</label>
                     <input id="np-photo" type="file" accept="image/*" class="w-full text-xs">
                 </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Seção do cardápio (opcional)</label>
+                    <input id="np-section" type="text" list="section-options" maxlength="40" placeholder="Ex: Lanches, Bebidas, Doces" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <datalist id="section-options"></datalist>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Preço promocional (opcional)</label>
+                    <input id="np-promo" type="number" min="0" step="0.01" placeholder="Menor que o preço" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                </div>
+                <label class="flex items-end gap-2 text-xs font-semibold text-gray-600 pb-3">
+                    <input id="np-featured" type="checkbox"> ⭐ Destaque na vitrine
+                </label>
             </div>
+            <p class="text-[11px] text-gray-400 mt-2">Produtos com preço promocional aparecem em "Ofertas do dia" na vitrine; os marcados como destaque aparecem em "Destaques".</p>
             <p id="np-error" class="hidden text-xs text-red-600 mt-2"></p>
         </section>
 

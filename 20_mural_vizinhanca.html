@@ -184,7 +184,7 @@
                 <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
                     <div class="flex items-center justify-between">
                         <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(post.title)}</h3>
-                        ${post.price ? `<span class="text-xs font-extrabold text-emerald-600">R$ ${Number(post.price).toFixed(2)}</span>` : `<span class="text-[10px] text-slate-400">${post.post_type === 'desapego' ? 'De graça / a combinar' : 'A combinar'}</span>`}
+                        ${post.price ? `<span class="text-xs font-extrabold text-emerald-600">${formatBRL(post.price)}</span>` : `<span class="text-[10px] text-slate-400">${post.post_type === 'desapego' ? 'De graça / a combinar' : 'A combinar'}</span>`}
                     </div>
                     <p class="text-xs text-slate-600">${escapeHtml(post.description)}</p>
                     <div class="flex items-center justify-between pt-2 border-t border-slate-50">

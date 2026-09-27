@@ -15,12 +15,12 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
    e como foi testado.
 3. **Testar antes de publicar**: rodar `npm test` (a partir do item 1) e, para o banco, simular os
    papéis (anon / lojista / entregador / admin) em transação com `rollback`, como já feito nas migrações.
-4. **Banco (Supabase `avenidadastipuanas.online`)**: só migrações **aditivas** (tabela, coluna, função,
-   política que não afrouxa acesso). Salvar o SQL em `supabase/migrations/`. Nunca apagar dados,
-   desligar RLS, remover/afrouxar políticas existentes nem alterar `auth`. Se o item exigir algo
-   destrutivo, abrir o PR **sem** aplicar nem mergear e explicar o motivo.
-5. **Merge**: pode mergear o próprio PR quando os testes passam, o preview da Vercel fica "Ready" e a
-   regra 4 foi respeitada. Caso contrário, deixar o PR aberto explicando o bloqueio.
+4. **Banco (Supabase `avenidadastipuanas.online`)**: os dados são fictícios, então migrações não
+   aditivas (renomear, remover coluna/tabela antiga) são permitidas quando ajudam. Sempre salvar o SQL
+   em `supabase/migrations/` e testar os papéis em transação com rollback. Continua proibido desligar
+   RLS, afrouxar o acesso a dados de outra pessoa (pedidos, telefones, endereços) ou alterar `auth`.
+5. **Merge**: mergear o próprio PR quando os testes passam e o preview da Vercel fica "Ready", sem
+   esperar o Luis. Se algo quebrar, corrigir no PR seguinte.
 6. Se houver um PR da rotina ainda aberto (head `claude/finish-project-898xnu`), **primeiro terminar/corrigir esse PR** antes de começar outro.
 7. Manter o padrão do código: HTML + Tailwind CDN + `config.js`/`auth.js`, textos em português,
    sempre `escapeHtml` ao montar HTML com dados do banco, cliente sem login usando funções (RPC).
@@ -62,6 +62,17 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 
 ## Próximos itens (propostos na revisão geral)
 
+- [ ] **12b. Vitrine estilo iFood.** Pedido do Luis ("tipo iFood, com ainda mais funções").
+  - [x] Banco: seção do cardápio, preço promocional, destaque, capa da loja, cupom público
+    (`list_public_coupons`) e `place_order` cobrando o promocional. _(27/09/2026, PR #16)_
+  - [x] Home com banners, categorias com ícones, Ofertas, Destaques, Mais bem avaliadas, cartões de
+    loja, busca com produtos e barra inferior. _(27/09/2026, PR #16)_
+  - [x] Página da loja com capa, logo, cupons e abas por seção. _(27/09/2026, PR #16)_
+  - [x] Painel: seção/promoção/destaque no cardápio, logo/capa/tempo de preparo nos dados da loja,
+    cupom "mostrar na vitrine". _(27/09/2026, PR #16)_
+  - [ ] Dados de demonstração (lojas e produtos fictícios com fotos, seções e ofertas).
+  - [ ] Carrinho com quantidade (+/−) direto no cartão do produto e tela de sacola mais bonita.
+
 - [ ] **13. Privacidade e termos (LGPD).** Página curta explicando quais dados guardamos (nome,
   WhatsApp, endereço), para quê e como pedir exclusão; link no rodapé do checkout e do mural.
 - [ ] **14. Extrato do lojista.** No painel do lojista, resumo do mês: pedidos entregues, total
@@ -72,7 +83,6 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 - [ ] **16. Produto esgotado com um toque.** Atalho no painel de pedidos/cardápio para pausar e
   reativar produtos rapidamente, e a vitrine mostrando "esgotado" em vez de esconder.
 - [ ] **17. Limpeza de legado.** Levantar tabelas antigas sem uso (`express_jobs`, `ingredients`,
-  `recipes`, `trechos_codigo`) e telas órfãs; documentar e propor ao Luis o que remover (remoção
-  de tabela só com aprovação dele).
+  `recipes`, `trechos_codigo`) e telas órfãs e remover o que não for usado (dados fictícios).
 - [ ] **18. Domínio de produção.** _(depende do Luis)_ Apontar o domínio no Vercel, incluir a URL em
   Supabase → Auth → Redirect URLs e trocar o e-mail padrão por SMTP próprio quando houver.
