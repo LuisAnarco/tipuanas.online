@@ -27,19 +27,27 @@
     <!-- Formulário de Checkout -->
     <main id="checkout-view" class="max-w-md mx-auto px-4 py-5 w-full flex-1 space-y-4">
 
-        <!-- Resumo do Pedido -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
-            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Itens do Pedido</h2>
+        <!-- Sacola: itens agrupados por loja -->
+        <div class="space-y-3">
+            <div class="flex items-baseline justify-between">
+                <h2 class="text-lg font-extrabold text-slate-900">Sua sacola</h2>
+                <a href="index.html" class="text-xs font-bold text-emerald-700">+ Adicionar itens</a>
+            </div>
             <div id="checkout-items" class="space-y-3 text-xs">
                 <!-- Preenchido via JS, agrupado por loja -->
             </div>
-            <div class="border-t border-slate-100 pt-2 flex justify-between font-extrabold text-sm text-slate-900">
-                <span>Total:</span>
-                <span id="checkout-total-price" class="text-emerald-600">R$ 0,00</span>
-            </div>
-            <p id="multi-store-note" class="hidden text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg p-2">
-                Seu carrinho tem itens de mais de uma loja. Vamos criar um pedido separado para cada uma — você confirma o envio no WhatsApp de cada loja em seguida.
+            <p id="multi-store-note" class="hidden text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-2.5">
+                Sua sacola tem itens de mais de uma loja. Vamos criar um pedido separado para cada uma — você confirma o envio no WhatsApp de cada loja em seguida.
             </p>
+            <div id="checkout-summary" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-1.5 text-xs">
+                <div class="flex justify-between text-slate-500"><span>Itens</span><span id="summary-items">R$ 0,00</span></div>
+                <div id="summary-discount-row" class="hidden flex justify-between text-emerald-700 font-semibold"><span>Descontos</span><span id="summary-discount">-R$ 0,00</span></div>
+                <div id="summary-fee-row" class="flex justify-between text-slate-500"><span>Entrega</span><span id="summary-fee">Grátis</span></div>
+                <div class="border-t border-slate-100 pt-2 flex justify-between font-extrabold text-sm text-slate-900">
+                    <span>Total</span>
+                    <span id="checkout-total-price" class="text-emerald-600">R$ 0,00</span>
+                </div>
+            </div>
         </div>
 
         <!-- Dados de Entrega -->
@@ -157,6 +165,7 @@
 
         function onFulfillmentChange() {
             document.getElementById('address-wrap').classList.toggle('hidden', isTakeout());
+            renderCheckout();
         }
 
         function groupByStore(items) {
@@ -226,55 +235,85 @@
             renderCheckout();
         }
 
+        /** Taxa de entrega da loja guardada no item (itens antigos não têm: fica de fora da prévia) */
+        function storeFee(items) {
+            const fee = items.find(i => typeof i.deliveryFee === 'number');
+            return fee && !isTakeout() ? fee.deliveryFee : 0;
+        }
+
         function renderCheckout() {
             const container = document.getElementById('checkout-items');
             const totalEl = document.getElementById('checkout-total-price');
+            const submitBtn = document.getElementById('submit-btn');
 
             if (cart.length === 0) {
-                container.innerHTML = '<p class="text-slate-400 py-2">Seu carrinho está vazio. <a href="index.html" class="underline text-emerald-700">Voltar para a vitrine</a></p>';
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm text-center space-y-2">
+                    <p class="text-4xl">🛍️</p>
+                    <p class="text-sm font-bold text-slate-800">Sua sacola está vazia</p>
+                    <p class="text-slate-500">Que tal dar uma olhada nas ofertas do dia?</p>
+                    <a href="index.html" class="inline-block mt-1 bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl">Ver lojas</a>
+                </div>`;
                 totalEl.textContent = formatBRL(0);
+                document.getElementById('checkout-summary').classList.add('hidden');
                 document.getElementById('multi-store-note').classList.add('hidden');
-                document.getElementById('submit-btn').disabled = true;
-                document.getElementById('submit-btn').classList.add('opacity-60');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-60');
                 return;
             }
+            document.getElementById('checkout-summary').classList.remove('hidden');
 
             const groups = groupByStore(cart);
             const storeIds = Object.keys(groups);
             document.getElementById('multi-store-note').classList.toggle('hidden', storeIds.length <= 1);
 
-            let total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+            let itemsTotal = 0, discountTotal = 0, feeTotal = 0, feeKnown = true;
 
             container.innerHTML = storeIds.map(storeId => {
                 const items = groups[storeId];
                 const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                const fee = storeFee(items);
+                if (!isTakeout() && !items.some(i => typeof i.deliveryFee === 'number')) feeKnown = false;
+                itemsTotal += subtotal;
+                discountTotal += couponPreview(storeId, subtotal);
+                feeTotal += fee;
+                const slug = items[0].storeSlug;
                 return `
-                    <div class="border-b border-slate-100 last:border-none pb-2 last:pb-0">
-                        <p class="text-[11px] font-bold text-emerald-700 mb-1">${escapeHtml(items[0].storeName)}</p>
+                    <div class="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-sm font-extrabold text-slate-900">${escapeHtml(items[0].storeName)}</p>
+                            ${slug ? `<a href="loja.html?slug=${encodeURIComponent(slug)}" class="text-[11px] font-bold text-emerald-700">Adicionar mais</a>` : ''}
+                        </div>
                         ${items.map(item => `
-                            <div class="flex justify-between items-center gap-2 py-1">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <div class="flex items-center border border-slate-200 rounded-lg shrink-0">
-                                        <button data-id="${escapeHtml(item.id)}" data-qty="-1" class="px-2 py-0.5 font-bold text-slate-500" aria-label="Diminuir">−</button>
-                                        <span class="px-1 font-bold text-slate-800">${item.quantity}</span>
-                                        <button data-id="${escapeHtml(item.id)}" data-qty="1" class="px-2 py-0.5 font-bold text-slate-500" aria-label="Aumentar">+</button>
-                                    </div>
-                                    <span class="truncate">${escapeHtml(item.name)}</span>
+                            <div class="flex items-center gap-2.5 py-2 border-b border-slate-50 last:border-none">
+                                ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-11 h-11 rounded-lg object-cover bg-slate-100 shrink-0">` : ''}
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-semibold text-slate-800 truncate">${escapeHtml(item.name)}</p>
+                                    <p class="text-slate-500">${formatBRL(item.price * item.quantity)}</p>
                                 </div>
-                                <span class="font-semibold text-slate-700 shrink-0">${formatBRL(item.price * item.quantity)}</span>
+                                <div class="flex items-center border border-slate-200 rounded-full shrink-0">
+                                    <button data-id="${escapeHtml(item.id)}" data-qty="-1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="${item.quantity === 1 ? 'Remover' : 'Diminuir'}">${item.quantity === 1 ? '🗑' : '−'}</button>
+                                    <span class="px-1 font-extrabold text-slate-800">${item.quantity}</span>
+                                    <button data-id="${escapeHtml(item.id)}" data-qty="1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="Aumentar">+</button>
+                                </div>
                             </div>
                         `).join('')}
-                        <div class="flex justify-between text-[10px] text-slate-400 mt-1">
-                            <span>Subtotal da loja (sem taxa de entrega)</span>
+                        <div class="flex justify-between text-[11px] text-slate-500 mt-1.5">
+                            <span>Subtotal</span>
                             <span>${formatBRL(subtotal)}</span>
                         </div>
+                        ${isTakeout() ? '' : fee > 0 ? `<div class="flex justify-between text-[11px] text-slate-500"><span>Entrega</span><span>${formatBRL(fee)}</span></div>`
+                            : items.some(i => typeof i.deliveryFee === 'number') ? '<div class="flex justify-between text-[11px] text-emerald-700 font-semibold"><span>Entrega</span><span>Grátis</span></div>' : ''}
                         ${couponLine(storeId, subtotal)}
                     </div>
                 `;
             }).join('');
-            total -= storeIds.reduce((acc, id) => acc + couponPreview(id, groups[id].reduce((a, i) => a + i.price * i.quantity, 0)), 0);
 
-            totalEl.textContent = formatBRL(total);
+            document.getElementById('summary-items').textContent = formatBRL(itemsTotal);
+            document.getElementById('summary-discount-row').classList.toggle('hidden', discountTotal <= 0);
+            document.getElementById('summary-discount').textContent = `-${formatBRL(discountTotal)}`;
+            document.getElementById('summary-fee-row').classList.toggle('hidden', isTakeout());
+            document.getElementById('summary-fee').textContent = !feeKnown ? 'calculada ao enviar' : feeTotal > 0 ? formatBRL(feeTotal) : 'Grátis';
+            totalEl.textContent = formatBRL(itemsTotal - discountTotal + feeTotal);
         }
 
         function showError(msg) {

@@ -69,6 +69,34 @@ test('página da loja: capa, cupom, abas por seção, avaliações e carrinho', 
     assert.ok(await page.$('#store-header [data-role="store-coupon"]'), 'cupom público da loja');
     await page.click('#sec-2 [data-add-product="p1"]');
     assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
+
+    // Produto na sacola vira seletor − quantidade + (em todas as seções onde aparece)
+    await page.click('#sec-0 [data-add-product="p2"]');
+    await page.click('#sec-0 [data-add-product="p2"]');
+    assert.strictEqual(await page.textContent('#sec-1 [data-cart-slot="p2"] [data-role="qty"]'), '2', 'quantidade atualizada na outra seção');
+    await page.click('#sec-1 [data-remove-product="p2"]');
+    await page.click('#sec-1 [data-remove-product="p2"]');
+    assert.ok(!(await page.$('[data-remove-product="p2"]')), 'volta para o botão +');
+    assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
+});
+
+test('sacola: taxa de entrega, retirada, foto e sacola vazia', {}, async (page, db) => {
+    db.products.find(p => p.id === 'p1').image_url = 'https://img.test/pao.jpg';
+    await page.goto(BASE + 'loja.html?slug=padaria-ouro');
+    await page.waitForSelector('[data-add-product="p1"]');
+    await page.click('#sec-2 [data-add-product="p1"]');
+    await page.click('#sec-2 [data-add-product="p1"]');
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForSelector('#checkout-items img[src="https://img.test/pao.jpg"]', { state: 'attached' });
+    assert.ok((await page.innerHTML('#checkout-items')).includes('loja.html?slug=padaria-ouro'), 'link para adicionar mais');
+    assert.strictEqual(await page.textContent('#summary-fee'), 'R$ 5,00');
+    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 8,00', '2 x 1,50 + entrega 5');
+    await page.check('input[value="takeout"]');
+    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 3,00', 'retirada sem taxa');
+    await page.click('[data-id="p1"][data-qty="-1"]');
+    await page.click('[data-id="p1"][data-qty="-1"]');
+    await page.waitForSelector('text=Sua sacola está vazia');
+    assert.ok(await page.$eval('#submit-btn', b => b.disabled), 'sem itens não envia');
 });
 
 test('página da loja: slug inexistente mostra aviso', {}, async (page, db) => {
