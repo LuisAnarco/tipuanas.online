@@ -393,6 +393,30 @@ test('lojista: vincula loja sem dono e vê pedidos escapados', { loggedIn: true 
     assert.ok(!(await page.$('#reviews-list b')), 'comentário escapado');
 });
 
+test('lojista: extrato do mês com comissão, filtro por mês e CSV', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    const lastMonth = new Date(); lastMonth.setDate(1); lastMonth.setMonth(lastMonth.getMonth() - 1);
+    db.orders.find(o => o.status === 'entregue').discount_amount = 2;
+    db.orders.push({ id: 'aaaaaaaa-0000-0000-0000-000000000009', store_id: S1, status: 'entregue', total_amount: 100, delivery_fee: 5, is_takeout: false,
+        delivery_pin: '1111', created_at: lastMonth.toISOString(), delivery_address: { client_name: '=HYPERLINK("x")' }, order_items: [] });
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForFunction(() => document.getElementById('repasse-orders-count').textContent === '1');
+    assert.strictEqual(await page.textContent('#repasse-gross'), 'R$ 30,00', 'só o entregue deste mês');
+    assert.strictEqual(await page.textContent('#repasse-commission'), 'R$ 2,40');
+    assert.strictEqual(await page.textContent('#repasse-net'), 'R$ 27,60');
+    assert.strictEqual(await page.textContent('#extrato-discounts'), 'R$ 2,00');
+    assert.ok((await page.textContent('#extrato-top')).includes('Sonho (5)'), 'mais vendidos');
+
+    const options = await page.$$eval('#extrato-month option', els => els.map(e => e.value));
+    await page.selectOption('#extrato-month', options[1]);
+    assert.strictEqual(await page.textContent('#repasse-gross'), 'R$ 100,00', 'mês anterior');
+    const [download] = await Promise.all([page.waitForEvent('download'), page.click('#extrato-csv')]);
+    const csv = require('fs').readFileSync(await download.path(), 'utf8');
+    assert.ok(download.suggestedFilename().startsWith('extrato-padaria-ouro-'), download.suggestedFilename());
+    assert.ok(csv.includes('"100,00"') && csv.includes('"8,00"'), 'valores e comissão no CSV');
+    assert.ok(csv.includes(`"'=HYPERLINK(""x"")"`), 'texto do cliente não vira fórmula');
+});
+
 test('lojista: loja de outra conta é recusada e cadastro cria loja com dono', { loggedIn: true }, async (page, db) => {
     db.stores.find(s => s.id === S3).owner_id = 'outra-conta';
     await page.goto(BASE + '04_merchant_portal.html?store=' + S2);

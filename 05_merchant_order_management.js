@@ -504,16 +504,104 @@ async function alternarCupomPublico(couponId, isPublic) {
     loadCoupons();
 }
 
-function updateRepasse(orders) {
-    const completed = orders.filter(o => o.status === 'entregue');
-    const gross = completed.reduce((acc, o) => acc + Number(o.total_amount), 0);
-    const commission = gross * PLATFORM_COMMISSION_RATE;
-    const net = gross - commission;
+// ---------------------------------------------------------------- Extrato do mês
+let extratoOrders = [];
 
-    document.getElementById('repasse-orders-count').textContent = completed.length;
-    document.getElementById('repasse-gross').textContent = `${formatBRL(gross)}`;
-    document.getElementById('repasse-commission').textContent = `${formatBRL(commission)}`;
-    document.getElementById('repasse-net').textContent = `${formatBRL(net)}`;
+function monthKey(date) {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(key) {
+    const [y, m] = key.split('-').map(Number);
+    const label = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function initExtrato() {
+    const select = document.getElementById('extrato-month');
+    if (select.dataset.bound) return;
+    select.dataset.bound = '1';
+    const now = new Date();
+    const keys = [];
+    for (let i = 0; i < 12; i++) keys.push(monthKey(new Date(now.getFullYear(), now.getMonth() - i, 1)));
+    select.innerHTML = keys.map(k => `<option value="${k}">${monthLabel(k)}</option>`).join('');
+    select.addEventListener('change', () => updateRepasse(extratoOrders));
+    document.getElementById('extrato-csv').addEventListener('click', exportExtratoCsv);
+}
+
+/** Números do mês escolhido: entregues, cancelados, taxas, descontos, comissão e líquido */
+function extratoResumo(orders, key) {
+    const inMonth = orders.filter(o => monthKey(o.created_at) === key);
+    const delivered = inMonth.filter(o => o.status === 'entregue');
+    const sum = (list, field) => list.reduce((acc, o) => acc + Number(o[field] || 0), 0);
+    const gross = sum(delivered, 'total_amount');
+    const commission = Math.round(gross * PLATFORM_COMMISSION_RATE * 100) / 100;
+    const products = {};
+    delivered.forEach(o => (o.order_items || []).forEach(it => {
+        const name = it.products ? it.products.name : 'Item';
+        products[name] = (products[name] || 0) + Number(it.quantity || 0);
+    }));
+    return {
+        inMonth, delivered,
+        cancelled: inMonth.filter(o => o.status === 'cancelado').length,
+        gross, commission, net: gross - commission,
+        fees: sum(delivered, 'delivery_fee'),
+        discounts: sum(delivered, 'discount_amount'),
+        top: Object.entries(products).sort((a, b) => b[1] - a[1]).slice(0, 3)
+    };
+}
+
+function updateRepasse(orders) {
+    extratoOrders = orders || [];
+    initExtrato();
+    const r = extratoResumo(extratoOrders, document.getElementById('extrato-month').value);
+
+    document.getElementById('repasse-orders-count').textContent = r.delivered.length;
+    document.getElementById('extrato-cancelled').textContent = `${r.cancelled} cancelado${r.cancelled === 1 ? '' : 's'}`;
+    document.getElementById('repasse-gross').textContent = formatBRL(r.gross);
+    document.getElementById('extrato-ticket').textContent = `ticket médio ${formatBRL(r.delivered.length ? r.gross / r.delivered.length : 0)}`;
+    document.getElementById('repasse-commission').textContent = formatBRL(r.commission);
+    document.getElementById('extrato-fees').textContent = formatBRL(r.fees);
+    document.getElementById('extrato-discounts').textContent = formatBRL(r.discounts);
+    document.getElementById('repasse-net').textContent = formatBRL(r.net);
+    document.getElementById('extrato-top').innerHTML = r.top.length
+        ? `🏆 Mais vendidos: ${r.top.map(([name, qty]) => `${escapeHtml(name)} (${qty})`).join(' · ')}`
+        : '';
+}
+
+/** Planilha do mês (abre no Excel/Google Planilhas): um pedido por linha */
+function exportExtratoCsv() {
+    const key = document.getElementById('extrato-month').value;
+    const r = extratoResumo(extratoOrders, key);
+    const cell = v => {
+        const text = String(v == null ? '' : v);
+        // Evita que a planilha interprete texto do cliente como fórmula
+        const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+        return `"${safe.replace(/"/g, '""')}"`;
+    };
+    const money = v => Number(v || 0).toFixed(2).replace('.', ',');
+    const rows = [['Data', 'Pedido', 'Status', 'Cliente', 'Itens', 'Desconto', 'Taxa de entrega', 'Total', 'Comissão 8%']];
+    r.inMonth.forEach(o => {
+        const items = (o.order_items || []).map(it => `${it.quantity}x ${it.products ? it.products.name : 'Item'}`).join('; ');
+        rows.push([
+            new Date(o.created_at).toLocaleString('pt-BR'), o.id.slice(0, 8), o.status,
+            (o.delivery_address || {}).client_name || '', items,
+            money(o.discount_amount), money(o.delivery_fee), money(o.total_amount),
+            o.status === 'entregue' ? money(Number(o.total_amount) * PLATFORM_COMMISSION_RATE) : '0,00'
+        ]);
+    });
+    rows.push([]);
+    rows.push(['Resumo', '', '', '', `${r.delivered.length} entregues`, money(r.discounts), money(r.fees), money(r.gross), money(r.commission)]);
+    rows.push(['Líquido a receber', '', '', '', '', '', '', money(r.net), '']);
+
+    const csv = '\ufeff' + rows.map(row => row.map(cell).join(';')).join('\r\n');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    link.download = `extrato-${(currentStore && currentStore.slug) || 'loja'}-${key}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
 
 /**
