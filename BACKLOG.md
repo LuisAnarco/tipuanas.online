@@ -62,7 +62,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 
 ## Próximos itens (propostos na revisão geral)
 
-- [ ] **12b. Vitrine estilo iFood.** Pedido do Luis ("tipo iFood, com ainda mais funções").
+- [x] **12b. Vitrine estilo iFood.** Pedido do Luis ("tipo iFood, com ainda mais funções").
   - [x] Banco: seção do cardápio, preço promocional, destaque, capa da loja, cupom público
     (`list_public_coupons`) e `place_order` cobrando o promocional. _(27/09/2026, PR #16)_
   - [x] Home com banners, categorias com ícones, Ofertas, Destaques, Mais bem avaliadas, cartões de
@@ -70,8 +70,8 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   - [x] Página da loja com capa, logo, cupons e abas por seção. _(27/09/2026, PR #16)_
   - [x] Painel: seção/promoção/destaque no cardápio, logo/capa/tempo de preparo nos dados da loja,
     cupom "mostrar na vitrine". _(27/09/2026, PR #16)_
-  - [ ] Dados de demonstração (lojas e produtos fictícios com fotos, seções e ofertas).
-  - [ ] Carrinho com quantidade (+/−) direto no cartão do produto e tela de sacola mais bonita.
+  - [x] Dados de demonstração: 9 lojas, 41 produtos com seções/ofertas/destaques e 3 cupons públicos. _(27/09/2026, direto no banco; fotos ficam para o lojista enviar)_
+  - [x] Carrinho com quantidade (+/−) direto no cartão do produto e tela de sacola mais bonita. _(27/09/2026, PR #17)_
 
 - [ ] **13. Privacidade e termos (LGPD).** Página curta explicando quais dados guardamos (nome,
   WhatsApp, endereço), para quê e como pedir exclusão; link no rodapé do checkout e do mural.

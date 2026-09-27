@@ -60,6 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
             addToCart(add.dataset.addProduct);
             return;
         }
+        const remove = event.target.closest('[data-remove-product]');
+        if (remove) {
+            event.preventDefault();
+            removeFromCart(remove.dataset.removeProduct);
+            return;
+        }
         const chip = event.target.closest('[data-category]');
         if (chip) {
             activeCategory = chip.dataset.category || null;
@@ -264,9 +270,35 @@ function productPriceHtml(product, size = 'text-xs') {
         : `<span class="${size} font-extrabold text-slate-800">${formatBRL(product.price)}</span>`;
 }
 
-function addButton(product, store, extra = '') {
-    if (!isOpen(store)) return `<span class="text-[10px] text-slate-400 ${extra}">Fechada</span>`;
-    return `<button data-add-product="${escapeHtml(product.id)}" aria-label="Adicionar ${escapeHtml(product.name)}" class="w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-bold leading-none shadow-md active:scale-90 transition ${extra}">+</button>`;
+function cartQuantity(productId) {
+    const item = cart.find(i => i.id === productId);
+    return item ? item.quantity : 0;
+}
+
+/** Botão "+" ou, se o produto já está na sacola, o seletor − quantidade + */
+function cartControl(product, store) {
+    if (!isOpen(store)) return `<span class="text-[10px] text-slate-400 bg-white/90 rounded px-1">Fechada</span>`;
+    const id = escapeHtml(product.id);
+    const qty = cartQuantity(product.id);
+    const plus = `<button data-add-product="${id}" aria-label="Adicionar ${escapeHtml(product.name)}" class="w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-bold leading-none shadow-md active:scale-90 transition">+</button>`;
+    if (!qty) return plus;
+    return `<span class="inline-flex items-center gap-1 bg-white rounded-full shadow-md border border-emerald-100 p-0.5">
+        <button data-remove-product="${id}" aria-label="Diminuir" class="w-7 h-7 rounded-full text-emerald-700 text-lg font-bold leading-none active:scale-90 transition">−</button>
+        <span data-role="qty" class="min-w-[1.25rem] text-center text-sm font-extrabold text-slate-800">${qty}</span>
+        ${plus.replace('w-8 h-8', 'w-7 h-7')}
+    </span>`;
+}
+
+function addButton(product, store) {
+    return `<span data-cart-slot="${escapeHtml(product.id)}">${cartControl(product, store)}</span>`;
+}
+
+/** Atualiza só os botões do produto na tela (sem redesenhar as faixas) */
+function refreshCartSlots(productId) {
+    const product = productsById[productId];
+    if (!product) return;
+    const html = cartControl(product, storeOf(product));
+    document.querySelectorAll(`[data-cart-slot="${CSS.escape(productId)}"]`).forEach(el => { el.innerHTML = html; });
 }
 
 function productThumb(product, store, cls) {
@@ -603,11 +635,24 @@ function addToCart(productId) {
             price: effectivePrice(product),
             storeId: product.store_id,
             storeName: store ? store.name : 'Loja',
+            storeSlug: store ? store.slug || null : null,
+            deliveryFee: store ? Number(store.delivery_fee || 0) : 0,
+            image: product.image_url || null,
             quantity: 1
         });
     }
     saveCart();
+    refreshCartSlots(productId);
     flashCartBar();
+}
+
+function removeFromCart(productId) {
+    const item = cart.find(i => i.id === productId);
+    if (!item) return;
+    item.quantity -= 1;
+    if (item.quantity <= 0) cart = cart.filter(i => i.id !== productId);
+    saveCart();
+    refreshCartSlots(productId);
 }
 
 function saveCart() {
