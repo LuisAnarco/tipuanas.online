@@ -490,11 +490,29 @@ test('PWA: manifest válido, ícones no repositório e todas as telas ligadas ao
     assert.ok(manifest.icons.some(i => i.purpose === 'maskable'), 'ícone maskable');
     for (const f of fs.readdirSync(root).filter(n => n.endsWith('.html'))) {
         const html = fs.readFileSync(path.join(root, f), 'utf8');
-        assert.ok(html.includes('rel="manifest" href="07_client_pwa_manifest.json"'), 'manifest em ' + f);
+        assert.ok(/rel="manifest" href="\/?07_client_pwa_manifest\.json"/.test(html), 'manifest em ' + f);
         assert.ok(html.includes('name="theme-color"'), 'theme-color em ' + f);
     }
     await page.goto(BASE + 'sw.js');
     assert.ok((await page.content()).includes('CACHE_VERSION'));
+});
+
+test('publicação: vercel.json válido, página 404 e prévia de link (Open Graph)', {}, async (page, db) => {
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..');
+    const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+    const all = vercel.headers.find(h => h.source === '/(.*)').headers.map(h => h.key);
+    for (const key of ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy']) assert.ok(all.includes(key), key);
+    assert.ok(vercel.headers.some(h => h.source === '/sw.js'), 'sw.js sem cache');
+
+    await page.goto(BASE + '404.html');
+    await page.waitForSelector('text=Página não encontrada');
+
+    for (const f of ['index.html', 'loja.html', '20_mural_vizinhanca.html']) {
+        const html = fs.readFileSync(path.join(root, f), 'utf8');
+        assert.ok(html.includes('property="og:title"') && html.includes('property="og:image"'), 'Open Graph em ' + f);
+    }
 });
 
 // ---------------------------------------------------------------- Runner
