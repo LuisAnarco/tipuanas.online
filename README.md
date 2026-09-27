@@ -86,6 +86,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_fotos_de_produtos.sql` — **aplicada**. Bucket público `product-images` (até 2 MB, JPG/PNG/WEBP); só o dono da loja (ou admin) grava em `<store_id>/...`.
 - `20260926_cupons.sql` — **aplicada**. `orders.coupon_code`/`discount_amount`, `check_coupon` e `place_order(..., p_coupon)` aplicando o desconto no servidor.
 - `20260926_mural_validade_moderacao.sql` — **aplicada**. `community_posts.expires_at` (30 dias), chaves de remoção em `community_post_keys` (sem acesso pela API), `create_community_post` / `remove_community_post`.
+- `20260926_revisao_geral.sql` — **aplicada**. `get_orders_by_phone(telefone, PIN)` com limite de 10 erros/hora por número (`order_lookup_attempts`), fim do insert direto no mural, índices e políticas otimizadas.
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 
 Configuração no painel do Supabase (Authentication):
