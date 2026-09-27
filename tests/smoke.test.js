@@ -550,6 +550,27 @@ test('admin: edita loja, define dono, cancela pedido e desativa entregador', { l
     assert.strictEqual(cw.body.is_active, false);
 });
 
+test('privacidade: página com contato, apaga dados do aparelho e está ligada nas telas do cliente', {}, async (page, db) => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const f of ['index.html', '10_checkout_whatsapp_flow.html', '20_mural_vizinhanca.html', 'pedidos.html']) {
+        assert.ok(fs.readFileSync(path.join(__dirname, '..', f), 'utf8').includes('href="privacidade.html"'), 'link em ' + f);
+    }
+    await page.goto(BASE + 'index.html');
+    await page.evaluate(() => {
+        localStorage.setItem('tipuanas_cart', '[{"id":"p1"}]');
+        localStorage.setItem('tipuanas_client', '{"name":"Ana"}');
+        localStorage.setItem('outra_coisa', 'fica');
+    });
+    await page.goto(BASE + 'privacidade.html');
+    await page.waitForFunction(() => document.getElementById('privacy-contact').href.includes('wa.me/55'));
+    await page.click('#clear-device-btn');
+    await page.waitForSelector('#clear-device-status:not(.hidden)');
+    const keys = await page.evaluate(() => Object.keys(localStorage));
+    assert.ok(!keys.some(k => k.startsWith('tipuanas_')), 'dados do site apagados');
+    assert.ok(keys.includes('outra_coisa'), 'não mexe em chaves de outros');
+});
+
 test('PWA: manifest válido, ícones no repositório e todas as telas ligadas ao app', {}, async (page, db) => {
     const fs = require('fs');
     const path = require('path');

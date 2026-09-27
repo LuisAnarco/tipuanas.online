@@ -73,7 +73,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   - [x] Dados de demonstração: 9 lojas, 41 produtos com seções/ofertas/destaques e 3 cupons públicos. _(27/09/2026, direto no banco; fotos ficam para o lojista enviar)_
   - [x] Carrinho com quantidade (+/−) direto no cartão do produto e tela de sacola mais bonita. _(27/09/2026, PR #17)_
 
-- [ ] **13. Privacidade e termos (LGPD).** Página curta explicando quais dados guardamos (nome,
+- [x] **13. Privacidade e termos (LGPD).** _(27/09/2026, PR #18)_ Página curta explicando quais dados guardamos (nome,
   WhatsApp, endereço), para quê e como pedir exclusão; link no rodapé do checkout e do mural.
 - [ ] **14. Extrato do lojista.** No painel do lojista, resumo do mês: pedidos entregues, total
   vendido, descontos de cupom, taxas de entrega e comissão da plataforma (8%), com exportação CSV.
