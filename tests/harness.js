@@ -23,13 +23,13 @@ function freshDb() {
     const now = new Date().toISOString();
     return {
         stores: [
-            { id: S1, name: "Padaria d'Ouro <b>x</b>", category: 'Padaria', whatsapp_number: '47999706651', address_line: 'Av. 10', delivery_fee: 5, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: null, description: 'Pães', slug: 'padaria-ouro' },
+            { id: S1, name: "Padaria d'Ouro <b>x</b>", category: 'Padaria', whatsapp_number: '47999706651', address_line: 'Av. 10', delivery_fee: 5, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: null, description: 'Pães', slug: 'padaria-ouro', avg_prep_time_minutes: 30 },
             { id: S2, name: 'Baratissimo', category: 'Mercado', whatsapp_number: null, address_line: 'Av. 20', delivery_fee: 0, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: 'outra-conta', slug: 'baratissimo' },
             { id: S3, name: 'BOA! Lavagem', category: 'Serviços', whatsapp_number: '47999706651', address_line: '', delivery_fee: 0, is_active: true, is_paused: false, listing_type: 'orcamento', owner_id: USER.id, description: 'Lavagem' },
         ],
         products: [
-            { id: 'p1', store_id: S1, name: "Pão d'água", description: '<img src=x onerror=alert(1)>', price: 1.5, is_paused: false, image_url: null },
-            { id: 'p2', store_id: S1, name: 'Sonho', description: null, price: 6, is_paused: false, image_url: null },
+            { id: 'p1', store_id: S1, name: "Pão d'água", description: '<img src=x onerror=alert(1)>', price: 1.5, is_paused: false, image_url: null, section: 'Pães' },
+            { id: 'p2', store_id: S1, name: 'Sonho', description: null, price: 6, promo_price: 4.5, is_featured: true, is_paused: false, image_url: null, section: 'Doces <i>x</i>' },
             { id: 'p3', store_id: S2, name: 'Arroz 5kg', description: null, price: 25, is_paused: false, image_url: null },
         ],
         orders: [
@@ -48,7 +48,7 @@ function freshDb() {
         ],
         posts: [{ id: 'm1', post_type: 'desapego', title: 'Sofá <i>x</i>', description: 'bom', price: null, author_name: 'Zé', author_whatsapp: '48999990000', is_active: true, created_at: now, expires_at: new Date(Date.now() + 10 * 86400000).toISOString() }],
         couriers: [],
-        coupons: [{ id: 'cp1', store_id: S1, code: 'DEZ10', discount_type: 'percentage', discount_value: 10, min_order_value: 0, is_active: true }],
+        coupons: [{ id: 'cp1', store_id: S1, code: 'DEZ10', discount_type: 'percentage', discount_value: 10, min_order_value: 0, is_active: true, is_public: true }],
         admin: false,
         orderStatus: 'entregue', // status devolvido por get_order_public
         calls: [],   // chamadas de RPC: { fn, body }
@@ -79,7 +79,7 @@ function rpc(db, fn, body) {
             if (store.opening_hours && store.closedForTest) throw { status: 400, body: { code: 'P0001', message: 'store_closed' } };
             const items = body.p_items.map(it => {
                 const p = db.products.find(x => x.id === it.product_id);
-                return { product_id: p.id, name: p.name, quantity: it.quantity, unit_price: p.price };
+                return { product_id: p.id, name: p.name, quantity: it.quantity, unit_price: p.promo_price || p.price };
             });
             const subtotal = items.reduce((a, i) => a + i.unit_price * i.quantity, 0);
             const fee = body.p_is_takeout ? 0 : store.delivery_fee;
@@ -107,6 +107,11 @@ function rpc(db, fn, body) {
             db.orderStatus = 'cancelado';
             return true;
         }
+        case 'list_public_coupons':
+            return db.coupons.filter(c => c.is_active && c.is_public).map(c => {
+                const st = db.stores.find(x => x.id === c.store_id);
+                return { code: c.code, store_id: c.store_id, store_name: st.name, store_slug: st.slug, discount_type: c.discount_type, discount_value: c.discount_value, min_order_value: c.min_order_value };
+            });
         case 'check_coupon': {
             const c = db.coupons.find(x => x.code === String(body.p_code).toUpperCase() && x.is_active);
             if (!c) return null;

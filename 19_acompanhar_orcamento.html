@@ -157,7 +157,7 @@
             const proposalCard = document.getElementById('proposal-card');
             if (request.proposal_amount && ['proposta_enviada', 'aceito', 'rejeitado', 'pago', 'em_andamento', 'concluido'].includes(request.status)) {
                 proposalCard.classList.remove('hidden');
-                document.getElementById('proposal-amount').textContent = `R$ ${Number(request.proposal_amount).toFixed(2)}`;
+                document.getElementById('proposal-amount').textContent = `${formatBRL(request.proposal_amount)}`;
                 document.getElementById('proposal-description').textContent = request.proposal_description || '';
                 document.getElementById('proposal-actions').classList.toggle('hidden', request.status !== 'proposta_enviada');
             } else {

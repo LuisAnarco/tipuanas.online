@@ -423,6 +423,8 @@ function initCoupons(storeId) {
         document.getElementById('coupons-list').addEventListener('click', event => {
             const btn = event.target.closest('[data-toggle-coupon]');
             if (btn) alternarCupom(btn.dataset.toggleCoupon, btn.dataset.active === 'true');
+            const pub = event.target.closest('[data-toggle-public]');
+            if (pub) alternarCupomPublico(pub.dataset.togglePublic, pub.dataset.public === 'true');
         });
     }
     loadCoupons();
@@ -446,8 +448,12 @@ async function loadCoupons() {
                 <span class="font-mono font-bold text-gray-900">${escapeHtml(c.code)}</span>
                 <span class="text-gray-600"> • ${c.discount_type === 'percentage' ? `${Number(c.discount_value)}% de desconto` : `${formatBRL(c.discount_value)} de desconto`}</span>
                 ${Number(c.min_order_value) > 0 ? `<span class="text-gray-400"> • mínimo ${formatBRL(c.min_order_value)}</span>` : ''}
+                ${c.is_public ? '<span class="text-emerald-700 font-bold"> • 📣 na vitrine</span>' : ''}
             </div>
+            <div class="flex gap-1.5">
+            <button data-toggle-public="${escapeHtml(c.id)}" data-public="${Boolean(c.is_public)}" class="border border-gray-300 rounded px-2 py-0.5 hover:bg-gray-50">${c.is_public ? 'Tirar da vitrine' : 'Mostrar na vitrine'}</button>
             <button data-toggle-coupon="${escapeHtml(c.id)}" data-active="${c.is_active}" class="border border-gray-300 rounded px-2 py-0.5 hover:bg-gray-50">${c.is_active ? 'Desativar' : 'Ativar'}</button>
+            </div>
         </div>
     `).join('');
 }
@@ -467,7 +473,8 @@ async function criarCupom(event) {
     errorEl.classList.add('hidden');
 
     const { error } = await sb.from('coupons').insert([{
-        store_id: couponsStoreId, code, discount_type: data.discount_type, discount_value: value, min_order_value: min, is_active: true
+        store_id: couponsStoreId, code, discount_type: data.discount_type, discount_value: value, min_order_value: min, is_active: true,
+        is_public: data.is_public === 'on'
     }]);
     if (error) {
         console.error('Erro ao criar cupom:', error);
@@ -487,6 +494,16 @@ async function alternarCupom(couponId, isActive) {
     loadCoupons();
 }
 
+async function alternarCupomPublico(couponId, isPublic) {
+    const { error } = await sb.from('coupons').update({ is_public: !isPublic }).eq('id', couponId);
+    if (error) {
+        alert('Não foi possível atualizar o cupom.');
+        console.error(error);
+        return;
+    }
+    loadCoupons();
+}
+
 function updateRepasse(orders) {
     const completed = orders.filter(o => o.status === 'entregue');
     const gross = completed.reduce((acc, o) => acc + Number(o.total_amount), 0);
@@ -494,9 +511,9 @@ function updateRepasse(orders) {
     const net = gross - commission;
 
     document.getElementById('repasse-orders-count').textContent = completed.length;
-    document.getElementById('repasse-gross').textContent = `R$ ${gross.toFixed(2)}`;
-    document.getElementById('repasse-commission').textContent = `R$ ${commission.toFixed(2)}`;
-    document.getElementById('repasse-net').textContent = `R$ ${net.toFixed(2)}`;
+    document.getElementById('repasse-gross').textContent = `${formatBRL(gross)}`;
+    document.getElementById('repasse-commission').textContent = `${formatBRL(commission)}`;
+    document.getElementById('repasse-net').textContent = `${formatBRL(net)}`;
 }
 
 /**

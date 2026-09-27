@@ -10,40 +10,64 @@ const tests = [];
 const test = (name, opts, fn) => tests.push({ name, opts, fn });
 
 // ---------------------------------------------------------------- Cliente
-test('vitrine: lista lojas, escapa HTML, busca, categoria e carrinho', {}, async (page, db) => {
+test('vitrine: banners, categorias, ofertas, lojas, busca e carrinho', {}, async (page, db) => {
     await page.goto(BASE + 'index.html');
-    await page.waitForSelector('[data-add-product="p1"]');
-    assert.ok(!(await page.$('#stores-container img[src="x"]')), 'descrição com HTML não pode virar tag');
-    assert.ok((await page.innerHTML('#stores-container')).includes('★ 4,5'), 'nota média da loja');
+    await page.waitForSelector('#stores-container a[href="loja.html?slug=padaria-ouro"]');
+    const stores = await page.innerHTML('#stores-container');
+    assert.ok(stores.includes('★ 4,5') && stores.includes('30 min'), 'nota média e tempo de preparo no cartão');
+    assert.ok(!(await page.$('#stores-container b')), 'nome da loja escapado');
+    assert.ok(stores.includes('Sob orçamento'), 'loja de orçamento com selo');
 
-    await page.click('[data-add-product="p1"]'); // produto com apóstrofo
-    await page.click('[data-add-product="p1"]');
-    await page.click('[data-add-product="p3"]');
-    assert.strictEqual(await page.textContent('#cart-item-count'), '3 itens');
+    // Banner do cupom público e ofertas com preço antigo riscado
+    const banners = await page.innerHTML('#banners');
+    assert.ok(banners.includes('DEZ10') && banners.includes('loja.html?slug=padaria-ouro'), 'banner do cupom');
+    assert.ok(await isShown(page, '#offers-section'), 'faixa de ofertas');
+    assert.ok(await page.$('#offers-row [data-add-product="p2"]'), 'oferta com botão');
+    assert.ok((await page.innerHTML('#offers-row')).includes('-25%'), 'selo de desconto');
+    assert.ok(await page.$('#offers-row [data-role="old-price"]'), 'preço antigo riscado');
+    assert.ok(await isShown(page, '#featured-section'), 'destaques');
+    assert.ok((await page.innerHTML('#top-stores-row')).includes('padaria-ouro'), 'mais bem avaliadas');
 
+    // Carrinho usa o preço promocional
+    await page.click('#offers-row [data-add-product="p2"]');
+    assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
+    assert.strictEqual(await page.textContent('#cart-total-price'), 'R$ 4,50');
+
+    // Busca por produto mostra o produto com botão de adicionar (descrição escapada)
     await page.fill('#search-input', 'arroz');
+    assert.ok(!(await isShown(page, '#home-sections')), 'home escondida durante a busca');
+    await page.waitForSelector('#stores-container [data-add-product="p3"]');
     let html = await page.innerHTML('#stores-container');
-    assert.ok(html.includes('Arroz') && !html.includes('Sonho'), 'busca por produto');
+    assert.ok(!html.includes('Sonho'), 'busca por produto');
+    await page.click('[data-add-product="p3"]');
+    assert.strictEqual(await page.textContent('#cart-item-count'), '2 itens');
+    await page.fill('#search-input', 'pao');
+    await page.waitForSelector('#stores-container [data-add-product="p1"]');
+    assert.ok(!(await page.$('#stores-container img[src="x"]')), 'descrição com HTML não pode virar tag');
 
+    // Categoria filtra a lista de lojas
     await page.fill('#search-input', '');
     await page.click('[data-category="Mercado"]');
     html = await page.innerHTML('#stores-container');
-    assert.ok(!html.includes('Sonho'), 'filtro por categoria');
+    assert.ok(html.includes('baratissimo') && !html.includes('padaria-ouro'), 'filtro por categoria');
+    assert.strictEqual(await page.textContent('#stores-title'), 'Mercado');
 });
 
-test('página da loja: só a loja do slug, com avaliações e carrinho', {}, async (page, db) => {
-    await page.goto(BASE + 'index.html');
-    await page.waitForSelector('#stores-container a[href="loja.html?slug=padaria-ouro"]');
-
+test('página da loja: capa, cupom, abas por seção, avaliações e carrinho', {}, async (page, db) => {
     await page.goto(BASE + 'loja.html?slug=padaria-ouro');
     await page.waitForSelector('[data-add-product="p1"]');
     const html = await page.innerHTML('#stores-container');
     assert.ok(!html.includes('Arroz'), 'não mostra produto de outra loja');
+    const sections = await page.$$eval('#stores-container [data-section]', els => els.map(e => e.dataset.section));
+    assert.deepStrictEqual(sections, ['⭐ Destaques', 'Doces <i>x</i>', 'Pães'], 'destaques + seções em ordem');
+    assert.ok(!(await page.$('#stores-container i')), 'nome da seção escapado');
+    assert.strictEqual((await page.$$('#section-tabs [data-section-tab]')).length, 3, 'abas das seções');
     const header = await page.innerHTML('#store-header');
     assert.ok(header.includes('★ 4,5') && header.includes('demais'), 'nota e comentário');
     assert.ok(!(await page.$('#store-header b')), 'comentário escapado');
     assert.ok(header.includes('wa.me/5547999706651'));
-    await page.click('[data-add-product="p2"]');
+    assert.ok(await page.$('#store-header [data-role="store-coupon"]'), 'cupom público da loja');
+    await page.click('#sec-2 [data-add-product="p1"]');
     assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
 });
 
@@ -59,17 +83,21 @@ test('QR do balcão aponta para a página da loja', {}, async (page, db) => {
     assert.strictEqual(target, 'http://local/loja.html?slug=padaria-ouro');
 });
 
-test('horário: vitrine mostra loja fechada e esconde o botão de adicionar', {}, async (page, db) => {
+test('horário: loja fechada aparece como fechada e sem botão de adicionar', {}, async (page, db) => {
     // Loja S1 só abre às segundas de madrugada (00:00-00:01): quase sempre fechada
     const closedDay = db.stores.find(s => s.id === S1);
     closedDay.opening_hours = { '1': '00:00-00:01' };
     await page.goto(BASE + 'index.html');
-    await page.waitForSelector('[data-add-product="p3"]');
+    await page.waitForSelector('#stores-container a');
     const status = await page.evaluate(h => storeOpenStatus(h, new Date('2026-09-28T15:00:00-03:00')), closedDay.opening_hours);
     assert.deepStrictEqual(status, { open: false, label: 'abre seg às 00:00' });
     const nowStatus = await page.evaluate(h => storeOpenStatus(h), closedDay.opening_hours);
     if (!nowStatus.open) {
-        assert.ok(await page.$('[data-role="closed-badge"]'), 'selo de fechada');
+        assert.ok(await page.$('#stores-container [data-role="closed-badge"]'), 'selo de fechada na lista');
+        assert.ok(!(await page.$('#offers-row [data-add-product="p2"]')), 'oferta de loja fechada sem botão');
+        await page.goto(BASE + 'loja.html?slug=padaria-ouro');
+        await page.waitForSelector('#stores-container [data-section]');
+        assert.ok(await page.$('#stores-container [data-role="closed-badge"]'), 'aviso de fechada na página da loja');
         assert.ok(!(await page.$('[data-add-product="p1"]')), 'sem botão de adicionar na loja fechada');
     }
 });
@@ -136,8 +164,8 @@ test('cupom: checkout mostra desconto e envia o código só para a loja do cupom
     await page.fill('#coupon-code', 'dez10');
     await page.click('#coupon-apply');
     await page.waitForSelector('text=10% de desconto');
-    assert.ok((await page.innerHTML('#checkout-items')).includes('-R$ 3.00'), 'prévia do desconto na loja do cupom');
-    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 52.00', '30 + 25 - 3');
+    assert.ok((await page.innerHTML('#checkout-items')).includes('-R$ 3,00'), 'prévia do desconto na loja do cupom');
+    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 52,00', '30 + 25 - 3');
 
     await page.fill('#client-name', 'Maria');
     await page.fill('#client-phone', '48999998888');
@@ -164,9 +192,12 @@ test('cupom: lojista cria e desativa cupom', { loggedIn: true }, async (page, db
     const ins = db.writes.find(x => x.table === 'coupons' && x.method === 'POST');
     assert.strictEqual(ins.body[0].code, 'BEMVINDO', 'código normalizado');
     assert.strictEqual(ins.body[0].store_id, S1);
+    assert.strictEqual(ins.body[0].is_public, true, 'aparece na vitrine por padrão');
+    await page.click('[data-toggle-public="cp1"]');
+    await page.waitForFunction(() => document.querySelector('[data-toggle-public="cp1"]').dataset.public === 'false');
     await page.click('[data-toggle-coupon="cp1"]');
     await page.waitForTimeout(200);
-    assert.strictEqual(db.writes.find(x => x.table === 'coupons' && x.method === 'PATCH').body.is_active, false);
+    assert.strictEqual(db.writes.find(x => x.table === 'coupons' && x.method === 'PATCH' && 'is_active' in x.body).body.is_active, false);
 });
 
 test('checkout: cria pedido via place_order, WhatsApp com 55 e pula loja fechada', {}, async (page, db) => {
@@ -399,6 +430,12 @@ test('cardápio: produto novo com foto reduzida e enviada para a pasta da loja',
     });
     await page.fill('#np-name', 'Bolo');
     await page.fill('#np-price', '20');
+    await page.fill('#np-section', 'Doces');
+    await page.fill('#np-promo', '25');
+    await page.click('button[onclick="adicionarProduto()"]');
+    await page.waitForSelector('#np-error:has-text("promocional")');
+    await page.fill('#np-promo', '17.5');
+    await page.check('#np-featured');
     await page.setInputFiles('#np-photo', { name: 'bolo.png', mimeType: 'image/png', buffer: Buffer.from(png) });
     await page.click('button[onclick="adicionarProduto()"]');
     await page.waitForFunction(() => document.getElementById('np-name').value === '');
@@ -409,6 +446,7 @@ test('cardápio: produto novo com foto reduzida e enviada para a pasta da loja',
     assert.ok(db.uploads[0].size < png.length, `reduzida (${db.uploads[0].size} < ${png.length} bytes)`);
     const ins = db.writes.find(x => x.table === 'products' && x.method === 'POST');
     assert.ok(ins.body[0].image_url.includes(`/storage/v1/object/public/product-images/${S1}/`), 'URL pública salva no produto');
+    assert.deepStrictEqual([ins.body[0].section, ins.body[0].promo_price, ins.body[0].is_featured], ['Doces', 17.5, true], 'seção, promoção e destaque');
 });
 
 test('lojista: painel de orçamentos carrega com login', { loggedIn: true }, async (page, db) => {
@@ -442,7 +480,7 @@ test('admin: admin vê métricas (comissão só sobre entregues)', { loggedIn: t
     db.admin = true;
     await page.goto(BASE + '14_admin_analytics_dashboard.html');
     await page.waitForSelector('[data-toggle-store]');
-    assert.strictEqual(await page.textContent('#total-gmv'), 'R$ 30.00');
+    assert.strictEqual(await page.textContent('#total-gmv'), 'R$ 30,00');
 });
 
 test('admin: edita loja, define dono, cancela pedido e desativa entregador', { loggedIn: true }, async (page, db) => {

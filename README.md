@@ -8,8 +8,8 @@ via CDN) em cima do Supabase, publicado na Vercel.
 
 | Quem | Arquivo | O que faz |
 |---|---|---|
-| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine com busca, filtro por categoria, nota das lojas e carrinho multi-loja |
-| Cliente | `loja.html?slug=` | Página própria da loja: dados, avaliações, cardápio e botão de compartilhar (link do QR do balcão) |
+| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine estilo app de delivery: banners de cupons, categorias com ícones, Ofertas do dia, Destaques, Mais bem avaliadas, lista de lojas, busca de lojas e produtos, barra inferior e carrinho multi-loja |
+| Cliente | `loja.html?slug=` | Página própria da loja: capa e logo, cupons, abas por seção do cardápio, destaques, preço promocional, avaliações e compartilhar (link do QR do balcão) |
 | Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto), cria um pedido por loja e abre o WhatsApp de cada uma |
 | Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento com PIN de entrega, cancelamento enquanto o pedido é "novo" e avaliação da loja após a entrega |
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
@@ -86,6 +86,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_fotos_de_produtos.sql` — **aplicada**. Bucket público `product-images` (até 2 MB, JPG/PNG/WEBP); só o dono da loja (ou admin) grava em `<store_id>/...`.
 - `20260926_cupons.sql` — **aplicada**. `orders.coupon_code`/`discount_amount`, `check_coupon` e `place_order(..., p_coupon)` aplicando o desconto no servidor.
 - `20260926_mural_validade_moderacao.sql` — **aplicada**. `community_posts.expires_at` (30 dias), chaves de remoção em `community_post_keys` (sem acesso pela API), `create_community_post` / `remove_community_post`.
+- `20260927_vitrine.sql` — **aplicada**. `products.section/promo_price/is_featured`, `stores.cover_url`, `coupons.is_public`, `list_public_coupons()` e `place_order` cobrando o preço promocional.
 - `20260926_revisao_geral.sql` — **aplicada**. `get_orders_by_phone(telefone, PIN)` com limite de 10 erros/hora por número (`order_lookup_attempts`), fim do insert direto no mural, índices e políticas otimizadas.
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 

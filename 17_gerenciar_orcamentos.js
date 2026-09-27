@@ -197,13 +197,13 @@ function renderActionArea(req) {
     }
 
     if (req.status === 'proposta_enviada') {
-        return `<p class="text-xs text-amber-600">💰 Proposta de R$ ${Number(req.proposal_amount).toFixed(2)} enviada. Aguardando resposta do cliente.</p>`;
+        return `<p class="text-xs text-amber-600">💰 Proposta de ${formatBRL(req.proposal_amount)} enviada. Aguardando resposta do cliente.</p>`;
     }
 
     if (req.status === 'aceito') {
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <p class="text-xs text-gray-600">✅ Cliente aceitou a proposta de R$ ${Number(req.proposal_amount).toFixed(2)}. Combine o pagamento e confirme abaixo.</p>
+                <p class="text-xs text-gray-600">✅ Cliente aceitou a proposta de ${formatBRL(req.proposal_amount)}. Combine o pagamento e confirme abaixo.</p>
                 <button onclick="confirmarPagamento('${req.id}', ${req.proposal_amount})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">
                     Confirmar Pagamento Recebido
                 </button>
@@ -218,7 +218,7 @@ function renderActionArea(req) {
     if (req.status === 'pago' || req.status === 'em_andamento') {
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <p class="text-xs text-gray-600">💳 Pago em ${new Date(req.paid_at).toLocaleString('pt-BR')}. Comissão da plataforma: R$ ${Number(req.platform_commission).toFixed(2)}.</p>
+                <p class="text-xs text-gray-600">💳 Pago em ${new Date(req.paid_at).toLocaleString('pt-BR')}. Comissão da plataforma: ${formatBRL(req.platform_commission)}.</p>
                 <div class="flex gap-2">
                     <input id="update-note-${req.id}" type="text" placeholder="Ex: Peça encomendada, chega em 2 dias" class="flex-1 text-xs p-2 rounded border border-gray-300">
                     <button onclick="adicionarEtapa('${req.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold px-3 py-2 rounded-lg">
@@ -290,7 +290,7 @@ async function enviarProposta(requestId) {
     }
 
     const req = data[0];
-    const msg = encodeURIComponent(`Olá, ${req.client_name}! Sua proposta de orçamento em Tipuanas.online já está disponível: R$ ${Number(req.proposal_amount).toFixed(2)}.\n\nVeja os detalhes e responda aqui: ${window.location.origin}${window.location.pathname.replace('17_gerenciar_orcamentos.html', '19_acompanhar_orcamento.html')}?id=${req.id}`);
+    const msg = encodeURIComponent(`Olá, ${req.client_name}! Sua proposta de orçamento em Tipuanas.online já está disponível: ${formatBRL(req.proposal_amount)}.\n\nVeja os detalhes e responda aqui: ${window.location.origin}${window.location.pathname.replace('17_gerenciar_orcamentos.html', '19_acompanhar_orcamento.html')}?id=${req.id}`);
     window.open(`https://wa.me/${toWhatsappNumber(req.client_whatsapp)}?text=${msg}`, '_blank');
 
     fetchRequests();
@@ -347,9 +347,9 @@ function updateRepasse(requests) {
     const net = gross - commission;
 
     document.getElementById('repasse-count').textContent = paid.length;
-    document.getElementById('repasse-gross').textContent = `R$ ${gross.toFixed(2)}`;
-    document.getElementById('repasse-commission').textContent = `R$ ${commission.toFixed(2)}`;
-    document.getElementById('repasse-net').textContent = `R$ ${net.toFixed(2)}`;
+    document.getElementById('repasse-gross').textContent = `${formatBRL(gross)}`;
+    document.getElementById('repasse-commission').textContent = `${formatBRL(commission)}`;
+    document.getElementById('repasse-net').textContent = `${formatBRL(net)}`;
 }
 
 function subscribeToRequests() {

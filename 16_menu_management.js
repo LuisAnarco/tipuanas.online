@@ -9,30 +9,9 @@
 let currentStore = null;
 let editingProductId = null;
 
-const PHOTO_BUCKET = 'product-images';
-const PHOTO_MAX_SIDE = 900; // px — foto de celular vira ~100-200 KB
-
-/**
- * Reduz a foto no navegador (JPEG, lado maior até PHOTO_MAX_SIDE) e envia para
- * o Storage na pasta da loja (<store_id>/...). Devolve a URL pública.
- * O banco só aceita o envio de quem é dono da loja (ou admin).
- */
-async function uploadProductPhoto(file) {
-    if (!file) return null;
-    if (!file.type.startsWith('image/')) throw new Error('Escolha um arquivo de imagem.');
-
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82));
-
-    const path = `${currentStore.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-    const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-    if (error) throw error;
-    return sb.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+/** Foto do produto: reduzida e enviada para a pasta da loja (ver uploadImage em config.js) */
+function uploadProductPhoto(file) {
+    return uploadImage(currentStore.id, file);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -76,7 +55,26 @@ async function loadProducts() {
         return;
     }
 
+    const sections = [...new Set((products || []).map(p => (p.section || '').trim()).filter(Boolean))].sort();
+    document.getElementById('section-options').innerHTML = sections.map(sec => `<option value="${escapeHtml(sec)}"></option>`).join('');
     renderProducts(products || []);
+}
+
+/** Lê seção, preço promocional e destaque; devolve { error } se o promocional for inválido */
+function readExtraFields(prefix, price) {
+    const section = document.getElementById(`${prefix}section`).value.trim().slice(0, 40);
+    const promoRaw = document.getElementById(`${prefix}promo`).value.trim();
+    const promo = promoRaw === '' ? null : parseFloat(promoRaw);
+    if (promo !== null && (isNaN(promo) || promo <= 0 || promo >= price)) {
+        return { error: 'O preço promocional precisa ser maior que zero e menor que o preço normal.' };
+    }
+    return {
+        fields: {
+            section: section || null,
+            promo_price: promo,
+            is_featured: document.getElementById(`${prefix}featured`).checked
+        }
+    };
 }
 
 function renderProducts(products) {
@@ -100,6 +98,11 @@ function renderProducts(products) {
                         </div>
                     </div>
                     <input id="edit-desc-${p.id}" type="text" value="${escapeHtml(p.description || '')}" placeholder="Descrição (opcional)" class="w-full text-xs p-2 rounded border border-gray-300">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                        <input id="edit-${p.id}-section" type="text" list="section-options" maxlength="40" value="${escapeHtml(p.section || '')}" placeholder="Seção (ex: Lanches)" class="p-2 rounded border border-gray-300">
+                        <input id="edit-${p.id}-promo" type="number" min="0" step="0.01" value="${p.promo_price ? Number(p.promo_price) : ''}" placeholder="Preço promocional" class="p-2 rounded border border-gray-300">
+                        <label class="flex items-center gap-2"><input id="edit-${p.id}-featured" type="checkbox" ${p.is_featured ? 'checked' : ''}> ⭐ Destaque</label>
+                    </div>
                     <div class="flex flex-wrap items-center gap-3 text-xs">
                         ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" class="w-12 h-12 rounded object-cover">` : ''}
                         <label class="flex items-center gap-2">Trocar foto: <input id="edit-photo-${p.id}" type="file" accept="image/*" class="text-xs"></label>
@@ -117,9 +120,11 @@ function renderProducts(products) {
                     <div class="flex items-center gap-2">
                         <p class="font-bold text-gray-900">${escapeHtml(p.name)}</p>
                         ${p.is_paused ? '<span class="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">Pausado</span>' : ''}
+                        ${p.is_featured ? '<span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">⭐ Destaque</span>' : ''}
+                        ${p.section ? `<span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">${escapeHtml(p.section)}</span>` : ''}
                     </div>
                     ${p.description ? `<p class="text-xs text-gray-500">${escapeHtml(p.description)}</p>` : ''}
-                    <p class="text-sm font-extrabold text-emerald-600 mt-1">R$ ${Number(p.price).toFixed(2)}</p>
+                    <p class="text-sm font-extrabold text-emerald-600 mt-1">${p.promo_price ? `${formatBRL(p.promo_price)} <span class="text-xs text-gray-400 line-through font-normal">${formatBRL(p.price)}</span>` : formatBRL(p.price)}</p>
                 </div>
                 </div>
                 <div class="flex gap-2">
@@ -145,6 +150,12 @@ async function adicionarProduto() {
         errorEl.classList.remove('hidden');
         return;
     }
+    const extra = readExtraFields('np-', price);
+    if (extra.error) {
+        errorEl.textContent = extra.error;
+        errorEl.classList.remove('hidden');
+        return;
+    }
     errorEl.classList.add('hidden');
 
     let imageUrl = null;
@@ -163,7 +174,8 @@ async function adicionarProduto() {
         description: description || null,
         price,
         image_url: imageUrl,
-        is_paused: false
+        is_paused: false,
+        ...extra.fields
     }]);
 
     if (error) {
@@ -177,6 +189,9 @@ async function adicionarProduto() {
     document.getElementById('np-description').value = '';
     document.getElementById('np-price').value = '';
     document.getElementById('np-photo').value = '';
+    document.getElementById('np-section').value = '';
+    document.getElementById('np-promo').value = '';
+    document.getElementById('np-featured').checked = false;
     loadProducts();
 }
 
@@ -200,7 +215,12 @@ async function salvarEdicao(productId) {
         return;
     }
 
-    const changes = { name, description: description || null, price };
+    const extra = readExtraFields(`edit-${productId}-`, price);
+    if (extra.error) {
+        alert(extra.error);
+        return;
+    }
+    const changes = { name, description: description || null, price, ...extra.fields };
     const removePhoto = document.getElementById(`edit-remove-photo-${productId}`);
     if (removePhoto && removePhoto.checked) changes.image_url = null;
     try {
