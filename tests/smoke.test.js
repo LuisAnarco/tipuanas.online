@@ -243,9 +243,15 @@ test('meus pedidos: histórico do aparelho e busca por WhatsApp', {}, async (pag
     assert.ok(!(await page.$('#orders-list b')), 'nome da loja escapado');
     assert.deepStrictEqual(db.calls.find(c => c.fn === 'get_orders_public').body.p_ids, [O1], 'id inválido filtrado');
     await page.fill('#phone-input', '48999998888');
+    await page.fill('#pin-input', '0000');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('orders-list').textContent.includes('PIN'));
+    assert.ok(!(await page.$('#orders-list a')), 'PIN errado não mostra pedidos');
+    await page.fill('#pin-input', '1234');
     await page.click('#search-btn');
     await page.waitForSelector('#orders-list a');
-    assert.ok(db.calls.some(c => c.fn === 'get_orders_by_phone'));
+    const call = db.calls.filter(c => c.fn === 'get_orders_by_phone').pop();
+    assert.deepStrictEqual(call.body, { p_phone: '48999998888', p_pin: '1234' });
 });
 
 test('orçamento: cliente solicita e aceita proposta', {}, async (page, db) => {

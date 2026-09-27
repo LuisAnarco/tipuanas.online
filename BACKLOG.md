@@ -53,5 +53,26 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   um código gerado na publicação; admin remove qualquer post.
 - [x] **11. Acabamento de publicação.** _(26/09/2026, PR #14; URLs limpas ficaram de fora para não quebrar links e QR Codes já impressos)_ `vercel.json` com URLs limpas e cabeçalhos de segurança,
   página 404, títulos/descrições para SEO e pré-visualização no WhatsApp (Open Graph).
-- [ ] **12. Revisão geral.** Rodar revisão de segurança e de código no projeto inteiro, corrigir o
-  que for encontrado e propor os próximos itens deste backlog.
+- [x] **12. Revisão geral.** _(27/09/2026, PR #15)_ Rodar revisão de segurança e de código no projeto inteiro, corrigir o
+  que for encontrado e propor os próximos itens deste backlog. Encontrado e corrigido: a busca de
+  "Meus pedidos" só pelo WhatsApp expunha endereço e PIN de quem soubesse o número (agora pede
+  também o PIN de um pedido, com limite de 10 erros por hora); política antiga deixava inserir no
+  mural por fora da função (removida, só aperta o acesso); índices nas chaves estrangeiras e
+  `auth.uid()` avaliado uma vez por consulta. Telas conferidas: dados de usuário sempre escapados.
+
+## Próximos itens (propostos na revisão geral)
+
+- [ ] **13. Privacidade e termos (LGPD).** Página curta explicando quais dados guardamos (nome,
+  WhatsApp, endereço), para quê e como pedir exclusão; link no rodapé do checkout e do mural.
+- [ ] **14. Extrato do lojista.** No painel do lojista, resumo do mês: pedidos entregues, total
+  vendido, descontos de cupom, taxas de entrega e comissão da plataforma (8%), com exportação CSV.
+- [ ] **15. Avisar o cliente pelo WhatsApp.** No painel do lojista, botão em cada pedido que abre
+  o WhatsApp do cliente com mensagem pronta do status (aceito, saiu para entrega, pronto para
+  retirar) e link do acompanhamento.
+- [ ] **16. Produto esgotado com um toque.** Atalho no painel de pedidos/cardápio para pausar e
+  reativar produtos rapidamente, e a vitrine mostrando "esgotado" em vez de esconder.
+- [ ] **17. Limpeza de legado.** Levantar tabelas antigas sem uso (`express_jobs`, `ingredients`,
+  `recipes`, `trechos_codigo`) e telas órfãs; documentar e propor ao Luis o que remover (remoção
+  de tabela só com aprovação dele).
+- [ ] **18. Domínio de produção.** _(depende do Luis)_ Apontar o domínio no Vercel, incluir a URL em
+  Supabase → Auth → Redirect URLs e trocar o e-mail padrão por SMTP próprio quando houver.

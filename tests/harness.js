@@ -97,8 +97,10 @@ function rpc(db, fn, body) {
             return { ...o, status: db.orderStatus, has_review: false, delivery_address: { address: o.delivery_address.address },
                 stores: { name: "Padaria d'Ouro", whatsapp_number: '47999706651', address_line: 'Av. 10' } };
         }
-        case 'get_orders_public':
         case 'get_orders_by_phone':
+            if (body.p_pin !== '1234') return [];
+            // fallthrough
+        case 'get_orders_public':
             return [{ id: O1, status: 'em_rota', total_amount: 14, created_at: new Date().toISOString(), is_takeout: false, stores: { name: 'Padaria <b>x</b>' }, order_items: [{ quantity: 1, products: { name: 'Sonho' } }] }];
         case 'cancel_order_public': {
             if (db.orderStatus !== 'novo') return false;
