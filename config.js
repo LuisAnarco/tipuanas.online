@@ -18,6 +18,9 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // taxas de pagamento). Usada no painel do lojista, orçamentos e admin.
 const PLATFORM_COMMISSION_RATE = 0.08;
 
+// Contato da plataforma (privacidade, exclusão de dados, suporte). Trocar pelo número oficial.
+const PLATFORM_CONTACT_WHATSAPP = '47999706651';
+
 /**
  * Escapa texto vindo do banco antes de montar HTML com template string.
  * Qualquer campo digitado por usuário (nome de loja, produto, post do mural...)

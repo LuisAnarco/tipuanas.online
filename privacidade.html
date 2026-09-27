@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#059669">
+    <link rel="manifest" href="07_client_pwa_manifest.json">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="description" content="Como o Tipuanas.online usa os seus dados: o que guardamos, para quê, com quem compartilhamos e como pedir a exclusão.">
+    <title>Privacidade — Tipuanas.online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; } h2 { font-weight: 800; color: #0f172a; font-size: 0.95rem; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-4 py-3.5 flex items-center gap-3">
+            <a href="index.html" class="text-slate-500 text-sm font-bold">← Início</a>
+            <h1 class="font-extrabold text-base text-slate-900">Privacidade e termos</h1>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-5 w-full flex-1 space-y-4 text-sm leading-relaxed">
+
+        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+            <p class="font-bold text-emerald-900">Resumo em 30 segundos</p>
+            <ul class="mt-1 text-xs text-emerald-900 space-y-1 list-disc pl-4">
+                <li>Não pedimos cadastro para comprar: só nome, WhatsApp e endereço para entregar o pedido.</li>
+                <li>Esses dados vão para a loja que vai atender você (e para o entregador, no caso de entrega).</li>
+                <li>Não vendemos dados, não usamos cookies de propaganda nem rastreadores.</li>
+                <li>Você pode pedir para apagar seus dados a qualquer momento.</li>
+            </ul>
+        </div>
+
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+            <h2>1. Quais dados guardamos</h2>
+            <ul class="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
+                <li><b>Pedidos:</b> nome, WhatsApp, endereço de entrega, forma de pagamento, observações, itens e valores.</li>
+                <li><b>Avaliações:</b> nota e comentário que você deixar sobre um pedido entregue (aparecem na página da loja, sem seu nome).</li>
+                <li><b>Mural da Vizinhança:</b> título, descrição, preço, seu nome e WhatsApp do anúncio (públicos enquanto o anúncio estiver ativo).</li>
+                <li><b>Orçamentos:</b> nome, WhatsApp e a descrição do serviço pedido.</li>
+                <li><b>Lojistas e entregadores:</b> e-mail de acesso (login por link), dados da loja ou do cadastro de entregador.</li>
+            </ul>
+        </section>
+
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+            <h2>2. Para que usamos</h2>
+            <p class="text-xs text-slate-600">Só para fazer o pedido acontecer: a loja prepara e fala com você pelo WhatsApp, o entregador leva até o endereço e você acompanha o status. O PIN de 4 dígitos confirma a entrega e protege a busca de "Meus pedidos".</p>
+        </section>
+
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+            <h2>3. Com quem compartilhamos</h2>
+            <ul class="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
+                <li><b>A loja do pedido</b> vê seus dados do pedido. Outras lojas não veem.</li>
+                <li><b>O entregador</b> vê o endereço e o telefone apenas das entregas que aceitar.</li>
+                <li><b>Serviços que mantêm o site no ar:</b> Supabase (banco de dados) e Vercel (hospedagem). O WhatsApp é aberto no seu próprio aparelho, pela sua conta.</li>
+            </ul>
+            <p class="text-xs text-slate-600">Não vendemos nem cedemos dados para propaganda.</p>
+        </section>
+
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+            <h2>4. Por quanto tempo</h2>
+            <p class="text-xs text-slate-600">Anúncios do Mural vencem em 30 dias. Pedidos ficam guardados para o histórico da loja e do cliente e para questões fiscais, até você pedir a exclusão (quando a lei permitir apagar).</p>
+        </section>
+
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+            <h2>5. O que fica no seu aparelho</h2>
+            <p class="text-xs text-slate-600">Para facilitar, guardamos neste navegador a sua sacola, seus dados de entrega (para não digitar de novo), os pedidos e anúncios feitos daqui. Isso não sai do seu aparelho a não ser quando você faz um pedido.</p>
+            <button id="clear-device-btn" class="w-full text-xs font-bold border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 rounded-xl py-2.5">🧹 Apagar meus dados deste aparelho</button>
+            <p id="clear-device-status" class="hidden text-[11px] text-emerald-700"></p>
+        </section>
+
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+            <h2>6. Seus direitos (LGPD)</h2>
+            <p class="text-xs text-slate-600">Você pode pedir para ver, corrigir ou apagar seus dados, e saber com quem foram compartilhados. É só chamar a gente no WhatsApp informando o número usado nos pedidos:</p>
+            <a id="privacy-contact" target="_blank" rel="noopener" class="block text-center text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5">💬 Falar sobre meus dados</a>
+        </section>
+
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+            <h2>7. Termos de uso</h2>
+            <ul class="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
+                <li>O Tipuanas.online aproxima clientes e comércios da avenida. Preço, qualidade, entrega e troca são responsabilidade da loja que vende.</li>
+                <li>O pagamento é combinado direto com a loja (Pix, cartão ou dinheiro na entrega).</li>
+                <li>No Mural, não é permitido anunciar itens ilegais, perigosos ou ofensivos; anúncios assim são removidos.</li>
+                <li>Podemos atualizar esta página; a data abaixo mostra a última versão.</li>
+            </ul>
+            <p class="text-[11px] text-slate-400">Última atualização: 27/09/2026.</p>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const text = encodeURIComponent('Olá! Quero falar sobre os meus dados no Tipuanas.online (ver, corrigir ou apagar).');
+            document.getElementById('privacy-contact').href = `https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${text}`;
+
+            document.getElementById('clear-device-btn').addEventListener('click', () => {
+                if (!confirm('Apagar a sacola, seus dados de entrega e o histórico de pedidos/anúncios guardados neste aparelho? Os pedidos já feitos continuam com a loja.')) return;
+                Object.keys(localStorage).filter(k => k.startsWith('tipuanas_')).forEach(k => localStorage.removeItem(k));
+                const status = document.getElementById('clear-device-status');
+                status.textContent = 'Pronto: os dados deste aparelho foram apagados.';
+                status.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
