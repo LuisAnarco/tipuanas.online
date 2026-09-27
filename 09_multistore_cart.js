@@ -618,8 +618,9 @@ function saveCart() {
 function flashCartBar() {
     const bar = document.getElementById('cart-bar');
     if (!bar) return;
-    bar.classList.add('ring-2', 'ring-emerald-400');
-    setTimeout(() => bar.classList.remove('ring-2', 'ring-emerald-400'), 300);
+    const target = bar.querySelector('a') || bar;
+    target.classList.add('ring-4', 'ring-emerald-300', 'scale-[1.02]');
+    setTimeout(() => target.classList.remove('ring-4', 'ring-emerald-300', 'scale-[1.02]'), 300);
 }
 
 function updateCartUI() {
