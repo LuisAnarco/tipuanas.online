@@ -398,7 +398,11 @@ test('esgotado: lojista marca com um toque e a vitrine mostra "Esgotado" sem bot
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
     await page.waitForSelector('[data-toggle-stock="p2"]');
     assert.ok((await page.textContent('#stock-summary')).includes('2 disponíveis'));
-    await page.click('[data-toggle-stock="p2"]');
+    // Espera a gravação terminar antes de sair da página (senão a navegação corta a requisição)
+    await Promise.all([
+        page.waitForResponse(r => r.url().includes('/rest/v1/products') && r.request().method() === 'PATCH'),
+        page.click('[data-toggle-stock="p2"]')
+    ]);
     await page.waitForFunction(() => document.querySelector('[data-toggle-stock="p2"]').textContent.includes('Esgotado'));
     const patch = db.writes.find(w => w.table === 'products' && w.method === 'PATCH');
     assert.deepStrictEqual(patch.body, { is_paused: true });
