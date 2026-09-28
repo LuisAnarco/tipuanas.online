@@ -75,7 +75,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 
 - [x] **13. Privacidade e termos (LGPD).** _(27/09/2026, PR #18)_ Página curta explicando quais dados guardamos (nome,
   WhatsApp, endereço), para quê e como pedir exclusão; link no rodapé do checkout e do mural.
-- [ ] **14. Extrato do lojista.** No painel do lojista, resumo do mês: pedidos entregues, total
+- [x] **14. Extrato do lojista.** _(27/09/2026, PR #19)_ No painel do lojista, resumo do mês: pedidos entregues, total
   vendido, descontos de cupom, taxas de entrega e comissão da plataforma (8%), com exportação CSV.
 - [ ] **15. Avisar o cliente pelo WhatsApp.** No painel do lojista, botão em cada pedido que abre
   o WhatsApp do cliente com mensagem pronta do status (aceito, saiu para entrega, pronto para
