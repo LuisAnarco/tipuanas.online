@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
+      "WebFetch",
+      "WebSearch",
+      "mcp__Supabase",
+      "mcp__github",
+      "mcp__Vercel",
+      "mcp__Claude_Code_Remote"
+    ]
+  }
+}
