@@ -393,6 +393,33 @@ test('lojista: vincula loja sem dono e vê pedidos escapados', { loggedIn: true 
     assert.ok(!(await page.$('#reviews-list b')), 'comentário escapado');
 });
 
+test('esgotado: lojista marca com um toque e a vitrine mostra "Esgotado" sem botão', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('[data-toggle-stock="p2"]');
+    assert.ok((await page.textContent('#stock-summary')).includes('2 disponíveis'));
+    // Espera a gravação terminar antes de sair da página (senão a navegação corta a requisição)
+    await Promise.all([
+        page.waitForResponse(r => r.url().includes('/rest/v1/products') && r.request().method() === 'PATCH'),
+        page.click('[data-toggle-stock="p2"]')
+    ]);
+    await page.waitForFunction(() => document.querySelector('[data-toggle-stock="p2"]').textContent.includes('Esgotado'));
+    const patch = db.writes.find(w => w.table === 'products' && w.method === 'PATCH');
+    assert.deepStrictEqual(patch.body, { is_paused: true });
+    assert.ok(patch.url.includes('id=eq.p2'));
+
+    await page.goto(BASE + 'loja.html?slug=padaria-ouro');
+    await page.waitForSelector('[data-role="sold-out"]');
+    assert.ok(!(await page.$('[data-add-product="p2"]')), 'produto esgotado sem botão de adicionar');
+    assert.ok(await page.$('[data-add-product="p1"]'), 'os demais continuam');
+    const destaques = await page.$('#stores-container [data-section="⭐ Destaques"]');
+    assert.ok(!destaques, 'esgotado sai dos destaques');
+
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector('#stores-container a');
+    assert.ok(!(await page.$('#offers-row [data-cart-slot="p2"]')), 'esgotado fora das ofertas');
+});
+
 test('lojista: avisar o cliente pelo WhatsApp com mensagem do status e link de acompanhamento', { loggedIn: true }, async (page, db) => {
     db.stores.find(s => s.id === S1).owner_id = USER.id;
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);

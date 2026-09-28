@@ -124,6 +124,7 @@ function showMerchantPanel(store) {
     updatePauseUI(store.is_paused);
     loadReviews(store.id);
     initCoupons(store.id);
+    initStock(store.id);
     renderStoreSettings(document.getElementById('store-settings'), store, {
         onSaved: saved => {
             document.getElementById('store-title').textContent = saved.name;
@@ -526,6 +527,70 @@ async function alternarCupom(couponId, isActive) {
         return;
     }
     loadCoupons();
+}
+
+// ---------------------------------------------------------------- Disponibilidade rápida
+let stockStoreId = null;
+let stockProducts = [];
+
+function initStock(storeId) {
+    stockStoreId = storeId;
+    document.getElementById('stock-section').classList.remove('hidden');
+    const list = document.getElementById('stock-list');
+    if (!list.dataset.bound) {
+        list.dataset.bound = '1';
+        list.addEventListener('click', event => {
+            const btn = event.target.closest('[data-toggle-stock]');
+            if (btn) toggleStock(btn.dataset.toggleStock);
+        });
+        document.getElementById('stock-filter').addEventListener('input', renderStock);
+    }
+    loadStock();
+}
+
+async function loadStock() {
+    const { data, error } = await sb.from('products').select('id, name, price, is_paused').eq('store_id', stockStoreId).order('name');
+    if (error) {
+        console.error('Erro ao buscar produtos:', error);
+        document.getElementById('stock-list').innerHTML = '<p class="text-red-600">Não foi possível carregar os produtos.</p>';
+        return;
+    }
+    stockProducts = data || [];
+    renderStock();
+}
+
+function renderStock() {
+    const term = document.getElementById('stock-filter').value.trim().toLowerCase();
+    const list = document.getElementById('stock-list');
+    const soldOut = stockProducts.filter(p => p.is_paused).length;
+    document.getElementById('stock-summary').textContent = stockProducts.length
+        ? `${stockProducts.length - soldOut} disponíveis · ${soldOut} esgotado${soldOut === 1 ? '' : 's'}` : '';
+    if (!stockProducts.length) {
+        list.innerHTML = `<p class="text-gray-400">Nenhum produto cadastrado. <a class="underline" href="15_gerenciar_cardapio.html?store=${encodeURIComponent(stockStoreId)}">Cadastrar no cardápio</a></p>`;
+        return;
+    }
+    list.innerHTML = stockProducts
+        .filter(p => !term || p.name.toLowerCase().includes(term))
+        .map(p => `
+            <button data-toggle-stock="${escapeHtml(p.id)}" class="flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-left transition ${p.is_paused ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-white hover:bg-gray-50'}">
+                <span class="min-w-0 truncate ${p.is_paused ? 'text-gray-400 line-through' : 'text-gray-800 font-semibold'}">${escapeHtml(p.name)}</span>
+                <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${p.is_paused ? 'bg-red-600 text-white' : 'bg-emerald-100 text-emerald-700'}">${p.is_paused ? 'Esgotado' : 'Disponível'}</span>
+            </button>`).join('');
+}
+
+async function toggleStock(productId) {
+    const product = stockProducts.find(p => p.id === productId);
+    if (!product) return;
+    const next = !product.is_paused;
+    product.is_paused = next; // resposta imediata na tela
+    renderStock();
+    const { error } = await sb.from('products').update({ is_paused: next }).eq('id', productId);
+    if (error) {
+        product.is_paused = !next;
+        renderStock();
+        alert('Não foi possível atualizar o produto.');
+        console.error(error);
+    }
 }
 
 async function alternarCupomPublico(couponId, isPublic) {
