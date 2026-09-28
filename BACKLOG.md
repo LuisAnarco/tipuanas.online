@@ -80,7 +80,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 - [x] **15. Avisar o cliente pelo WhatsApp.** _(28/09/2026, PR #20)_ No painel do lojista, botão em cada pedido que abre
   o WhatsApp do cliente com mensagem pronta do status (aceito, saiu para entrega, pronto para
   retirar) e link do acompanhamento.
-- [ ] **16. Produto esgotado com um toque.** Atalho no painel de pedidos/cardápio para pausar e
+- [x] **16. Produto esgotado com um toque.** _(28/09/2026, PR #21)_ Atalho no painel de pedidos/cardápio para pausar e
   reativar produtos rapidamente, e a vitrine mostrando "esgotado" em vez de esconder.
 - [ ] **17. Limpeza de legado.** Levantar tabelas antigas sem uso (`express_jobs`, `ingredients`,
   `recipes`, `trechos_codigo`) e telas órfãs e remover o que não for usado (dados fictícios).

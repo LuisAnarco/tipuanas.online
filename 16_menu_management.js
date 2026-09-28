@@ -119,7 +119,7 @@ function renderProducts(products) {
                 <div>
                     <div class="flex items-center gap-2">
                         <p class="font-bold text-gray-900">${escapeHtml(p.name)}</p>
-                        ${p.is_paused ? '<span class="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">Pausado</span>' : ''}
+                        ${p.is_paused ? '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Esgotado</span>' : ''}
                         ${p.is_featured ? '<span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">⭐ Destaque</span>' : ''}
                         ${p.section ? `<span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">${escapeHtml(p.section)}</span>` : ''}
                     </div>
@@ -130,7 +130,7 @@ function renderProducts(products) {
                 <div class="flex gap-2">
                     <button onclick="iniciarEdicao('${p.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-3 py-1.5 rounded-lg">Editar</button>
                     <button onclick="alternarDisponibilidade('${p.id}', ${p.is_paused})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg">
-                        ${p.is_paused ? 'Ativar' : 'Pausar'}
+                        ${p.is_paused ? '✅ Voltou' : '🚫 Esgotou'}
                     </button>
                     <button onclick="removerProduto('${p.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold px-3 py-1.5 rounded-lg">Remover</button>
                 </div>

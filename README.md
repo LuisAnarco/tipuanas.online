@@ -16,7 +16,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
 | Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por": anúncios valem 30 dias; o autor remove o próprio anúncio pelo aparelho em que publicou |
-| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro e edição dos dados da loja, pedidos em tempo real, alerta sonoro, botão "Avisar cliente" (WhatsApp com mensagem do status e link de acompanhamento), pausa, extrato do mês (entregues, taxas, descontos, comissão, líquido, mais vendidos, CSV), avaliações, cupons |
+| Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro e edição dos dados da loja, pedidos em tempo real, alerta sonoro, botão "Avisar cliente" (WhatsApp com mensagem do status e link de acompanhamento), pausa, disponibilidade rápida (produto esgotado com um toque), extrato do mês (entregues, taxas, descontos, comissão, líquido, mais vendidos, CSV), avaliações, cupons |
 | Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos, com foto (reduzida no navegador e enviada ao Storage) |
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html?slug=` | Display com QR Code para o balcão, apontando para a página da loja |

@@ -149,7 +149,7 @@ async function loadStoresAndProducts() {
 
     const [{ data: stores, error: storeErr }, { data: products, error: prodErr }, { data: reviews }] = await Promise.all([
         sb.from('stores').select('*').eq('is_active', true).eq('is_paused', false).order('name'),
-        sb.from('products').select('*').eq('is_paused', false).order('name'),
+        sb.from('products').select('*').order('name'),
         sb.from('reviews').select('store_id, rating'),
         loadPublicCoupons()
     ]);
@@ -277,6 +277,7 @@ function cartQuantity(productId) {
 
 /** Botão "+" ou, se o produto já está na sacola, o seletor − quantidade + */
 function cartControl(product, store) {
+    if (product.is_paused) return `<span data-role="sold-out" class="text-[10px] font-bold text-white bg-slate-500 rounded-full px-2 py-1 shadow">Esgotado</span>`;
     if (!isOpen(store)) return `<span class="text-[10px] text-slate-400 bg-white/90 rounded px-1">Fechada</span>`;
     const id = escapeHtml(product.id);
     const qty = cartQuantity(product.id);
@@ -340,14 +341,14 @@ function inCategory(store) {
 
 function renderOffers() {
     const offers = allProducts
-        .filter(p => discountPercent(p) > 0 && inCategory(storeOf(p)))
+        .filter(p => !p.is_paused && discountPercent(p) > 0 && inCategory(storeOf(p)))
         .sort((a, b) => discountPercent(b) - discountPercent(a))
         .slice(0, 12);
     renderRow('offers-section', 'offers-row', offers, productCard);
 }
 
 function renderFeatured() {
-    const featured = allProducts.filter(p => p.is_featured && inCategory(storeOf(p))).slice(0, 12);
+    const featured = allProducts.filter(p => !p.is_paused && p.is_featured && inCategory(storeOf(p))).slice(0, 12);
     renderRow('featured-section', 'featured-row', featured, productCard);
 }
 
@@ -417,7 +418,7 @@ function productRow(product, { showStore = false } = {}) {
     const store = storeOf(product);
     const pct = discountPercent(product);
     return `
-        <div class="flex items-start justify-between gap-3 bg-white py-3 border-b border-slate-100 last:border-none">
+        <div class="flex items-start justify-between gap-3 bg-white py-3 border-b border-slate-100 last:border-none ${product.is_paused ? 'opacity-50' : ''}">
             <div class="min-w-0 flex-1">
                 <p class="text-sm font-semibold text-slate-800 leading-tight">${escapeHtml(product.name)}</p>
                 ${product.description ? `<p class="text-[11px] text-slate-500 mt-0.5 line-clamp-2">${escapeHtml(product.description)}</p>` : ''}
@@ -487,7 +488,7 @@ async function loadSingleStore(container) {
     document.title = `${store.name} — Tipuanas.online`;
 
     const [{ data: products }, { data: reviews }] = await Promise.all([
-        sb.from('products').select('*').eq('store_id', store.id).eq('is_paused', false).order('name'),
+        sb.from('products').select('*').eq('store_id', store.id).order('name'),
         sb.from('reviews').select('rating, comment, created_at').eq('store_id', store.id).order('created_at', { ascending: false }),
         loadPublicCoupons()
     ]);
@@ -585,7 +586,7 @@ function renderStoreMenu() {
     }
 
     const groups = [];
-    const featured = allProducts.filter(p => p.is_featured);
+    const featured = allProducts.filter(p => p.is_featured && !p.is_paused);
     if (featured.length) groups.push({ name: '⭐ Destaques', items: featured });
     const bySection = {};
     allProducts.forEach(p => {
@@ -594,7 +595,7 @@ function renderStoreMenu() {
     });
     Object.keys(bySection)
         .sort((a, b) => (a === 'Outros') - (b === 'Outros') || a.localeCompare(b))
-        .forEach(name => groups.push({ name, items: bySection[name] }));
+        .forEach(name => groups.push({ name, items: bySection[name].sort((a, b) => Boolean(a.is_paused) - Boolean(b.is_paused)) }));
 
     const status = storeOpenStatus(store.opening_hours);
     if (tabsEl) {
