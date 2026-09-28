@@ -238,7 +238,9 @@
 
             if (error) {
                 console.error('Erro ao publicar:', error);
-                errorEl.textContent = 'Não foi possível publicar agora. Tente novamente em instantes.';
+                errorEl.textContent = (error.message || '').includes('too_many_posts')
+                    ? 'Limite de 3 anúncios por dia para este WhatsApp. Tente novamente amanhã.'
+                    : 'Não foi possível publicar agora. Tente novamente em instantes.';
                 errorEl.classList.remove('hidden');
                 return;
             }

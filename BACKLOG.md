@@ -60,6 +60,28 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   mural por fora da função (removida, só aperta o acesso); índices nas chaves estrangeiras e
   `auth.uid()` avaliado uma vez por consulta. Telas conferidas: dados de usuário sempre escapados.
 
+## Análise de funcionamento (28/09/2026)
+
+Teste de ponta a ponta no site publicado (Supabase real), com `npm run e2e:producao`: vitrine,
+busca, loja, sacola com cupom, pedido, PIN, WhatsApp, acompanhamento, Meus pedidos e cancelamento
+funcionando, sem erros de console nem de servidor. Logs do Supabase sem erros 4xx/5xx.
+Corrigido nesta análise: testes do CI abriam websocket com a produção; pedidos e anúncios sem limite.
+O que ainda impede a operação real, em ordem de impacto:
+
+- [x] **19. Robustez do fluxo do cliente.** _(28/09/2026, PR #22)_ Teste E2E em produção
+  (`tests/e2e-producao.js`), limites antiabuso (5 pedidos/10 min e 3 anúncios/dia por WhatsApp)
+  e testes do CI isolados da produção.
+- [ ] **20. Lojista não perde pedido com o painel fechado.** Hoje o alerta só toca com o painel
+  aberto. Enviar notificação push (Web Push com service worker + função no Supabase) e, como reserva,
+  um lembrete visual forte e contador na aba.
+- [ ] **21. Fluxo do entregador de ponta a ponta.** Validar com dados reais: loja marca "pronto",
+  entregador vê a corrida, aceita, conclui com o PIN; tela mais clara (mapa/endereço, ganhos do dia).
+- [ ] **22. Painel do lojista mais simples no celular.** Pedidos novos no topo com botões grandes
+  (Aceitar / Pronto / Saiu / Entregue) em vez do seletor, e avisar o cliente no mesmo toque.
+- [ ] **23. Cadastro de loja guiado.** Passo a passo para o lojista novo (dados, horário, primeiros
+  produtos com foto, QR do balcão) e aprovação pelo admin antes de aparecer na vitrine.
+- [ ] **24. Fotos de demonstração.** Fotos livres (domínio público) nos produtos fictícios.
+
 ## Próximos itens (propostos na revisão geral)
 
 - [x] **12b. Vitrine estilo iFood.** Pedido do Luis ("tipo iFood, com ainda mais funções").
