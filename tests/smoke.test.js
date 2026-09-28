@@ -393,6 +393,22 @@ test('lojista: vincula loja sem dono e vê pedidos escapados', { loggedIn: true 
     assert.ok(!(await page.$('#reviews-list b')), 'comentário escapado');
 });
 
+test('lojista: avisar o cliente pelo WhatsApp com mensagem do status e link de acompanhamento', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector(`[data-notify-client="${O1}"]`);
+    let href = decodeURIComponent(await page.getAttribute(`[data-notify-client="${O1}"]`, 'href'));
+    assert.ok(href.startsWith('https://wa.me/5548999998888?text='), href);
+    assert.ok(href.includes('está sendo preparado') && href.includes(`11_order_tracking_realtime.html?id=${O1}`), 'mensagem do status + link');
+    assert.ok(!href.includes('<script>'), 'nome do cliente só pelo primeiro nome');
+
+    await page.selectOption(`[data-notify-client="${O1}"] >> xpath=ancestor::div[contains(@class,"rounded-lg")][1] >> select`, 'em_rota');
+    await page.waitForFunction(id => decodeURIComponent(document.querySelector(`[data-notify-client="${id}"]`).href).includes('saiu para entrega'), O1);
+    href = decodeURIComponent(await page.getAttribute(`[data-notify-client="${O1}"]`, 'href'));
+    assert.ok(href.includes('PIN 1234'), 'PIN na mensagem de saída para entrega');
+    assert.ok((await page.getAttribute(`[data-notify-client="${O1}"]`, 'class')).includes('animate-pulse'), 'botão em destaque depois da mudança');
+});
+
 test('lojista: extrato do mês com comissão, filtro por mês e CSV', { loggedIn: true }, async (page, db) => {
     db.stores.find(s => s.id === S1).owner_id = USER.id;
     const lastMonth = new Date(); lastMonth.setDate(1); lastMonth.setMonth(lastMonth.getMonth() - 1);
