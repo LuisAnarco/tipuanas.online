@@ -44,6 +44,11 @@ npm test          # todos os testes
 npm test -- lojista   # só os que têm "lojista" no nome
 ```
 
+Teste no **site publicado** (Supabase real): `npm run e2e:producao` faz o caminho do cliente
+(vitrine → loja → sacola com cupom → pedido → PIN → acompanhamento → Meus pedidos) numa loja de
+demonstração, **cancela o pedido no fim** e abre as outras telas públicas. `E2E_URL=<preview>` testa
+um preview da Vercel. Prints em `e2e-prints/`.
+
 `tests/smoke.test.js` abre as páginas reais num Chromium (Playwright) com o Supabase, o login e as
 CDNs simulados em `tests/harness.js` — não precisa de rede nem de banco. Roda também no GitHub
 Actions em cada PR (`.github/workflows/tests.yml`). Ao criar uma tela ou fluxo, acrescente um teste.
@@ -87,6 +92,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_fotos_de_produtos.sql` — **aplicada**. Bucket público `product-images` (até 2 MB, JPG/PNG/WEBP); só o dono da loja (ou admin) grava em `<store_id>/...`.
 - `20260926_cupons.sql` — **aplicada**. `orders.coupon_code`/`discount_amount`, `check_coupon` e `place_order(..., p_coupon)` aplicando o desconto no servidor.
 - `20260926_mural_validade_moderacao.sql` — **aplicada**. `community_posts.expires_at` (30 dias), chaves de remoção em `community_post_keys` (sem acesso pela API), `create_community_post` / `remove_community_post`.
+- `20260928_limites_antiabuso.sql` — **aplicada**. Gatilhos: no máximo 5 pedidos por WhatsApp a cada 10 min (`too_many_orders`) e 3 anúncios no mural por WhatsApp por dia (`too_many_posts`).
 - `20260927_vitrine.sql` — **aplicada**. `products.section/promo_price/is_featured`, `stores.cover_url`, `coupons.is_public`, `list_public_coupons()` e `place_order` cobrando o preço promocional.
 - `20260926_revisao_geral.sql` — **aplicada**. `get_orders_by_phone(telefone, PIN)` com limite de 10 erros/hora por número (`order_lookup_attempts`), fim do insert direto no mural, índices e políticas otimizadas.
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).

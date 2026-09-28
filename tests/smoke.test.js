@@ -256,6 +256,27 @@ test('checkout: cria pedido via place_order, WhatsApp com 55 e pula loja fechada
     assert.strictEqual(mine.length, 1, 'pedido salvo em Meus pedidos');
 });
 
+test('limites: muitos pedidos ou anúncios seguidos mostram aviso claro', {}, async (page, db) => {
+    db.tooManyOrders = true;
+    await page.goto(BASE + 'index.html');
+    await page.evaluate(s1 => localStorage.setItem('tipuanas_cart', JSON.stringify([
+        { id: 'p1', name: 'Pão', price: 1.5, storeId: s1, storeName: 'Padaria', quantity: 1 }])), S1);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Av 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('text=muitos pedidos seguidos');
+
+    db.tooManyPosts = true;
+    await page.goto(BASE + '20_mural_vizinhanca.html');
+    await page.fill('#mp-title', 'Bicicleta');
+    await page.fill('#mp-name', 'Zé');
+    await page.fill('#mp-whatsapp', '48999990000');
+    await page.click('#mp-submit');
+    await page.waitForSelector('text=Limite de 3 anúncios por dia');
+});
+
 test('acompanhamento: linha do tempo e avaliação após entrega', {}, async (page, db) => {
     db.orderStatus = 'em_preparacao';
     await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);

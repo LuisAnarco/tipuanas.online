@@ -1,10 +1,11 @@
 {
   "name": "tipuanas-online",
   "private": true,
-  "description": "Vitrine e delivery hiperlocal da Av. das Tipuanas — site estático + Supabase",
+  "description": "Vitrine e delivery hiperlocal da Av. das Tipuanas \u2014 site est\u00e1tico + Supabase",
   "scripts": {
     "start": "python3 -m http.server 8000",
-    "test": "node tests/smoke.test.js"
+    "test": "node tests/smoke.test.js",
+    "e2e:producao": "node tests/e2e-producao.js"
   },
   "devDependencies": {
     "@supabase/supabase-js": "2.117.1",

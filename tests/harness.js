@@ -77,6 +77,7 @@ function rpc(db, fn, body) {
             const store = db.stores.find(s => s.id === body.p_store_id);
             if (!store || store.id === S2) throw { status: 400, body: { code: 'P0001', message: 'store_unavailable' } };
             if (store.opening_hours && store.closedForTest) throw { status: 400, body: { code: 'P0001', message: 'store_closed' } };
+            if (db.tooManyOrders) throw { status: 400, body: { code: 'P0001', message: 'too_many_orders' } };
             const items = body.p_items.map(it => {
                 const p = db.products.find(x => x.id === it.product_id);
                 return { product_id: p.id, name: p.name, quantity: it.quantity, unit_price: p.promo_price || p.price };
@@ -119,6 +120,7 @@ function rpc(db, fn, body) {
             return { code: c.code, store_id: c.store_id, store_name: st.name, discount_type: c.discount_type, discount_value: c.discount_value, min_order_value: c.min_order_value };
         }
         case 'create_community_post': {
+            if (db.tooManyPosts) throw { status: 400, body: { code: 'P0001', message: 'too_many_posts' } };
             const id = 'm' + (db.posts.length + 1);
             db.posts.push({ id, post_type: body.p_type, title: body.p_title, description: body.p_description, price: body.p_price,
                 author_name: body.p_author_name, author_whatsapp: body.p_author_whatsapp, is_active: true,
@@ -177,7 +179,7 @@ async function openPage(browser, db, { loggedIn = false } = {}) {
     page.on('pageerror', e => errors.push('pageerror: ' + e.message));
     page.on('console', m => {
         // 400 = erro de negócio simulado de propósito (ex.: loja fechada)
-        if (m.type() === 'error' && !/WebSocket|realtime|net::ERR|status of 400|Erro ao registrar pedido/i.test(m.text())) {
+        if (m.type() === 'error' && !/WebSocket|realtime|net::ERR|status of 400|Erro ao registrar pedido|Erro ao publicar: {code: P0001/i.test(m.text())) {
             errors.push('console: ' + m.text());
         }
     });
@@ -188,6 +190,9 @@ async function openPage(browser, db, { loggedIn = false } = {}) {
             expires_at: Math.floor(Date.now() / 1000) + 3600, user: USER };
         await page.addInitScript(([k, v]) => localStorage.setItem(k, v), [SESSION_KEY, JSON.stringify(session)]);
     }
+
+    // Tempo real (websocket do Supabase): nunca sai para a produção nos testes
+    await page.routeWebSocket(/.*/, ws => ws.close());
 
     await page.route('**/*', async route => {
         const req = route.request();
