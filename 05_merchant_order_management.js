@@ -312,7 +312,11 @@ function renderOrders(orders) {
                 <p class="text-xs text-gray-600 mt-1">📍 ${order.is_takeout ? 'Retirada no local' : escapeHtml(addr.address || 'Endereço não informado')}</p>
                 ${addr.notes ? `<p class="text-xs text-gray-600 mt-0.5">📝 ${escapeHtml(addr.notes)}</p>` : ''}
                 <p class="text-xs text-gray-500 mt-0.5">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>
-                ${clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="inline-block text-[11px] text-emerald-700 hover:underline mt-1">💬 Falar com o cliente (${escapeHtml(addr.client_phone)})</a>` : ''}
+                ${clientWhatsapp ? `<div class="flex flex-wrap items-center gap-2 mt-2">
+                    <a data-notify-client="${escapeHtml(order.id)}" href="https://wa.me/${clientWhatsapp}?text=${encodeURIComponent(customerStatusMessage(order))}" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-2.5 py-1.5 ${order.id === lastStatusChange ? 'ring-4 ring-emerald-200 animate-pulse' : ''}">📲 Avisar cliente: ${STATUS_LABELS[order.status] || escapeHtml(order.status)}</a>
+                    <a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="text-[11px] text-emerald-700 hover:underline">💬 Conversar (${escapeHtml(addr.client_phone)})</a>
+                </div>` : ''}
             </div>
             <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end shrink-0">
                 <span class="font-bold text-gray-900 text-sm">${formatBRL(order.total_amount)}</span>
@@ -328,6 +332,35 @@ function renderOrders(orders) {
         </div>
     `;
     }).join('');
+}
+
+/** Pedido cujo status acabou de mudar: o botão "Avisar cliente" dele fica em destaque */
+let lastStatusChange = null;
+
+/** Link de acompanhamento do pedido (mesmo site do painel) */
+function trackingUrl(order) {
+    const base = window.location.href.replace(/[^/]*$/, '');
+    return `${base}11_order_tracking_realtime.html?id=${order.id}`;
+}
+
+/** Mensagem pronta para o cliente conforme o status do pedido */
+function customerStatusMessage(order) {
+    const addr = order.delivery_address || {};
+    const name = (addr.client_name || '').split(' ')[0];
+    const store = currentStore ? currentStore.name : 'a loja';
+    const code = `#${order.id.slice(0, 8)}`;
+    const hi = `Olá${name ? `, ${name}` : ''}! Aqui é da ${store}.`;
+    const texts = {
+        novo: `Recebemos seu pedido ${code} e já vamos confirmar. 🙌`,
+        em_preparacao: `Seu pedido ${code} foi aceito e já está sendo preparado! 👩‍🍳`,
+        pronto: order.is_takeout
+            ? `Seu pedido ${code} está pronto para retirada! 🏪 Na hora, informe o PIN ${order.delivery_pin || ''}.`
+            : `Seu pedido ${code} está pronto e aguardando o entregador. 📦`,
+        em_rota: `Seu pedido ${code} saiu para entrega! 🛵 Tenha em mãos o PIN ${order.delivery_pin || ''} para confirmar o recebimento.`,
+        entregue: `Pedido ${code} entregue. Obrigado pela preferência! ⭐ Se puder, avalie a gente pelo link abaixo.`,
+        cancelado: `Infelizmente seu pedido ${code} precisou ser cancelado. Qualquer dúvida, é só responder esta mensagem.`
+    };
+    return `${hi} ${texts[order.status] || `Seu pedido ${code} foi atualizado.`}\n\nAcompanhe aqui: ${trackingUrl(order)}`;
 }
 
 /**
@@ -347,6 +380,7 @@ async function updateOrderStatus(orderId, newStatus) {
     if (error) {
         alert('Erro ao atualizar status do pedido');
     } else {
+        lastStatusChange = orderId;
         fetchOrders();
     }
 }

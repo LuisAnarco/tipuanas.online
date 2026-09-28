@@ -77,7 +77,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   WhatsApp, endereço), para quê e como pedir exclusão; link no rodapé do checkout e do mural.
 - [x] **14. Extrato do lojista.** _(27/09/2026, PR #19)_ No painel do lojista, resumo do mês: pedidos entregues, total
   vendido, descontos de cupom, taxas de entrega e comissão da plataforma (8%), com exportação CSV.
-- [ ] **15. Avisar o cliente pelo WhatsApp.** No painel do lojista, botão em cada pedido que abre
+- [x] **15. Avisar o cliente pelo WhatsApp.** _(28/09/2026, PR #20)_ No painel do lojista, botão em cada pedido que abre
   o WhatsApp do cliente com mensagem pronta do status (aceito, saiu para entrega, pronto para
   retirar) e link do acompanhamento.
 - [ ] **16. Produto esgotado com um toque.** Atalho no painel de pedidos/cardápio para pausar e
