@@ -80,8 +80,10 @@ O que ainda impede a operação real, em ordem de impacto:
   devolver corrida (`release_ride`), PIN na tela, só quem aceitou conclui; entrega própria da loja não
   vira corrida. Mapa e WhatsApp, lista que se atualiza sozinha, loja e cliente veem o entregador.
   Próximo passo possível: push para entregadores quando surgir corrida.
-- [ ] **22. Painel do lojista mais simples no celular.** Pedidos novos no topo com botões grandes
-  (Aceitar / Pronto / Saiu / Entregue) em vez do seletor, e avisar o cliente no mesmo toque.
+- [x] **22. Painel do lojista mais simples no celular.** _(29/09/2026)_ Pedidos logo abaixo dos números
+  do dia, ativos no topo (novo primeiro) e finalizados embaixo; botão grande do próximo passo
+  (Aceitar/Recusar, Pronto, Saiu com entrega própria, Cliente retirou/Entregue), seletor completo em
+  "Mais opções"; opção de abrir o WhatsApp do cliente com o aviso no mesmo toque (lembrada no aparelho).
 - [ ] **23. Cadastro de loja guiado.** Passo a passo para o lojista novo (dados, horário, primeiros
   produtos com foto, QR do balcão) e aprovação pelo admin antes de aparecer na vitrine.
 - [ ] **24. Fotos de demonstração.** Fotos livres (domínio público) nos produtos fictícios.

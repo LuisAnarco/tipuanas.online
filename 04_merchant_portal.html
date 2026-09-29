@@ -100,7 +100,7 @@
         </section>
 
         <!-- Aba de Ações Rápidas -->
-        <div id="quick-actions" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div id="quick-actions" class="hidden grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6">
             <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                 <p class="text-xs text-gray-500">Pedidos Hoje</p>
                 <p id="total-orders-today" class="text-2xl font-bold text-gray-800">0</p>
@@ -109,7 +109,7 @@
                 <p class="text-xs text-gray-500">Faturamento Hoje</p>
                 <p id="total-revenue-today" class="text-2xl font-bold text-emerald-600">R$ 0,00</p>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between">
+            <div class="col-span-2 md:col-span-1 bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500">Pausa Rápida</p>
                     <p class="text-xs text-gray-400">Pausar novos pedidos</p>
@@ -119,6 +119,27 @@
                 </button>
             </div>
         </div>
+
+        <!-- Seção Principal: Pedidos em Tempo Real -->
+        <main id="orders-section" class="hidden bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-800">Pedidos</h2>
+                <div class="flex items-center gap-2">
+                    <button id="alerts-btn" onclick="ativarAlertas()" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-2.5 py-1 rounded-full">🔔 Ativar alertas</button>
+                    <span id="pending-badge" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 pendentes</span>
+                </div>
+            </div>
+            <p id="push-hint" class="hidden -mt-2 mb-3 text-[11px] text-gray-500"></p>
+            <label class="flex items-center gap-2 mb-3 text-xs text-gray-600">
+                <input id="notify-on-tap" type="checkbox" class="accent-emerald-600 w-4 h-4">
+                Ao tocar em Aceitar / Pronto / Saiu / Entregue, já abrir o WhatsApp do cliente com o aviso
+            </label>
+
+            <!-- Lista de Pedidos -->
+            <div id="orders-list" class="space-y-4">
+                <p class="text-sm text-gray-400 text-center py-8">Aguardando novos pedidos...</p>
+            </div>
+        </main>
 
         <!-- Dados da loja (editáveis pelo dono) -->
         <div id="store-settings"></div>
@@ -205,22 +226,6 @@
             <div id="reviews-list" class="space-y-2 text-xs text-gray-700"></div>
         </section>
 
-        <!-- Seção Principal: Pedidos em Tempo Real -->
-        <main id="orders-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-gray-800">Pedidos Recebidos</h2>
-                <div class="flex items-center gap-2">
-                    <button id="alerts-btn" onclick="ativarAlertas()" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-2.5 py-1 rounded-full">🔔 Ativar alertas</button>
-                    <span id="pending-badge" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 Pendentes</span>
-                </div>
-            </div>
-            <p id="push-hint" class="hidden -mt-2 mb-3 text-[11px] text-gray-500"></p>
-
-            <!-- Lista de Pedidos -->
-            <div id="orders-list" class="space-y-4">
-                <p class="text-sm text-gray-400 text-center py-8">Aguardando novos pedidos...</p>
-            </div>
-        </main>
     </div>
 
     <script src="06_push_notification_service.js"></script>
