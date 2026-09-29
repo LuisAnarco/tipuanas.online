@@ -718,7 +718,7 @@ function openOptionsSheet(product) {
                         ${g.options.map((o, oi) => `
                             <label class="flex items-center justify-between gap-3 py-2.5 border-b border-slate-100 last:border-none cursor-pointer">
                                 <span class="text-sm text-slate-700">${escapeHtml(o.name)}${Number(o.price) > 0 ? `<span class="block text-[11px] text-emerald-700 font-semibold">+ ${formatBRL(o.price)}</span>` : ''}</span>
-                                <input type="${Number(g.max) === 1 ? 'radio' : 'checkbox'}" name="opt-${gi}" data-opt="${gi}:${oi}" class="w-5 h-5 accent-emerald-600 shrink-0">
+                                <input type="${Number(g.max) === 1 && Number(g.min) === 1 ? 'radio' : 'checkbox'}" name="opt-${gi}" data-opt="${gi}:${oi}" class="w-5 h-5 accent-emerald-600 shrink-0">
                             </label>`).join('')}
                     </fieldset>`).join('')}
                 <label class="block pt-4">
@@ -759,8 +759,11 @@ function openOptionsSheet(product) {
         const input = event.target.closest('[data-opt]');
         if (!input) return;
         const [gi, oi] = input.dataset.opt.split(':').map(Number);
-        if (Number(product.options[gi].max) === 1) state.picked[gi] = [oi];
-        else state.picked[gi] = input.checked ? [...state.picked[gi], oi].sort((a, b) => a - b) : state.picked[gi].filter(x => x !== oi);
+        if (Number(product.options[gi].max) === 1) {
+            // Escolha única: marcar troca a opção; no grupo opcional, desmarcar deixa sem nenhuma
+            state.picked[gi] = input.checked ? [oi] : [];
+            sheet.querySelectorAll(`[data-opt^="${gi}:"]`).forEach(el => { if (el !== input) el.checked = false; });
+        } else state.picked[gi] = input.checked ? [...state.picked[gi], oi].sort((a, b) => a - b) : state.picked[gi].filter(x => x !== oi);
         update();
     });
     sheet.addEventListener('click', event => {

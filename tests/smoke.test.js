@@ -83,7 +83,8 @@ test('página da loja: capa, cupom, abas por seção, avaliações e carrinho', 
 test('opções do produto: escolhe tamanho e adicionais, sacola separa as linhas e o pedido leva as escolhas', {}, async (page, db) => {
     Object.assign(db.products.find(p => p.id === 'p1'), { price: 20, options: [
         { name: 'Tamanho <b>', min: 1, max: 1, options: [{ name: 'Pequeno', price: 0 }, { name: 'Grande', price: 6 }] },
-        { name: 'Adicionais', min: 0, max: 2, options: [{ name: 'Queijo', price: 2 }, { name: 'Bacon', price: 4 }, { name: 'Ovo', price: 1 }] }
+        { name: 'Adicionais', min: 0, max: 2, options: [{ name: 'Queijo', price: 2 }, { name: 'Bacon', price: 4 }, { name: 'Ovo', price: 1 }] },
+        { name: 'Borda', min: 0, max: 1, options: [{ name: 'Catupiry', price: 8 }, { name: 'Cheddar', price: 8 }] }
     ] });
     await page.goto(BASE + 'loja.html?slug=padaria-ouro');
     await page.waitForSelector('[data-add-product="p1"]');
@@ -96,6 +97,11 @@ test('opções do produto: escolhe tamanho e adicionais, sacola separa as linhas
     await page.check('[data-opt="1:0"]');
     await page.check('[data-opt="1:1"]');
     assert.ok(await page.$eval('[data-opt="1:2"]', i => i.disabled), 'máximo de 2 adicionais');
+    // Borda opcional de escolha única: troca e depois desmarca
+    await page.check('[data-opt="2:0"]');
+    await page.check('[data-opt="2:1"]');
+    assert.ok(!(await page.isChecked('[data-opt="2:0"]')), 'só uma borda');
+    await page.uncheck('[data-opt="2:1"]');
     await page.click('[data-sheet-qty="1"]');
     assert.ok((await page.textContent('[data-sheet-add]')).includes('R$ 64,00'), '(20+6+2+4) x 2');
     await page.fill('[data-sheet-note]', 'bem passado');
