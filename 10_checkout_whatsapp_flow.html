@@ -78,6 +78,8 @@
                 <div id="address-wrap">
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Endereço na Av. das Tipuanas / N°</label>
                     <input type="text" id="client-address" autocomplete="street-address" placeholder="Ex: Av. das Tipuanas, 150 - Apt 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                    <button type="button" id="use-location" class="mt-2 w-full text-xs font-bold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-xl py-2">📍 Usar minha localização (taxa exata)</button>
+                    <p id="location-status" class="text-[10px] text-slate-400 mt-1">A taxa de entrega depende da distância até a loja.</p>
                 </div>
 
                 <div>
@@ -137,6 +139,14 @@
             renderCheckout();
 
             document.getElementById('coupon-apply').addEventListener('click', applyCoupon);
+            document.getElementById('use-location').addEventListener('click', useMyLocation);
+            // Endereço digitado (sem GPS): procura no mapa quando o cliente sai do campo
+            document.getElementById('client-address').addEventListener('change', () => {
+                if (customerPos && customerPos.source === 'gps') return;
+                customerPos = null;
+                locateByAddress();
+            });
+            refreshQuotes();
 
             // Delegação para os botões de quantidade (evita onclick com texto do banco)
             document.getElementById('checkout-items').addEventListener('click', event => {
@@ -239,10 +249,80 @@
             renderCheckout();
         }
 
-        /** Taxa de entrega da loja guardada no item (itens antigos não têm: fica de fora da prévia) */
+        // ======================================================== TAXA POR DISTÂNCIA
+        // O banco calcula (quote_delivery / place_order): quem entrega decide a regra
+        // (loja com entrega própria ou a plataforma). Aqui é só a prévia.
+        let customerPos = (() => { const c = readJson(CLIENT_KEY, {}); return typeof c.lat === 'number' ? { lat: c.lat, lng: c.lng, source: c.posSource || 'gps' } : null; })();
+        let quotes = {};       // store_id -> { fee, distance_km, out_of_range, estimated, radius_km }
+        let storeCoords = {};  // store_id -> { lat, lng } (para buscar o endereço perto da loja)
+
+        async function refreshQuotes() {
+            const ids = [...new Set(cart.map(i => i.storeId))];
+            if (!ids.length) return;
+            const [{ data }, { data: coords }] = await Promise.all([
+                sb.rpc('quote_delivery', { p_store_ids: ids, p_lat: customerPos ? customerPos.lat : null, p_lng: customerPos ? customerPos.lng : null }),
+                sb.from('stores').select('id, lat, lng').in('id', ids)
+            ]);
+            quotes = Object.fromEntries((data || []).filter(Boolean).map(q => [q.store_id, q]));
+            (coords || []).forEach(c => { if (c.lat !== null) storeCoords[c.id] = { lat: c.lat, lng: c.lng }; });
+            renderCheckout();
+        }
+
+        function setLocationStatus(msg, ok) {
+            const el = document.getElementById('location-status');
+            el.textContent = msg;
+            el.className = `text-[10px] mt-1 ${ok ? 'text-emerald-700' : 'text-slate-400'}`;
+        }
+
+        function rememberPos() {
+            const client = readJson(CLIENT_KEY, {});
+            if (customerPos) Object.assign(client, { lat: customerPos.lat, lng: customerPos.lng, posSource: customerPos.source });
+            else { delete client.lat; delete client.lng; delete client.posSource; }
+            localStorage.setItem(CLIENT_KEY, JSON.stringify(client));
+        }
+
+        async function useMyLocation() {
+            setLocationStatus('Pegando sua localização...', false);
+            const pos = await getDevicePosition();
+            if (!pos) return setLocationStatus('Não deu para pegar a localização. Libere a permissão do navegador ou confira o endereço.', false);
+            customerPos = { ...pos, source: 'gps' };
+            rememberPos();
+            setLocationStatus('✓ Localização do aparelho usada para calcular a entrega.', true);
+            refreshQuotes();
+        }
+
+        async function locateByAddress() {
+            const address = document.getElementById('client-address').value.trim();
+            if (address.length < 5) return;
+            const near = Object.values(storeCoords)[0];
+            const pos = await geocodeAddress(address, near);
+            customerPos = pos ? { ...pos, source: 'address' } : null;
+            rememberPos();
+            setLocationStatus(pos ? '✓ Endereço encontrado no mapa. Para mais precisão, use sua localização.' : 'Não achamos o endereço no mapa: a taxa pode ser a máxima da loja. Use sua localização.', !!pos);
+            refreshQuotes();
+        }
+
+        /** Taxa de entrega prevista da loja (cotação do banco; sem ela, a guardada no item) */
         function storeFee(items) {
+            if (isTakeout()) return 0;
+            const q = quotes[items[0].storeId];
+            if (q) return Number(q.fee);
             const fee = items.find(i => typeof i.deliveryFee === 'number');
-            return fee && !isTakeout() ? fee.deliveryFee : 0;
+            return fee ? fee.deliveryFee : 0;
+        }
+
+        function feeLine(storeId, fee, items) {
+            if (isTakeout()) return '';
+            const q = quotes[storeId];
+            const km = q && q.distance_km !== null ? ` <span class="text-slate-400">(${String(q.distance_km).replace('.', ',')} km)</span>` : '';
+            if (q && q.out_of_range) {
+                return `<p data-role="out-of-range" class="text-[11px] text-red-600 font-semibold mt-1">Fora da área de entrega desta loja (até ${String(q.radius_km).replace('.', ',')} km). Escolha "Retirar na loja" ou outra loja.</p>`;
+            }
+            if (q && q.estimated) {
+                return `<div class="flex justify-between text-[11px] text-slate-500"><span>Entrega (até)</span><span>${formatBRL(fee)}</span></div><p class="text-[10px] text-amber-700">Use sua localização para calcular a taxa exata.</p>`;
+            }
+            if (fee > 0) return `<div data-role="fee-line" class="flex justify-between text-[11px] text-slate-500"><span>Entrega${km}</span><span>${formatBRL(fee)}</span></div>`;
+            return q || items.some(i => typeof i.deliveryFee === 'number') ? `<div class="flex justify-between text-[11px] text-emerald-700 font-semibold"><span>Entrega${km}</span><span>Grátis</span></div>` : '';
         }
 
         function renderCheckout() {
@@ -276,7 +356,7 @@
                 const items = groups[storeId];
                 const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
                 const fee = storeFee(items);
-                if (!isTakeout() && !items.some(i => typeof i.deliveryFee === 'number')) feeKnown = false;
+                if (!isTakeout() && !quotes[storeId] && !items.some(i => typeof i.deliveryFee === 'number')) feeKnown = false;
                 itemsTotal += subtotal;
                 discountTotal += couponPreview(storeId, subtotal);
                 feeTotal += fee;
@@ -307,8 +387,7 @@
                             <span>Subtotal</span>
                             <span>${formatBRL(subtotal)}</span>
                         </div>
-                        ${isTakeout() ? '' : fee > 0 ? `<div class="flex justify-between text-[11px] text-slate-500"><span>Entrega</span><span>${formatBRL(fee)}</span></div>`
-                            : items.some(i => typeof i.deliveryFee === 'number') ? '<div class="flex justify-between text-[11px] text-emerald-700 font-semibold"><span>Entrega</span><span>Grátis</span></div>' : ''}
+                        ${feeLine(storeId, fee, items)}
                         ${couponLine(storeId, subtotal)}
                     </div>
                 `;
@@ -358,7 +437,7 @@
             }
             showError('');
 
-            localStorage.setItem(CLIENT_KEY, JSON.stringify({ name, phone, address: address || readJson(CLIENT_KEY, {}).address || '' }));
+            localStorage.setItem(CLIENT_KEY, JSON.stringify({ ...readJson(CLIENT_KEY, {}), name, phone, address: address || readJson(CLIENT_KEY, {}).address || '' }));
 
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-60');
@@ -374,6 +453,7 @@
                 store_unavailable: 'loja fechada no momento',
                 store_closed: 'fora do horário de funcionamento',
                 items_unavailable: 'itens indisponíveis',
+                out_of_range: 'endereço fora da área de entrega da loja',
                 invalid_options: 'as opções de um produto mudaram; tire da sacola e escolha de novo',
                 invalid_customer: 'dados de entrega incompletos',
                 invalid_coupon: 'cupom inválido',
@@ -391,7 +471,7 @@
                 const { data: result, error } = await sb.rpc('place_order', {
                     p_store_id: storeId,
                     p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity, options: item.options || [], note: item.note || null })),
-                    p_customer: { name, phone, address, payment_method: payment, notes },
+                    p_customer: { name, phone, address, payment_method: payment, notes, ...(customerPos && !takeout ? { lat: customerPos.lat, lng: customerPos.lng } : {}) },
                     p_is_takeout: takeout,
                     p_coupon: appliedCoupon && appliedCoupon.store_id === storeId ? appliedCoupon.code : null
                 });

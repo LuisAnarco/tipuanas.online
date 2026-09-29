@@ -117,6 +117,23 @@
             <div id="mural-admin-list" class="space-y-2 text-xs text-slate-300"></div>
         </section>
 
+        <!-- Regra de entrega da plataforma (lojas que usam os entregadores da plataforma) -->
+        <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-3">
+            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">🛵 Entrega pela plataforma</h2>
+            <p class="text-[11px] text-slate-400">Vale para as lojas que escolheram "Entregadores da plataforma". Quem entrega por conta própria define a própria taxa e raio.</p>
+            <form id="platform-delivery-form" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-300">
+                <label>Taxa base (R$)<input name="base_fee" type="number" min="0" step="0.5" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
+                <label>Km incluídos<input name="km_included" type="number" min="0" step="0.5" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
+                <label>R$ por km a mais<input name="fee_per_km" type="number" min="0" step="0.1" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
+                <label>Raio máximo (km)<input name="radius_km" type="number" min="0.5" max="50" step="0.5" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
+                <p data-role="preview" class="col-span-2 md:col-span-4 text-[11px] text-emerald-300"></p>
+                <div class="col-span-2 md:col-span-4 flex items-center gap-3">
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-4 py-2">Salvar regra</button>
+                    <span data-role="status" class="text-[11px]"></span>
+                </div>
+            </form>
+        </section>
+
         <!-- Entregadores -->
         <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-3">
             <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Entregadores</h2>
@@ -243,6 +260,7 @@
             renderAdminOrders();
             loadCouriers(delivered);
             loadMuralAdmin();
+            loadPlatformDelivery();
         }
 
         function renderStoresTable(stores, delivered, quotes) {

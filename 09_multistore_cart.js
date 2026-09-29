@@ -15,6 +15,7 @@ const CART_KEY = 'tipuanas_cart';
 
 let cart = loadCart();
 let allStores = [];
+let platformDelivery = null; // regra de entrega da plataforma (platform_delivery)
 let allProducts = [];
 let productsById = {};
 let ratingsByStore = {};
@@ -143,6 +144,17 @@ async function loadPublicCoupons() {
 /**
  * Busca lojas ativas (não pausadas), produtos disponíveis, avaliações e cupons públicos
  */
+/** Regra de entrega das lojas que usam os entregadores da plataforma (falha = segue sem ela) */
+async function loadPlatformDelivery() {
+    try {
+        const { data } = await sb.from('platform_delivery').select('*').maybeSingle();
+        platformDelivery = data || null;
+    } catch (e) {
+        platformDelivery = null;
+    }
+    return {};
+}
+
 async function loadStoresAndProducts() {
     const container = document.getElementById('stores-container');
     if (STORE_SLUG !== null) return loadSingleStore(container);
@@ -151,7 +163,8 @@ async function loadStoresAndProducts() {
         sb.from('stores').select('*').eq('is_active', true).eq('is_paused', false).order('name'),
         sb.from('products').select('*').order('name'),
         sb.from('reviews').select('store_id, rating'),
-        loadPublicCoupons()
+        loadPublicCoupons(),
+        loadPlatformDelivery()
     ]);
 
     // Nota média por loja (se a consulta de avaliações falhar, a vitrine segue sem nota)
@@ -212,7 +225,7 @@ function renderBanners() {
             </a>`);
     });
 
-    const freeDelivery = allStores.filter(s => s.listing_type !== 'orcamento' && !(Number(s.delivery_fee) > 0));
+    const freeDelivery = allStores.filter(s => s.listing_type !== 'orcamento' && deliveryFeeLabel(s, platformDelivery) === 'Entrega grátis');
     if (freeDelivery.length) {
         banners.push(`
             <div data-banner="free" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-gradient-to-br from-emerald-600 to-teal-700 shadow-sm relative overflow-hidden">
@@ -398,9 +411,10 @@ function storeCard(store) {
     const meta = [];
     if (store.category) meta.push(escapeHtml(store.category));
     if (!quote && Number(store.avg_prep_time_minutes) > 0) meta.push(`${Number(store.avg_prep_time_minutes)} min`);
-    const fee = quote ? '' : (Number(store.delivery_fee) > 0
-        ? `<span class="text-slate-500">Entrega ${formatBRL(store.delivery_fee)}</span>`
-        : `<span class="text-emerald-600 font-bold">Entrega grátis</span>`);
+    const feeText = quote ? '' : deliveryFeeLabel(store, platformDelivery);
+    const fee = quote ? '' : feeText === 'Entrega grátis'
+        ? `<span class="text-emerald-600 font-bold">Entrega grátis</span>`
+        : `<span class="text-slate-500">${escapeHtml(feeText)}</span>`;
     const href = quote && !store.slug ? `18_solicitar_orcamento.html?store=${encodeURIComponent(store.id)}` : storeHref(store);
 
     return `
@@ -499,7 +513,8 @@ async function loadSingleStore(container) {
     const [{ data: products }, { data: reviews }] = await Promise.all([
         sb.from('products').select('*').eq('store_id', store.id).order('name'),
         sb.from('reviews').select('rating, comment, created_at').eq('store_id', store.id).order('created_at', { ascending: false }),
-        loadPublicCoupons()
+        loadPublicCoupons(),
+        loadPlatformDelivery()
     ]);
 
     allStores = [store];
@@ -550,7 +565,7 @@ function renderStoreHeader(store, reviews) {
             ${store.description ? `<p class="text-xs text-slate-600">${escapeHtml(store.description)}</p>` : ''}
             <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
                 ${hasHours ? `<span class="font-bold ${status.open ? 'text-emerald-700' : 'text-slate-500'}">${status.open ? '🟢 Aberta agora' : `🔴 Fechada · ${escapeHtml(status.label)}`}</span>` : ''}
-                ${store.listing_type !== 'orcamento' ? `<span>🛵 ${Number(store.delivery_fee) > 0 ? `Entrega ${formatBRL(store.delivery_fee)}` : 'Entrega grátis'}</span>` : ''}
+                ${store.listing_type !== 'orcamento' ? `<span>🛵 ${escapeHtml(deliveryFeeLabel(store, platformDelivery))}</span>` : ''}
                 ${Number(store.avg_prep_time_minutes) > 0 ? `<span>⏱️ ${Number(store.avg_prep_time_minutes)} min</span>` : ''}
                 ${store.address_line ? `<span>📍 ${escapeHtml(store.address_line)}</span>` : ''}
             </div>
@@ -661,7 +676,7 @@ function addLine(product, selected, note, quantity) {
             storeId: product.store_id,
             storeName: store ? store.name : 'Loja',
             storeSlug: store ? store.slug || null : null,
-            deliveryFee: store ? Number(store.delivery_fee || 0) : 0,
+            deliveryFee: store ? deliveryRules(store, platformDelivery).base : 0,
             image: product.image_url || null,
             quantity
         });

@@ -243,7 +243,7 @@ test('cupom: checkout mostra desconto e envia o código só para a loja do cupom
     await page.click('#coupon-apply');
     await page.waitForSelector('text=10% de desconto');
     assert.ok((await page.innerHTML('#checkout-items')).includes('-R$ 3,00'), 'prévia do desconto na loja do cupom');
-    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 52,00', '30 + 25 - 3');
+    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 57,00', '30 + 25 - 3 + entrega 5 da loja do cupom');
 
     await page.fill('#client-name', 'Maria');
     await page.fill('#client-phone', '48999998888');
@@ -276,6 +276,85 @@ test('cupom: lojista cria e desativa cupom', { loggedIn: true }, async (page, db
     await page.click('[data-toggle-coupon="cp1"]');
     await page.waitForTimeout(200);
     assert.strictEqual(db.writes.find(x => x.table === 'coupons' && x.method === 'PATCH' && 'is_active' in x.body).body.is_active, false);
+});
+
+test('entrega por km: localização do aparelho calcula a taxa, fora do raio avisa e o pedido leva o ponto', {}, async (page, db) => {
+    // Loja com entrega própria: R$ 5 até 2 km, R$ 1,50 por km a mais, até 6 km
+    Object.assign(db.stores.find(s => s.id === S1), { delivery_type: 'propria', lat: -27.6, lng: -48.5, delivery_fee: 5, delivery_km_included: 2, delivery_fee_per_km: 1.5, delivery_radius_km: 6 });
+    await page.addInitScript(() => {
+        // ~4 km da loja; o teste troca a posição por localStorage('__pos')
+        const pos = () => JSON.parse(localStorage.getItem('__pos') || '{"latitude":-27.564,"longitude":-48.5}');
+        Object.defineProperty(navigator, 'geolocation', { value: { getCurrentPosition: ok => ok({ coords: pos() }) } });
+    });
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector('#stores-container a');
+    assert.ok((await page.textContent('#stores-container')).includes('Entrega a partir de R$ 5,00 · até 6 km'), 'cartão com a regra por km');
+    await page.evaluate(s1 => localStorage.setItem('tipuanas_cart', JSON.stringify([{ id: 'p2', name: 'Sonho', price: 6, storeId: s1, storeName: 'Padaria', quantity: 2 }])), S1);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForFunction(() => document.getElementById('checkout-items').textContent.includes('Use sua localização'));
+    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 23,00', 'sem localização: 12 + taxa máxima (5 + 1,5 x 4 = 11)');
+
+    await page.click('#use-location');
+    await page.waitForSelector('[data-role="fee-line"]');
+    assert.ok((await page.textContent('[data-role="fee-line"]')).includes('4 km'), await page.textContent('[data-role="fee-line"]'));
+    assert.strictEqual(await page.textContent('#checkout-total-price'), 'R$ 20,00', '12 + (5 + 1,5 x 2)');
+
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Rua 4');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#confirmation-view:not(.hidden)');
+    const call = db.calls.find(c => c.fn === 'place_order');
+    assert.deepStrictEqual([call.body.p_customer.lat, call.body.p_customer.lng], [-27.564, -48.5], 'ponto vai para o banco');
+
+    // Longe (8 km): aviso de fora da área
+    await page.evaluate(s1 => {
+        localStorage.setItem('__pos', JSON.stringify({ latitude: -27.528, longitude: -48.5 }));
+        localStorage.setItem('tipuanas_cart', JSON.stringify([{ id: 'p2', name: 'Sonho', price: 6, storeId: s1, storeName: 'Padaria', quantity: 1 }]));
+    }, S1);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.click('#use-location');
+    await page.waitForSelector('[data-role="out-of-range"]');
+});
+
+test('entrega: loja escolhe entregar por conta própria com taxa por km; admin define a regra da plataforma', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#store-settings summary');
+    await page.click('#store-settings summary');
+    await page.waitForFunction(() => document.querySelector('[data-role="platform-rules"]').textContent.includes('4 km = R$ 9,00'));
+    await page.check('[name="delivery_type"][value="propria"]');
+    await page.check('[data-role="per-km"]');
+    await page.fill('[name="delivery_fee"]', '4');
+    await page.fill('[name="delivery_km_included"]', '1');
+    await page.fill('[name="delivery_fee_per_km"]', '2');
+    await page.fill('[name="delivery_radius_km"]', '3');
+    assert.ok((await page.textContent('[data-role="fee-preview"]')).includes('3 km = R$ 8,00'), '4 + 2 x 2');
+    await page.click('#store-settings button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('#store-settings [data-role="status"]').textContent.includes('localização'));
+    assert.ok(!db.writes.some(w => w.table === 'stores' && w.method === 'PATCH'), 'sem localização não salva taxa por km');
+    await page.fill('[name="lat"]', '-27,6');
+    await page.fill('[name="lng"]', '-48.5');
+    await page.click('#store-settings button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('#store-settings [data-role="status"]').textContent.includes('salvos'));
+    const w = db.writes.find(x => x.table === 'stores' && x.method === 'PATCH');
+    assert.deepStrictEqual([w.body.delivery_type, w.body.lat, w.body.lng, w.body.delivery_fee, w.body.delivery_fee_per_km, w.body.delivery_radius_km], ['propria', -27.6, -48.5, 4, 2, 3]);
+
+    // Loja com entrega própria: pedido em preparo mostra "Saiu para entrega"
+    await page.waitForSelector(`[data-order-action="${O1}"][data-status="em_rota"]`);
+    assert.ok((await page.textContent(`[data-order-action="${O1}"][data-status="em_rota"]`)).includes('Saiu para entrega'));
+
+    // Admin: regra da plataforma
+    db.admin = true;
+    await page.goto(BASE + '14_admin_analytics_dashboard.html');
+    await page.waitForFunction(() => document.querySelector('#platform-delivery-form [name="base_fee"]').value === '6');
+    await page.fill('#platform-delivery-form [name="base_fee"]', '7');
+    await page.fill('#platform-delivery-form [name="radius_km"]', '4');
+    assert.ok((await page.textContent('#platform-delivery-form [data-role="preview"]')).includes('3 km = R$ 8,50'), '7 + 1,5 x 1');
+    await page.click('#platform-delivery-form button[type="submit"]');
+    await page.waitForSelector('#platform-delivery-form [data-role="status"]:text("Regra salva")');
+    const pw = db.writes.find(x => x.table === 'platform_delivery');
+    assert.deepStrictEqual([pw.body.base_fee, pw.body.km_included, pw.body.fee_per_km, pw.body.radius_km], [7, 2, 1.5, 4]);
 });
 
 test('checkout: cria pedido via place_order, WhatsApp com 55 e pula loja fechada', {}, async (page, db) => {

@@ -232,7 +232,7 @@
                     <span class="shrink-0 bg-emerald-100 text-emerald-800 text-sm font-extrabold px-2.5 py-1 rounded-lg">${feeLabel(r.delivery_fee)}</span>
                 </div>
                 <p class="text-xs text-gray-600">📍 Retirar: ${escapeHtml(r.store_address || 'endereço não informado')}</p>
-                <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(r.delivery_address || 'endereço não informado')}</p>
+                <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(r.delivery_address || 'endereço não informado')}${r.distance_km != null ? ` <b data-role="ride-distance">· ${escapeHtml(String(r.distance_km).replace('.', ','))} km da loja</b>` : ''}</p>
                 <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(r.total_amount)} (${escapeHtml(r.payment_method || '—')})</p>
                 <button data-accept="${escapeHtml(r.id)}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm py-3 rounded-xl">Aceitar corrida</button>
             </div>
@@ -265,7 +265,7 @@
                     <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</p>
                     ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
                     <div class="grid grid-cols-3 gap-2 text-xs font-bold text-center">
-                        ${addr.address ? `<a href="${mapsLink(addr.address)}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🗺️ Mapa</a>` : '<span></span>'}
+                        ${addr.address || addr.lat != null ? `<a href="${mapsLink(addr.lat != null ? `${addr.lat},${addr.lng}` : addr.address)}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🗺️ Mapa</a>` : '<span></span>'}
                         ${clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">💬 Cliente</a>` : '<span></span>'}
                         ${storeWhatsapp ? `<a href="https://wa.me/${storeWhatsapp}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🏪 Loja</a>` : '<span></span>'}
                     </div>
