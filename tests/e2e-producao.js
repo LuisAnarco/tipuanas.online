@@ -121,7 +121,8 @@ fs.mkdirSync(OUT, { recursive: true });
     ['10-privacidade', 'privacidade.html', '#privacy-contact'], ['11-lojista-login', '04_merchant_portal.html', 'input[type=email]'],
     ['12-entregador', 'entregador.html', 'input[type=email]'], ['13-admin', '14_admin_analytics_dashboard.html', 'input[type=email]'],
     ['14-404', 'nao-existe-xyz', 'body']]) {
-    await step(name, async () => { await page.goto(BASE + path, { waitUntil: 'networkidle' }); await page.waitForSelector(sel, { timeout: 15000 }); });
+    // Telas só abertas: espera o elemento, não a rede ociosa (o proxy da nuvem às vezes atrasa CDNs)
+    await step(name, async () => { await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 45000 }); await page.waitForSelector(sel, { timeout: 30000 }); });
   }
   // Aviso esperado atrás de proxy: o service worker não passa pelo route do Playwright
   const problems = log.filter(l => !/unknown error occurred when fetching the script|14-404\]/.test(l) && !/dialog: Cancelar/.test(l));
