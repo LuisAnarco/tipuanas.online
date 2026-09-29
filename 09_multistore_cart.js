@@ -270,9 +270,18 @@ function productPriceHtml(product, size = 'text-xs') {
         : `<span class="${size} font-extrabold text-slate-800">${formatBRL(product.price)}</span>`;
 }
 
+/** Quantidade do produto na sacola (somando as linhas com opções diferentes) */
 function cartQuantity(productId) {
-    const item = cart.find(i => i.id === productId);
-    return item ? item.quantity : 0;
+    return cart.filter(i => i.id === productId).reduce((acc, i) => acc + i.quantity, 0);
+}
+
+/** Linha da sacola: produto + opções + observação (a mesma pizza com bordas diferentes são linhas diferentes) */
+function lineKey(item) {
+    return item.key || item.id;
+}
+
+function hasOptions(product) {
+    return Array.isArray(product.options) && product.options.length > 0;
 }
 
 /** Botão "+" ou, se o produto já está na sacola, o seletor − quantidade + */
@@ -623,37 +632,167 @@ function renderStoreMenu() {
 function addToCart(productId) {
     const product = productsById[productId];
     if (!product) return;
-    const store = allStores.find(s => s.id === product.store_id);
+    // Produto com tamanho/sabores/adicionais: escolhe antes de pôr na sacola
+    if (hasOptions(product)) {
+        openOptionsSheet(product);
+        return;
+    }
+    addLine(product, [], '', 1);
+}
 
-    const existing = cart.find(item => item.id === productId);
+/** Põe na sacola uma linha (produto + opções escolhidas + observação) */
+function addLine(product, selected, note, quantity) {
+    const store = allStores.find(s => s.id === product.store_id);
+    const extras = selected.reduce((acc, [g, o]) => acc + Number(product.options[g].options[o].price || 0), 0);
+    const key = selected.length || note ? `${product.id}|${JSON.stringify(selected)}|${note}` : product.id;
+    const existing = cart.find(item => lineKey(item) === key);
     if (existing) {
-        existing.quantity += 1;
-        existing.price = effectivePrice(product);
+        existing.quantity += quantity;
+        existing.price = effectivePrice(product) + extras;
     } else {
         cart.push({
+            key,
             id: product.id,
             name: product.name,
-            price: effectivePrice(product),
+            price: effectivePrice(product) + extras,
+            options: selected,
+            optionsLabel: selected.map(([g, o]) => product.options[g].options[o].name).join(', '),
+            note: note || '',
             storeId: product.store_id,
             storeName: store ? store.name : 'Loja',
             storeSlug: store ? store.slug || null : null,
             deliveryFee: store ? Number(store.delivery_fee || 0) : 0,
             image: product.image_url || null,
-            quantity: 1
+            quantity
         });
     }
     saveCart();
-    refreshCartSlots(productId);
+    refreshCartSlots(product.id);
     flashCartBar();
 }
 
 function removeFromCart(productId) {
-    const item = cart.find(i => i.id === productId);
+    // Tira uma unidade da última linha desse produto
+    const lines = cart.filter(i => i.id === productId);
+    const item = lines[lines.length - 1];
     if (!item) return;
     item.quantity -= 1;
-    if (item.quantity <= 0) cart = cart.filter(i => i.id !== productId);
+    if (item.quantity <= 0) cart = cart.filter(i => i !== item);
     saveCart();
     refreshCartSlots(productId);
+}
+
+// ============================================================== OPÇÕES DO PRODUTO
+
+/**
+ * Painel do produto (estilo iFood): grupos de escolha com mínimo/máximo, observação,
+ * quantidade e total. O preço final é recalculado no banco (place_order).
+ */
+function openOptionsSheet(product) {
+    closeOptionsSheet();
+    const state = { product, picked: product.options.map(() => []), qty: 1 };
+    const sheet = document.createElement('div');
+    sheet.id = 'options-sheet';
+    sheet.className = 'fixed inset-0 z-50 flex items-end justify-center bg-black/40';
+    sheet.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl max-h-[90vh] flex flex-col" role="dialog" aria-modal="true" aria-label="${escapeHtml(product.name)}">
+            <div class="p-4 border-b border-slate-100 flex gap-3 items-start">
+                ${product.image_url ? `<img src="${escapeHtml(product.image_url)}" alt="" class="w-16 h-16 rounded-xl object-cover bg-slate-100 shrink-0">` : ''}
+                <div class="min-w-0 flex-1">
+                    <p class="font-extrabold text-slate-900 leading-tight">${escapeHtml(product.name)}</p>
+                    ${product.description ? `<p class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(product.description)}</p>` : ''}
+                    <p class="text-sm font-bold text-slate-800 mt-1">${formatBRL(effectivePrice(product))}</p>
+                </div>
+                <button data-sheet-close class="text-slate-400 text-2xl leading-none px-1" aria-label="Fechar">×</button>
+            </div>
+            <div class="overflow-y-auto flex-1 px-4 pb-4">
+                ${product.options.map((g, gi) => `
+                    <fieldset class="pt-4" data-group="${gi}">
+                        <div class="flex items-center justify-between bg-slate-50 -mx-4 px-4 py-2">
+                            <div>
+                                <legend class="text-sm font-extrabold text-slate-800">${escapeHtml(g.name)}</legend>
+                                <p class="text-[11px] text-slate-500" data-group-hint="${gi}">${groupHint(g)}</p>
+                            </div>
+                            ${Number(g.min) > 0 ? '<span class="text-[10px] font-bold text-white bg-slate-700 rounded px-1.5 py-0.5">OBRIGATÓRIO</span>' : ''}
+                        </div>
+                        ${g.options.map((o, oi) => `
+                            <label class="flex items-center justify-between gap-3 py-2.5 border-b border-slate-100 last:border-none cursor-pointer">
+                                <span class="text-sm text-slate-700">${escapeHtml(o.name)}${Number(o.price) > 0 ? `<span class="block text-[11px] text-emerald-700 font-semibold">+ ${formatBRL(o.price)}</span>` : ''}</span>
+                                <input type="${Number(g.max) === 1 ? 'radio' : 'checkbox'}" name="opt-${gi}" data-opt="${gi}:${oi}" class="w-5 h-5 accent-emerald-600 shrink-0">
+                            </label>`).join('')}
+                    </fieldset>`).join('')}
+                <label class="block pt-4">
+                    <span class="text-sm font-extrabold text-slate-800">Alguma observação?</span>
+                    <textarea data-sheet-note maxlength="140" rows="2" placeholder="Ex: tirar a cebola, maionese à parte" class="mt-1 w-full text-sm p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
+                </label>
+            </div>
+            <div class="p-4 border-t border-slate-100 flex items-center gap-3">
+                <div class="flex items-center border border-slate-200 rounded-full shrink-0">
+                    <button data-sheet-qty="-1" class="w-9 h-9 font-bold text-emerald-700 text-lg" aria-label="Diminuir">−</button>
+                    <span data-sheet-qty-value class="px-1 font-extrabold text-slate-800">1</span>
+                    <button data-sheet-qty="1" class="w-9 h-9 font-bold text-emerald-700 text-lg" aria-label="Aumentar">+</button>
+                </div>
+                <button data-sheet-add class="flex-1 bg-emerald-600 disabled:bg-slate-300 text-white font-bold rounded-xl py-3 text-sm">Adicionar</button>
+            </div>
+        </div>`;
+    document.body.appendChild(sheet);
+    document.body.classList.add('overflow-hidden');
+
+    const update = () => {
+        const selected = state.picked.flatMap((list, gi) => list.map(oi => [gi, oi]));
+        const extras = selected.reduce((acc, [g, o]) => acc + Number(product.options[g].options[o].price || 0), 0);
+        const missing = product.options.some((g, gi) => state.picked[gi].length < Number(g.min));
+        const btn = sheet.querySelector('[data-sheet-add]');
+        btn.disabled = missing;
+        btn.textContent = missing ? 'Escolha as opções obrigatórias' : `Adicionar • ${formatBRL((effectivePrice(product) + extras) * state.qty)}`;
+        sheet.querySelector('[data-sheet-qty-value]').textContent = state.qty;
+        // Grupo cheio: trava as outras caixas
+        product.options.forEach((g, gi) => {
+            if (Number(g.max) === 1) return;
+            const full = state.picked[gi].length >= Number(g.max);
+            sheet.querySelectorAll(`[data-opt^="${gi}:"]`).forEach(input => { input.disabled = full && !input.checked; });
+        });
+        return selected;
+    };
+
+    sheet.addEventListener('change', event => {
+        const input = event.target.closest('[data-opt]');
+        if (!input) return;
+        const [gi, oi] = input.dataset.opt.split(':').map(Number);
+        if (Number(product.options[gi].max) === 1) state.picked[gi] = [oi];
+        else state.picked[gi] = input.checked ? [...state.picked[gi], oi].sort((a, b) => a - b) : state.picked[gi].filter(x => x !== oi);
+        update();
+    });
+    sheet.addEventListener('click', event => {
+        if (event.target === sheet || event.target.closest('[data-sheet-close]')) return closeOptionsSheet();
+        const qtyBtn = event.target.closest('[data-sheet-qty]');
+        if (qtyBtn) {
+            state.qty = Math.min(99, Math.max(1, state.qty + Number(qtyBtn.dataset.sheetQty)));
+            update();
+            return;
+        }
+        if (event.target.closest('[data-sheet-add]')) {
+            const selected = update();
+            if (product.options.some((g, gi) => state.picked[gi].length < Number(g.min))) return;
+            const note = sheet.querySelector('[data-sheet-note]').value.trim().slice(0, 140);
+            closeOptionsSheet();
+            addLine(product, selected, note, state.qty);
+        }
+    });
+    update();
+}
+
+function groupHint(g) {
+    const min = Number(g.min), max = Number(g.max);
+    if (max === 1) return min ? 'Escolha 1 opção' : 'Escolha até 1 opção';
+    if (min === max) return `Escolha ${min} opções`;
+    return min ? `Escolha de ${min} a ${max} opções` : `Escolha até ${max} opções`;
+}
+
+function closeOptionsSheet() {
+    const sheet = document.getElementById('options-sheet');
+    if (sheet) sheet.remove();
+    document.body.classList.remove('overflow-hidden');
 }
 
 function saveCart() {

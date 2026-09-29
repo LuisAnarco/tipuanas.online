@@ -254,7 +254,7 @@
             document.getElementById('order-code').textContent = `Pedido #${order.id.slice(0, 8)}`;
             document.getElementById('order-items').innerHTML = items.map(it => `
                 <div class="flex justify-between">
-                    <span>${it.quantity}x ${escapeHtml(it.products ? it.products.name : 'Item')}</span>
+                    <span>${it.quantity}x ${escapeHtml(it.products ? it.products.name : 'Item')}${(it.options || []).length ? `<span class="block text-[11px] text-slate-400">${escapeHtml(it.options.map(o => o.name).join(', '))}</span>` : ''}${it.note ? `<span class="block text-[11px] text-slate-400 italic">${escapeHtml(it.note)}</span>` : ''}</span>
                     <span class="text-slate-500">${formatBRL(it.unit_price * it.quantity)}</span>
                 </div>
             `).join('') + (Number(order.delivery_fee) > 0 ? `

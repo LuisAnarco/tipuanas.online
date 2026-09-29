@@ -55,8 +55,19 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.goto(BASE + 'loja.html?slug=pizzaria-forno-da-tipuanas', { waitUntil: 'networkidle' });
     await page.waitForSelector('[data-add-product]', { timeout: 15000 });
     const first = await page.$eval('[data-add-product]', e => e.dataset.addProduct);
-    await page.click(`[data-add-product="${first}"]`);
-    await page.click(`[data-add-product="${first}"]`);
+    // Produto com opções: marca a primeira opção dos grupos obrigatórios e adiciona
+    const addOne = async () => {
+      await page.click(`[data-add-product="${first}"]`);
+      if (await page.waitForSelector('#options-sheet', { timeout: 1500 }).catch(() => null)) {
+        await page.$$eval('#options-sheet fieldset', sets => sets.forEach(fs => {
+          if (fs.querySelector('.bg-slate-700')) fs.querySelector('[data-opt]').click();
+        }));
+        console.log('     opções:', await page.textContent('[data-sheet-add]'));
+        await page.click('[data-sheet-add]');
+      }
+    };
+    await addOne();
+    await addOne();
     console.log('     sacola:', await page.textContent('#cart-item-count'), await page.textContent('#cart-total-price'));
   });
   await step('04-sacola', async () => {

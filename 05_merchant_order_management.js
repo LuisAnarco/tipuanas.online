@@ -348,7 +348,7 @@ async function fetchOrders() {
 
     const { data: orders, error } = await sb
         .from('orders')
-        .select('*, order_items(quantity, unit_price, products(name))')
+        .select('*, order_items(quantity, unit_price, options, note, products(name))')
         .eq('store_id', currentStore.id)
         .order('created_at', { ascending: false });
 
@@ -444,10 +444,18 @@ function renderOrders(orders) {
     ].join('');
 }
 
+/** Opções e observação do item, para a loja preparar certo: " (500ml, Granola — obs: sem açúcar)" */
+function itemExtras(it) {
+    const opts = (it.options || []).map(o => o.name).join(', ');
+    const note = it.note ? `obs: ${it.note}` : '';
+    const parts = [opts, note].filter(Boolean).join(' — ');
+    return parts ? ` (${parts})` : '';
+}
+
 function orderCard(order) {
     const addr = order.delivery_address || {};
     const itemsList = (order.order_items || [])
-        .map(it => `${it.quantity}x ${it.products ? it.products.name : 'Item'}`)
+        .map(it => `${it.quantity}x ${it.products ? it.products.name : 'Item'}${itemExtras(it)}`)
         .join(', ');
     const clientWhatsapp = toWhatsappNumber(addr.client_phone);
     const isNew = order.status === 'novo';
