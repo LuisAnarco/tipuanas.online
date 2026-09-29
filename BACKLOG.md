@@ -138,7 +138,7 @@ navegador) e testes no `npm test`.
     validado por `product_options_valid`), `place_order` confere as escolhas e soma os extras
     (`order_items.options`/`note`), painel do produto na vitrine com observação e quantidade, sacola com
     linhas por escolha, loja e acompanhamento mostram as opções. Demonstração: pizzas, açaís e lanches.
-  - [x] **25b. Lojista monta as opções no cardápio.** _(29/09/2026)_ Botão "⚙️ Opções" em cada produto
+  - [x] **25b. Lojista monta as opções no cardápio.** _(29/09/2026, PR #31)_ Botão "⚙️ Opções" em cada produto
     abre o editor: grupos com mínimo/máximo, opções com preço, modelos prontos (Tamanho, Adicionais,
     Retirar ingrediente, Ponto da carne), reordenar, copiar de outro produto e validação igual à do banco.
 - [ ] **26. Pagamento claro no checkout.** "Troco para quanto?" quando for dinheiro (vai para a loja e
