@@ -571,6 +571,24 @@ test('lojista: loja de outra conta é recusada e cadastro cria loja com dono', {
     await page.waitForSelector('#orders-section:not(.hidden)');
     const w = db.writes.find(x => x.table === 'stores' && x.method === 'POST');
     assert.strictEqual(w.body[0].owner_id, USER.id);
+    assert.ok(!('is_active' in w.body[0]), 'ativação fica com o banco (loja nasce pendente)');
+});
+
+test('lojista: loja pendente vê "em análise", pede aprovação e segue os primeiros passos', { loggedIn: true }, async (page, db) => {
+    Object.assign(db.stores.find(s => s.id === S1), { owner_id: USER.id, approval_status: 'pendente', is_active: false, opening_hours: { seg: '08:00-18:00' } });
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#onboarding-section:not(.hidden)');
+    const text = await page.textContent('#onboarding-section');
+    assert.ok(text.includes('em análise') && text.includes('2 de 6') && text.includes('2 cadastrados'), text);
+    const href = decodeURIComponent(await page.getAttribute('[data-ask-approval]', 'href'));
+    assert.ok(href.startsWith('https://wa.me/5547999706651?text=') && href.includes('Padaria'), href);
+    assert.strictEqual(await page.$$eval('#onboarding-section [data-step-done="false"]', els => els.length), 4, 'logo, 3 produtos, foto e QR pendentes');
+    assert.ok(!(await page.$('[data-hide-onboarding]')), 'não dá para fechar antes da aprovação');
+
+    // QR: marcar como feito ao abrir
+    const [popup] = await Promise.all([page.waitForEvent('popup'), page.click('[data-qr-step]')]);
+    await popup.close();
+    await page.waitForFunction(() => document.querySelector('#onboarding-section').textContent.includes('3 de 6'));
 });
 
 test('lojista: edita os dados da loja', { loggedIn: true }, async (page, db) => {
@@ -716,6 +734,20 @@ test('admin: admin vê métricas (comissão só sobre entregues)', { loggedIn: t
     await page.goto(BASE + '14_admin_analytics_dashboard.html');
     await page.waitForSelector('[data-toggle-store]');
     assert.strictEqual(await page.textContent('#total-gmv'), 'R$ 30,00');
+});
+
+test('admin: loja pendente aparece primeiro e é aprovada com um toque', { loggedIn: true }, async (page, db) => {
+    db.admin = true;
+    Object.assign(db.stores.find(s => s.id === S2), { approval_status: 'pendente', is_active: false });
+    await page.goto(BASE + '14_admin_analytics_dashboard.html');
+    await page.waitForSelector(`[data-approve-store="${S2}"]`);
+    assert.ok((await page.textContent('#pending-stores-alert')).includes('1 loja aguardando aprovação'));
+    const first = await page.$eval('#stores-admin-table tr', tr => tr.textContent);
+    assert.ok(first.includes('Aguardando aprovação'), 'pendente na primeira linha');
+    await page.click(`[data-approve-store="${S2}"]`);
+    await page.waitForFunction(() => document.getElementById('pending-stores-alert').classList.contains('hidden'));
+    const w = db.writes.find(x => x.table === 'stores' && x.method === 'PATCH');
+    assert.deepStrictEqual(w.body, { approval_status: 'aprovada', is_active: true });
 });
 
 test('admin: edita loja, define dono, cancela pedido e desativa entregador', { loggedIn: true }, async (page, db) => {

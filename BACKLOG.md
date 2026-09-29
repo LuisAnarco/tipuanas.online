@@ -84,8 +84,10 @@ O que ainda impede a operação real, em ordem de impacto:
   do dia, ativos no topo (novo primeiro) e finalizados embaixo; botão grande do próximo passo
   (Aceitar/Recusar, Pronto, Saiu com entrega própria, Cliente retirou/Entregue), seletor completo em
   "Mais opções"; opção de abrir o WhatsApp do cliente com o aviso no mesmo toque (lembrada no aparelho).
-- [ ] **23. Cadastro de loja guiado.** Passo a passo para o lojista novo (dados, horário, primeiros
-  produtos com foto, QR do balcão) e aprovação pelo admin antes de aparecer na vitrine.
+- [x] **23. Cadastro de loja guiado.** _(29/09/2026)_ Loja criada por lojista nasce pendente e
+  desativada (gatilho no banco; o dono não consegue se aprovar), fora da vitrine e sem pedidos.
+  Painel mostra "Primeiros passos" (logo, horário, 3 produtos, foto, QR) e o botão de pedir aprovação
+  pelo WhatsApp; admin vê as pendentes no topo com Aprovar/Recusar.
 - [ ] **24. Fotos de demonstração.** Fotos livres (domínio público) nos produtos fictícios.
 
 ## Próximos itens (propostos na revisão geral)

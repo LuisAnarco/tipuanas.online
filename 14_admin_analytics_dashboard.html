@@ -70,6 +70,7 @@
                 <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Desempenho por Estabelecimento</h2>
                 <span id="total-stores-count" class="text-[11px] text-slate-400"></span>
             </div>
+            <p id="pending-stores-alert" class="hidden text-xs font-bold text-amber-200 bg-amber-500/15 border border-amber-500/30 rounded-lg px-3 py-2"></p>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs text-slate-300">
@@ -149,6 +150,10 @@
             document.getElementById('stores-admin-table').addEventListener('click', event => {
                 const btn = event.target.closest('[data-toggle-store]');
                 if (btn) toggleStoreActive(btn.dataset.toggleStore);
+                const approve = event.target.closest('[data-approve-store]');
+                if (approve) setStoreApproval(approve.dataset.approveStore, true);
+                const reject = event.target.closest('[data-reject-store]');
+                if (reject) setStoreApproval(reject.dataset.rejectStore, false);
                 const edit = event.target.closest('[data-edit-store]');
                 if (edit) openStoreEditor(edit.dataset.editStore);
             });
@@ -241,18 +246,29 @@
         }
 
         function renderStoresTable(stores, delivered, quotes) {
+            // Pendentes de aprovação primeiro
+            const pendingCount = stores.filter(s => s.approval_status === 'pendente').length;
+            const alertEl = document.getElementById('pending-stores-alert');
+            alertEl.textContent = pendingCount ? `⏳ ${pendingCount} loja${pendingCount === 1 ? '' : 's'} aguardando aprovação` : '';
+            alertEl.classList.toggle('hidden', !pendingCount);
+            stores = [...stores].sort((a, b) => (b.approval_status === 'pendente') - (a.approval_status === 'pendente'));
             document.getElementById('stores-admin-table').innerHTML = stores.map(store => {
                 const storeOrders = delivered.filter(o => o.store_id === store.id);
                 const storeGmv = storeOrders.reduce((acc, o) => acc + Number(o.total_amount), 0);
                 const storeQuoteCommission = quotes.filter(q => q.store_id === store.id).reduce((acc, q) => acc + Number(q.platform_commission || 0), 0);
                 const commission = storeGmv * PLATFORM_COMMISSION_RATE + storeQuoteCommission;
 
-                const situation = !store.is_active
+                const pending = store.approval_status === 'pendente';
+                const situation = pending
+                    ? '<span class="text-amber-300 font-bold">Aguardando aprovação</span>'
+                    : store.approval_status === 'recusada'
+                    ? '<span class="text-red-400 font-bold">Recusada</span>'
+                    : !store.is_active
                     ? '<span class="text-red-400 font-bold">Desativada</span>'
                     : store.is_paused ? '<span class="text-amber-400 font-bold">Pausada</span>' : '<span class="text-emerald-400 font-bold">Ativa</span>';
 
                 return `
-                    <tr class="hover:bg-slate-700/30 ${store.is_active ? '' : 'opacity-60'}">
+                    <tr class="hover:bg-slate-700/30 ${store.is_active || pending ? '' : 'opacity-60'} ${pending ? 'bg-amber-500/10' : ''}">
                         <td class="p-3">
                             <p class="font-bold text-white">${escapeHtml(store.name)}</p>
                             <p class="text-[10px] text-slate-500">${escapeHtml(store.category || '—')}${store.whatsapp_number ? '' : ' • <span class="text-amber-400">sem WhatsApp</span>'}</p>
@@ -264,7 +280,10 @@
                         <td class="p-3">
                             <div class="flex items-center gap-2">
                                 ${situation}
-                                <button data-toggle-store="${escapeHtml(store.id)}" class="text-[10px] border border-slate-600 hover:bg-slate-700 rounded px-2 py-0.5">${store.is_active ? 'Desativar' : 'Ativar'}</button>
+                                ${pending
+                                    ? `<button data-approve-store="${escapeHtml(store.id)}" class="text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded px-2 py-0.5">Aprovar</button>
+                                       <button data-reject-store="${escapeHtml(store.id)}" class="text-[10px] border border-red-500 text-red-300 rounded px-2 py-0.5">Recusar</button>`
+                                    : `<button data-toggle-store="${escapeHtml(store.id)}" class="text-[10px] border border-slate-600 hover:bg-slate-700 rounded px-2 py-0.5">${store.is_active ? 'Desativar' : 'Ativar'}</button>`}
                             </div>
                         </td>
                         <td class="p-3">
@@ -288,6 +307,21 @@
             document.getElementById('top-products').innerHTML = top.length
                 ? top.map(([name, t]) => `<li><span class="font-semibold text-white">${escapeHtml(name)}</span> — ${t.qty} un. • ${formatBRL(t.revenue)}</li>`).join('')
                 : '<li class="list-none text-slate-500">Sem pedidos entregues no período.</li>';
+        }
+
+        async function setStoreApproval(storeId, approve) {
+            const store = storesCache.find(s => s.id === storeId);
+            if (!store) return;
+            if (!confirm(approve ? `Aprovar "${store.name}"? A loja passa a aparecer na vitrine e a receber pedidos.` : `Recusar "${store.name}"? A loja continua fora da vitrine.`)) return;
+            const { error } = await sb.from('stores')
+                .update(approve ? { approval_status: 'aprovada', is_active: true } : { approval_status: 'recusada', is_active: false })
+                .eq('id', storeId);
+            if (error) {
+                alert('Não foi possível atualizar a loja.');
+                console.error(error);
+                return;
+            }
+            loadAdminMetrics();
         }
 
         async function toggleStoreActive(storeId) {
