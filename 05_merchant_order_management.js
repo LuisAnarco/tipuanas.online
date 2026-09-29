@@ -122,6 +122,7 @@ function showMerchantPanel(store) {
     document.getElementById('repasse-section').classList.remove('hidden');
     document.getElementById('orders-section').classList.remove('hidden');
     updatePauseUI(store.is_paused);
+    renderOnboarding(store);
     loadReviews(store.id);
     initCoupons(store.id);
     initStock(store.id);
@@ -134,6 +135,89 @@ function showMerchantPanel(store) {
             }
         }
     });
+}
+
+const QR_DONE_KEY = 'tipuanas_qr_done_';
+const ONBOARDING_HIDDEN_KEY = 'tipuanas_onboarding_hidden_';
+
+/**
+ * "Primeiros passos": checklist do lojista novo e situação da aprovação.
+ * Some quando a loja está aprovada e tudo foi feito (ou o lojista fecha).
+ */
+async function renderOnboarding(store) {
+    const el = document.getElementById('onboarding-section');
+    const status = store.approval_status || 'aprovada';
+    let hidden = false;
+    try { hidden = localStorage.getItem(ONBOARDING_HIDDEN_KEY + store.id) === '1'; } catch (e) { /* sem armazenamento */ }
+
+    const { data: products } = await sb.from('products').select('id, image_url').eq('store_id', store.id);
+    const list = products || [];
+    const hours = store.opening_hours || {};
+    let qrDone = false;
+    try { qrDone = localStorage.getItem(QR_DONE_KEY + store.id) === '1'; } catch (e) { /* sem armazenamento */ }
+
+    const steps = [
+        { done: true, label: 'Dados da loja', hint: 'Nome, WhatsApp e endereço.' },
+        { done: !!store.logo_url, label: 'Logo e capa', hint: 'Em "Dados da loja", logo abaixo.', href: '#store-settings' },
+        { done: Object.keys(hours).length > 0, label: 'Horário de funcionamento', hint: 'Fora do horário a loja aparece como fechada.', href: '#store-settings' },
+        { done: list.length >= 3, label: 'Cardápio com pelo menos 3 produtos', hint: `${list.length} cadastrado${list.length === 1 ? '' : 's'}.`, href: `15_gerenciar_cardapio.html?store=${store.id}` },
+        { done: list.some(p => p.image_url), label: 'Foto em algum produto', hint: 'Produto com foto vende mais.', href: `15_gerenciar_cardapio.html?store=${store.id}` },
+        { done: qrDone, label: 'QR Code do balcão impresso', hint: 'Clientes da loja física pedem pelo celular.', href: `13_printable_table_qr.html?slug=${encodeURIComponent(store.slug || '')}`, qr: true }
+    ];
+    const doneCount = steps.filter(s => s.done).length;
+    const allDone = doneCount === steps.length;
+
+    if (status === 'aprovada' && (allDone || hidden)) {
+        el.classList.add('hidden');
+        return;
+    }
+
+    const approvalText = `Olá! Cadastrei a loja "${store.name}" no Tipuanas.online e gostaria da aprovação. Painel: ${window.location.href}`;
+    const approvalBox = {
+        pendente: `<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-2">
+                <p><b>⏳ Sua loja está em análise.</b> Enquanto isso ela não aparece na vitrine nem recebe pedidos, mas você já pode montar o cardápio.</p>
+                <a data-ask-approval href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(approvalText)}" target="_blank" rel="noopener" class="inline-block font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-2">💬 Pedir aprovação pelo WhatsApp</a>
+            </div>`,
+        recusada: `<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800 space-y-2">
+                <p><b>A loja não foi aprovada.</b> Fale com a administração para entender o que ajustar.</p>
+                <a href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(`Olá! Sobre a loja "${store.name}" no Tipuanas.online, que não foi aprovada...`)}" target="_blank" rel="noopener" class="inline-block font-bold bg-red-600 text-white rounded-lg px-3 py-2">💬 Falar com a administração</a>
+            </div>`,
+        aprovada: `<p class="text-xs text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg p-2">✅ Loja aprovada e visível na vitrine.</p>`
+    }[status] || '';
+
+    el.innerHTML = `
+        <div class="flex items-start justify-between gap-2 mb-3">
+            <div>
+                <h2 class="text-sm font-bold text-gray-800">🚀 Primeiros passos</h2>
+                <p class="text-[11px] text-gray-500">${doneCount} de ${steps.length} concluídos</p>
+            </div>
+            ${status === 'aprovada' ? '<button data-hide-onboarding class="text-[11px] text-gray-400 hover:text-gray-600 underline">Fechar</button>' : ''}
+        </div>
+        <div class="h-2 bg-gray-100 rounded-full overflow-hidden mb-3"><div class="h-full bg-emerald-500" style="width:${Math.round(doneCount / steps.length * 100)}%"></div></div>
+        ${approvalBox}
+        <ul class="mt-3 divide-y divide-gray-100">
+            ${steps.map(s => `
+                <li class="flex items-center gap-3 py-2" data-step-done="${s.done}">
+                    <span class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${s.done ? 'bg-emerald-500 text-white' : 'border-2 border-gray-300 text-gray-300'}">${s.done ? '✓' : ''}</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm ${s.done ? 'text-gray-400 line-through' : 'font-semibold text-gray-800'}">${escapeHtml(s.label)}</p>
+                        <p class="text-[11px] text-gray-500">${escapeHtml(s.hint)}</p>
+                    </div>
+                    ${!s.done && s.href ? `<a href="${s.href}" ${s.qr ? 'data-qr-step target="_blank" rel="noopener"' : ''} class="shrink-0 text-xs font-bold text-emerald-700 border border-emerald-200 rounded-lg px-2.5 py-1.5">Fazer</a>` : ''}
+                </li>`).join('')}
+        </ul>`;
+    el.classList.remove('hidden');
+
+    el.onclick = event => {
+        if (event.target.closest('[data-qr-step]')) {
+            try { localStorage.setItem(QR_DONE_KEY + store.id, '1'); } catch (e) { /* sem armazenamento */ }
+            setTimeout(() => renderOnboarding(store), 500);
+        }
+        if (event.target.closest('[data-hide-onboarding]')) {
+            try { localStorage.setItem(ONBOARDING_HIDDEN_KEY + store.id, '1'); } catch (e) { /* sem armazenamento */ }
+            el.classList.add('hidden');
+        }
+    };
 }
 
 /**
@@ -177,7 +261,6 @@ async function criarLoja() {
         description: description || null,
         listing_type: listingType,
         owner_id: currentUser.id,
-        is_active: true,
         is_paused: false
     }]).select();
 
