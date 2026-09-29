@@ -71,9 +71,10 @@ O que ainda impede a operação real, em ordem de impacto:
 - [x] **19. Robustez do fluxo do cliente.** _(28/09/2026, PR #22)_ Teste E2E em produção
   (`tests/e2e-producao.js`), limites antiabuso (5 pedidos/10 min e 3 anúncios/dia por WhatsApp)
   e testes do CI isolados da produção.
-- [ ] **20. Lojista não perde pedido com o painel fechado.** Hoje o alerta só toca com o painel
-  aberto. Enviar notificação push (Web Push com service worker + função no Supabase) e, como reserva,
-  um lembrete visual forte e contador na aba.
+- [x] **20. Lojista não perde pedido com o painel fechado.** _(29/09/2026)_ Web Push: "Ativar alertas"
+  inscreve o aparelho (`push_subscriptions`), o pedido novo dispara (gatilho + pg_net) a função
+  `notify-new-order`, que envia com as chaves VAPID do cofre; tocar na notificação abre o painel.
+  Contador de pendentes no título da aba. No iPhone precisa instalar o site na tela de início.
 - [ ] **21. Fluxo do entregador de ponta a ponta.** Validar com dados reais: loja marca "pronto",
   entregador vê a corrida, aceita, conclui com o PIN; tela mais clara (mapa/endereço, ganhos do dia).
 - [ ] **22. Painel do lojista mais simples no celular.** Pedidos novos no topo com botões grandes

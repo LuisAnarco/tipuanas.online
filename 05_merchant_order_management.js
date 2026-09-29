@@ -401,6 +401,8 @@ function updateMetrics(orders) {
     document.getElementById('total-orders-today').textContent = totalOrders;
     document.getElementById('total-revenue-today').textContent = formatBRL(totalRevenue);
     document.getElementById('pending-badge').textContent = `${pendingCount} Pendentes`;
+    // Contador na aba: dá para ver pedido novo mesmo olhando outra guia
+    document.title = `${pendingCount ? `(${pendingCount}) ` : ''}Painel do Comerciante - Tipuanas.online`;
 
     updateRepasse(orders);
 }
@@ -715,6 +717,23 @@ async function ativarAlertas() {
     btn.textContent = notifier.hasPermission ? '🔔 Alertas ativos' : '🔔 Som ativo';
     btn.disabled = true;
     btn.classList.add('opacity-70');
+
+    // Push: avisa no celular mesmo com o painel fechado
+    const hint = document.getElementById('push-hint');
+    const result = currentStore ? await notifier.subscribePush(currentStore.id) : 'error';
+    if (result === 'ok') {
+        btn.textContent = '🔔 Alertas ativos no aparelho';
+        hint.textContent = 'Pronto: os pedidos novos chegam como notificação, mesmo com o painel fechado.';
+    } else if (result === 'unsupported') {
+        hint.textContent = /iPhone|iPad/.test(navigator.userAgent)
+            ? 'No iPhone, para receber com o painel fechado: toque em Compartilhar → "Adicionar à Tela de Início", abra por lá e ative de novo.'
+            : 'Este navegador só avisa com o painel aberto.';
+    } else if (result === 'denied') {
+        hint.textContent = 'As notificações estão bloqueadas. Libere nas configurações do navegador para receber com o painel fechado.';
+    } else {
+        hint.textContent = 'Não deu para ativar o aviso com o painel fechado. Os alertas com o painel aberto continuam funcionando.';
+    }
+    hint.classList.remove('hidden');
 }
 
 /**
