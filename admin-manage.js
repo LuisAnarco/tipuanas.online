@@ -215,3 +215,55 @@ async function removeMuralPost(postId) {
     }
     loadMuralAdmin();
 }
+
+// ============================================================== ENTREGA PELA PLATAFORMA
+// Regra única (platform_delivery, só o admin altera): taxa base, km incluídos, R$/km e raio.
+
+async function loadPlatformDelivery() {
+    const form = document.getElementById('platform-delivery-form');
+    if (!form) return;
+    const { data } = await sb.from('platform_delivery').select('*').maybeSingle();
+    if (data) ['base_fee', 'km_included', 'fee_per_km', 'radius_km'].forEach(k => { form.elements[k].value = Number(data[k]); });
+    updatePlatformPreview();
+    if (form.dataset.bound) return;
+    form.dataset.bound = '1';
+    form.addEventListener('input', updatePlatformPreview);
+    form.addEventListener('submit', savePlatformDelivery);
+}
+
+function readPlatformForm() {
+    const form = document.getElementById('platform-delivery-form');
+    const n = k => Number(String(form.elements[k].value).replace(',', '.'));
+    return { base_fee: n('base_fee'), km_included: n('km_included'), fee_per_km: n('fee_per_km'), radius_km: n('radius_km') };
+}
+
+function updatePlatformPreview() {
+    const v = readPlatformForm();
+    const rules = { base: v.base_fee, incl: v.km_included, perKm: v.fee_per_km, radius: v.radius_km };
+    const points = [1, 3, 5, 8].filter(km => km <= v.radius_km);
+    document.querySelector('#platform-delivery-form [data-role="preview"]').textContent = points.length
+        ? `Exemplo: ${points.map(km => `${km} km = ${formatBRL(feeForDistance(rules, km))}`).join(' · ')}. Acima de ${String(v.radius_km).replace('.', ',')} km não atende.`
+        : '';
+}
+
+async function savePlatformDelivery(event) {
+    event.preventDefault();
+    const form = event.target;
+    const status = form.querySelector('[data-role="status"]');
+    const v = readPlatformForm();
+    if (![v.base_fee, v.km_included, v.fee_per_km].every(x => Number.isFinite(x) && x >= 0) || !(v.radius_km > 0 && v.radius_km <= 50)) {
+        status.textContent = 'Confira os valores (raio entre 0,5 e 50 km).';
+        status.className = 'text-[11px] text-red-400';
+        return;
+    }
+    const { data, error } = await sb.from('platform_delivery').update({ ...v, updated_at: new Date().toISOString() }).eq('id', 1).select();
+    if (error || !data || !data.length) {
+        console.error('Erro ao salvar a regra de entrega:', error);
+        status.textContent = 'Não foi possível salvar.';
+        status.className = 'text-[11px] text-red-400';
+        return;
+    }
+    status.textContent = 'Regra salva ✓';
+    status.className = 'text-[11px] text-emerald-300';
+}
+

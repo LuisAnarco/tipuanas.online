@@ -54,6 +54,7 @@ function freshDb() {
         calls: [],   // chamadas de RPC: { fn, body }
         writes: [],  // POST/PATCH/DELETE em tabelas: { table, method, body, url }
         otp: null,   // pedido de link de login
+        platformDelivery: { id: 1, base_fee: 6, km_included: 2, fee_per_km: 1.5, radius_km: 5 },
     };
 }
 
@@ -147,6 +148,22 @@ function rpc(db, fn, body) {
                          payment_method: o.delivery_address.payment_method, delivery_address: o.delivery_address.address,
                          store_id: o.store_id, store_name: st.name, store_address: st.address_line };
             });
+        case 'quote_delivery':
+            // Mesma regra do banco (delivery_quote): plataforma usa db.platformDelivery
+            return body.p_store_ids.map(id => {
+                const st = db.stores.find(x => x.id === id);
+                if (!st) return null;
+                const pd = db.platformDelivery;
+                let r = st.delivery_type === 'plataforma'
+                    ? (st.lat == null ? { base: pd.base_fee, incl: 0, perKm: null, radius: null } : { base: pd.base_fee, incl: pd.km_included, perKm: pd.fee_per_km, radius: pd.radius_km })
+                    : { base: st.delivery_fee || 0, incl: st.delivery_km_included || 0, perKm: st.delivery_fee_per_km ?? null, radius: st.delivery_radius_km ?? null };
+                const rad = x => x * Math.PI / 180;
+                const dist = st.lat != null && body.p_lat != null
+                    ? Math.round(6371 * 2 * Math.asin(Math.sqrt(Math.sin(rad(body.p_lat - st.lat) / 2) ** 2 + Math.cos(rad(st.lat)) * Math.cos(rad(body.p_lat)) * Math.sin(rad(body.p_lng - st.lng) / 2) ** 2)) * 10) / 10
+                    : null;
+                const fee = r.perKm == null ? r.base : Math.ceil((r.base + r.perKm * Math.max(0, (dist ?? r.radius) - r.incl)) * 2) / 2;
+                return { store_id: id, fee, distance_km: dist, out_of_range: dist != null && r.radius != null && dist > r.radius, estimated: r.perKm != null && dist == null, radius_km: r.radius };
+            });
         case 'accept_ride': {
             const o = db.orders.find(x => x.id === body.p_order_id && x.status === 'pronto' && !x.courier_ref);
             if (!o) return false;
@@ -199,6 +216,7 @@ function select(db, table, url) {
         case 'community_posts': return db.posts.filter(p => !url.searchParams.get('post_type') || url.searchParams.get('post_type') === 'eq.' + p.post_type);
         case 'couriers': return db.couriers;
         case 'coupons': return byEq(db.coupons, 'store_id');
+        case 'platform_delivery': return [db.platformDelivery];
         default: return [];
     }
 }

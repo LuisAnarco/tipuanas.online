@@ -11,7 +11,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Cliente | `index.html` + `09_multistore_cart.js` | Vitrine estilo app de delivery: banners de cupons, categorias com ícones, Ofertas do dia, Destaques, Mais bem avaliadas, lista de lojas, busca de lojas e produtos, barra inferior e carrinho multi-loja |
 | Cliente | `loja.html?slug=` | Página própria da loja: capa e logo, cupons, abas por seção do cardápio, destaques, preço promocional, produto com opções (tamanho, borda, adicionais com mínimo/máximo e observação, preço conferido no `place_order`), avaliações e compartilhar (link do QR do balcão) |
 | Cliente | `privacidade.html` | Privacidade e termos (LGPD): dados guardados, uso, compartilhamento, prazo, direitos, contato e botão para apagar os dados do aparelho |
-| Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto), cria um pedido por loja e abre o WhatsApp de cada uma |
+| Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto, taxa por distância com "Usar minha localização" ou endereço no mapa, aviso de fora da área), cria um pedido por loja e abre o WhatsApp de cada uma |
 | Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento com PIN de entrega, cancelamento enquanto o pedido é "novo" e avaliação da loja após a entrega |
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
@@ -21,7 +21,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html?slug=` | Display com QR Code para o balcão, apontando para a página da loja |
 | Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho (atualiza sozinha, sem dados do cliente até aceitar), aceite exclusivo, mapa e WhatsApp do cliente/loja, devolver corrida, PIN digitado na tela e conferido no banco, histórico e ganhos. Loja e cliente veem quem está levando |
-| Admin | `14_admin_analytics_dashboard.html` + `admin-manage.js` | GMV, comissão, recorrência, ranking de produtos; aprovar/recusar lojas novas; editar lojas e definir dono por e-mail; ativar/desativar lojas e entregadores; pedidos do período com cancelamento; moderação do mural |
+| Admin | `14_admin_analytics_dashboard.html` + `admin-manage.js` | GMV, comissão, recorrência, ranking de produtos; aprovar/recusar lojas novas; regra de entrega da plataforma (taxa base, km incluídos, R$/km, raio); editar lojas e definir dono por e-mail; ativar/desativar lojas e entregadores; pedidos do período com cancelamento; moderação do mural |
 
 Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
 carregam ele), `store-settings.js` (formulário "Dados da loja", usado pelo lojista e pelo admin), `06_push_notification_service.js` (alertas do lojista), `07_client_pwa_manifest.json`,

@@ -113,6 +113,83 @@ function storeOpenStatus(hours, now = new Date()) {
     return { open: false, label: 'sem horário de abertura' };
 }
 
+// ============================================================== ENTREGA POR DISTÂNCIA
+// Mesma conta do banco (delivery_quote): linha reta entre loja e cliente, taxa base cobre
+// os primeiros km, depois R$ por km, arredondando para cima de R$ 0,50 em R$ 0,50.
+
+function distanceKm(lat1, lng1, lat2, lng2) {
+    const rad = x => x * Math.PI / 180;
+    const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+    return Math.round(6371 * 2 * Math.asin(Math.sqrt(a)) * 10) / 10;
+}
+
+/**
+ * Regra de entrega da loja: quem entrega decide (stores.delivery_type).
+ * 'plataforma' → regra do admin (tabela platform_delivery); 'propria' → colunas da loja.
+ * Devolve { base, incl, perKm, radius } — perKm null = taxa fixa. Espelha delivery_quote do banco.
+ */
+function deliveryRules(store, platform) {
+    if (store.delivery_type === 'plataforma' && platform) {
+        if (store.lat === null || store.lat === undefined) return { base: Number(platform.base_fee), incl: 0, perKm: null, radius: null };
+        return { base: Number(platform.base_fee), incl: Number(platform.km_included), perKm: Number(platform.fee_per_km), radius: Number(platform.radius_km) };
+    }
+    const byKm = store.delivery_fee_per_km !== null && store.delivery_fee_per_km !== undefined && store.lat !== null && store.lat !== undefined;
+    return {
+        base: Number(store.delivery_fee || 0),
+        incl: Number(store.delivery_km_included || 0),
+        perKm: byKm ? Number(store.delivery_fee_per_km) : null,
+        radius: store.delivery_radius_km === null || store.delivery_radius_km === undefined ? null : Number(store.delivery_radius_km)
+    };
+}
+
+function feeForDistance(rules, km) {
+    if (rules.perKm === null) return rules.base;
+    return Math.ceil((rules.base + rules.perKm * Math.max(0, km - rules.incl)) * 2) / 2;
+}
+
+/** Texto curto da taxa para cartões da vitrine */
+function deliveryFeeLabel(store, platform) {
+    const rules = deliveryRules(store, platform);
+    if (rules.perKm !== null) {
+        const min = feeForDistance(rules, 0);
+        return `${min > 0 ? `Entrega a partir de ${formatBRL(min)}` : 'Entrega grátis perto'} · até ${String(rules.radius).replace('.', ',')} km`;
+    }
+    return rules.base > 0 ? `Entrega ${formatBRL(rules.base)}` : 'Entrega grátis';
+}
+
+/** Localização do aparelho (pede permissão). Resolve { lat, lng } ou null. */
+function getDevicePosition() {
+    return new Promise(resolve => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+            pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+        );
+    });
+}
+
+/**
+ * Procura um endereço no OpenStreetMap (Nominatim, gratuito). `near` ({lat,lng}) restringe a
+ * busca a ~20 km dali, para "Av. das Tipuanas, 150" achar a rua certa. Resolve {lat,lng} ou null.
+ */
+async function geocodeAddress(query, near) {
+    const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'br', q: query });
+    if (near) {
+        const d = 0.2;
+        params.set('viewbox', [near.lng - d, near.lat + d, near.lng + d, near.lat - d].join(','));
+        params.set('bounded', '1');
+    }
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { 'Accept-Language': 'pt-BR' } });
+        const data = await res.json();
+        return data && data[0] ? { lat: Number(data[0].lat), lng: Number(data[0].lon) } : null;
+    } catch (e) {
+        console.warn('Busca de endereço indisponível:', e);
+        return null;
+    }
+}
+
 // PWA: registra o service worker (só em HTTPS — produção e previews da Vercel)
 if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
     window.addEventListener('load', () => {

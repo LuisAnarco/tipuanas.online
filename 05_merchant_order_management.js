@@ -126,6 +126,7 @@ function showMerchantPanel(store) {
     renderStoreSettings(document.getElementById('store-settings'), store, {
         onSaved: saved => {
             document.getElementById('store-title').textContent = saved.name;
+            fetchOrders(); // quem entrega mudou: botões dos pedidos mudam junto
             // Virou loja de serviços: o painel certo é o de orçamentos
             if (saved.listing_type === 'orcamento') {
                 window.location.href = `17_gerenciar_orcamentos.html?store=${saved.id}`;
@@ -377,7 +378,7 @@ function courierLine(order) {
         const wa = toWhatsappNumber(c.phone);
         return `<p class="text-xs text-gray-700 mt-0.5" data-courier="${escapeHtml(order.id)}">🛵 Entregador: <b>${escapeHtml(c.name)}</b>${c.vehicle ? ` (${escapeHtml(c.vehicle)})` : ''}${wa ? ` · <a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">💬 falar</a>` : ''}</p>`;
     }
-    if (order.status === 'pronto' && !order.is_takeout) {
+    if (order.status === 'pronto' && !order.is_takeout && !ownDelivery()) {
         return `<p class="text-xs text-amber-700 mt-0.5">⏳ Aguardando um entregador aceitar a corrida</p>`;
     }
     return '';
@@ -392,16 +393,26 @@ function nextActions(order) {
         case 'novo':
             return [{ status: 'em_preparacao', label: '✅ Aceitar pedido', kind: 'primary' }, { status: 'cancelado', label: 'Recusar', kind: 'danger' }];
         case 'em_preparacao':
-            return [{ status: 'pronto', label: order.is_takeout ? '🛍️ Pronto para o cliente retirar' : '📦 Pronto — chamar entregador', kind: 'primary' }];
+            if (order.is_takeout) return [{ status: 'pronto', label: '🛍️ Pronto para o cliente retirar', kind: 'primary' }];
+            // Loja com entrega própria não chama entregador da plataforma
+            return ownDelivery()
+                ? [{ status: 'pronto', label: '📦 Pronto', kind: 'secondary' }, { status: 'em_rota', label: '🛵 Saiu para entrega', kind: 'primary' }]
+                : [{ status: 'pronto', label: '📦 Pronto — chamar entregador', kind: 'primary' }];
         case 'pronto':
-            return order.is_takeout
-                ? [{ status: 'entregue', label: '✅ Cliente retirou', kind: 'primary' }]
+            if (order.is_takeout) return [{ status: 'entregue', label: '✅ Cliente retirou', kind: 'primary' }];
+            return ownDelivery()
+                ? [{ status: 'em_rota', label: '🛵 Saiu para entrega', kind: 'primary' }]
                 : [{ status: 'em_rota', label: '🛵 Saiu com entrega própria', kind: 'secondary' }];
         case 'em_rota':
             return order.courier_ref ? [] : [{ status: 'entregue', label: '✅ Entregue', kind: 'primary' }];
         default:
             return [];
     }
+}
+
+/** Loja entrega por conta própria (não usa os entregadores da plataforma) */
+function ownDelivery() {
+    return !!currentStore && currentStore.delivery_type === 'propria';
 }
 
 const ACTION_STYLES = {
@@ -478,7 +489,7 @@ function orderCard(order) {
             <span class="font-extrabold text-gray-900 shrink-0">${formatBRL(order.total_amount)}</span>
         </div>
         ${itemsList ? `<p class="text-sm text-gray-700">🛒 ${escapeHtml(itemsList)}</p>` : ''}
-        ${order.is_takeout ? '' : `<p class="text-xs text-gray-600">📍 ${escapeHtml(addr.address || 'Endereço não informado')}</p>`}
+        ${order.is_takeout ? '' : `<p class="text-xs text-gray-600">📍 ${escapeHtml(addr.address || 'Endereço não informado')}${addr.distance_km != null ? ` <span data-role="distance" class="text-gray-400">· ${escapeHtml(String(addr.distance_km).replace('.', ','))} km</span>` : ''}${addr.lat != null ? ` · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addr.lat},${addr.lng}`)}" target="_blank" rel="noopener" class="text-emerald-700 underline">mapa</a>` : ''}</p>`}
         ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
         ${courierLine(order)}
         <p class="text-xs text-gray-500">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>

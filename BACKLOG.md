@@ -145,9 +145,15 @@ navegador) e testes no `npm test`.
   para o entregador) e **Pix copia-e-cola / QR** com a chave Pix da loja e o valor exato do pedido
   (BR Code estático gerado no navegador, sem intermediário). Lojista cadastra a chave Pix nos dados
   da loja; cliente pode mandar o comprovante pelo WhatsApp.
-- [ ] **27. Pedido mínimo e taxa por bairro.** Lojista define pedido mínimo e, opcionalmente, taxa
-  diferente por bairro/rua (lista simples). Sacola mostra "faltam R$ X para o mínimo" e a taxa certa
-  ao escolher o bairro; `place_order` valida os dois.
+- [x] **27a. Taxa de entrega por km/raio (pedido do Luis).** _(29/09/2026)_ Quem entrega decide:
+  loja com **entrega própria** define taxa base, km incluídos, R$/km e raio; loja com **entregadores da
+  plataforma** segue a regra do admin (`platform_delivery`). Banco: `delivery_quote`/`quote_delivery`,
+  `place_order` cobra pela distância (linha reta, degraus de R$ 0,50), recusa fora do raio e guarda o
+  ponto do cliente; sem localização cobra a taxa máxima. Checkout com "Usar minha localização" e busca
+  do endereço no mapa (OpenStreetMap); loja marca a localização no painel; fila dos entregadores só
+  com lojas da plataforma e mostra a distância.
+- [ ] **27b. Pedido mínimo.** Lojista define pedido mínimo; sacola mostra "faltam R$ X" e
+  `place_order` valida.
 
 **Cliente acompanha e volta**
 - [ ] **28. Aviso no celular do cliente e previsão de entrega.** Web Push opcional no acompanhamento

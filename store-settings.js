@@ -3,7 +3,8 @@
  * PROJETO: TIPUANAS.ONLINE
  * ARQUIVO: store-settings.js
  * DESCRIÇÃO: Formulário "Dados da loja" (nome, categoria, descrição, WhatsApp,
- *            endereço, taxa de entrega, tempo de preparo, logo, capa, tipo de
+ *            endereço, entrega (própria com taxa fixa ou por km/raio, ou pela
+ *            plataforma), localização, tempo de preparo, logo, capa, tipo de
  *            negócio e horário de funcionamento). Usado no painel do
  *            lojista (catálogo e orçamentos) e no painel admin. Quem pode salvar
  *            é decidido pelo banco: dono da loja ou admin (RLS de stores).
@@ -50,7 +51,6 @@ function renderStoreSettings(container, store, opts = {}) {
                 ${field('Categoria', `<input name="category" maxlength="60" class="${inputCls}" value="${escapeHtml(store.category || '')}" placeholder="Ex: Padaria, Mercado, Serviços">`)}
                 ${field('WhatsApp para pedidos (com DDD)', `<input name="whatsapp_number" inputmode="tel" class="${inputCls}" value="${escapeHtml(store.whatsapp_number || '')}" placeholder="Ex: 48999998888">`)}
                 ${field('Endereço na avenida', `<input name="address_line" maxlength="200" class="${inputCls}" value="${escapeHtml(store.address_line || '')}">`)}
-                ${field('Taxa de entrega (R$)', `<input name="delivery_fee" type="number" min="0" step="0.5" class="${inputCls}" value="${Number(store.delivery_fee || 0)}">`)}
                 ${field('Tempo médio de preparo (min)', `<input name="avg_prep_time_minutes" type="number" min="0" max="240" step="5" class="${inputCls}" value="${Number(store.avg_prep_time_minutes || 0) || ''}" placeholder="Ex: 30">`)}
                 ${field('Tipo de negócio', `
                     <select name="listing_type" class="${inputCls} bg-white">
@@ -68,6 +68,39 @@ function renderStoreSettings(container, store, opts = {}) {
                         ${store.cover_url ? `<img src="${escapeHtml(store.cover_url)}" alt="" class="w-full h-14 rounded-xl object-cover border">` : ''}
                         <input name="cover_file" type="file" accept="image/*" class="w-full text-xs">
                     </div>
+                </div>
+                <div class="md:col-span-2 border border-gray-200 rounded-lg p-3 space-y-2" data-role="delivery-box">
+                    <p class="text-xs font-semibold text-gray-700">🛵 Quem faz a entrega?</p>
+                    <div class="flex flex-col sm:flex-row gap-2 text-xs">
+                        <label class="flex-1 flex items-center gap-2 p-2 rounded-lg border border-gray-300 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                            <input type="radio" name="delivery_type" value="plataforma" ${store.delivery_type !== 'propria' ? 'checked' : ''} class="accent-emerald-600"> Entregadores da plataforma
+                        </label>
+                        <label class="flex-1 flex items-center gap-2 p-2 rounded-lg border border-gray-300 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                            <input type="radio" name="delivery_type" value="propria" ${store.delivery_type === 'propria' ? 'checked' : ''} class="accent-emerald-600"> Minha loja entrega
+                        </label>
+                    </div>
+                    <p data-role="platform-rules" class="${store.delivery_type === 'propria' ? 'hidden' : ''} text-[11px] text-gray-600 bg-gray-50 rounded p-2">Taxa e raio definidos pela plataforma.</p>
+                    <div data-role="own-rules" class="${store.delivery_type === 'propria' ? '' : 'hidden'} space-y-2">
+                        ${field('Taxa de entrega (R$)', `<input name="delivery_fee" type="number" min="0" step="0.5" class="${inputCls}" value="${Number(store.delivery_fee || 0)}">`)}
+                        <label class="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                            <input type="checkbox" data-role="per-km" ${store.delivery_fee_per_km !== null && store.delivery_fee_per_km !== undefined ? 'checked' : ''} class="accent-emerald-600">
+                            Cobrar por distância (km) e limitar o raio
+                        </label>
+                        <div data-role="per-km-fields" class="${store.delivery_fee_per_km !== null && store.delivery_fee_per_km !== undefined ? '' : 'hidden'} grid grid-cols-3 gap-2 text-xs">
+                            <label>Km incluídos na taxa<input name="delivery_km_included" type="number" min="0" step="0.5" value="${Number(store.delivery_km_included || 0)}" class="w-full p-2 rounded border border-gray-300"></label>
+                            <label>R$ por km a mais<input name="delivery_fee_per_km" type="number" min="0" step="0.1" value="${store.delivery_fee_per_km ?? 1.5}" class="w-full p-2 rounded border border-gray-300"></label>
+                            <label>Raio máximo (km)<input name="delivery_radius_km" type="number" min="0.5" max="50" step="0.5" value="${store.delivery_radius_km ?? 5}" class="w-full p-2 rounded border border-gray-300"></label>
+                            <p data-role="fee-preview" class="col-span-3 text-[11px] text-emerald-800 bg-emerald-50 rounded p-2"></p>
+                        </div>
+                    </div>
+                    <p class="text-xs font-semibold text-gray-700 pt-1">📍 Localização da loja</p>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <input name="lat" inputmode="decimal" placeholder="Latitude" value="${store.lat ?? ''}" class="w-32 text-xs p-2 rounded border border-gray-300">
+                        <input name="lng" inputmode="decimal" placeholder="Longitude" value="${store.lng ?? ''}" class="w-32 text-xs p-2 rounded border border-gray-300">
+                        <button type="button" data-role="use-gps" class="text-xs font-bold border border-emerald-300 text-emerald-700 rounded-lg px-2.5 py-1.5">Usar minha localização</button>
+                        <button type="button" data-role="find-address" class="text-xs font-bold border border-gray-300 rounded-lg px-2.5 py-1.5">Achar pelo endereço</button>
+                    </div>
+                    <p data-role="geo-status" class="text-[11px] text-gray-500">Marque estando na loja: a taxa por distância é calculada a partir daqui.</p>
                 </div>
                 ${field('Descrição curta', `<textarea name="description" rows="2" maxlength="300" class="${inputCls}">${escapeHtml(store.description || '')}</textarea>`, 'md:col-span-2')}
                 <div class="md:col-span-2 border border-gray-200 rounded-lg p-3 space-y-2">
@@ -95,6 +128,55 @@ function renderStoreSettings(container, store, opts = {}) {
         form.querySelector('[data-role="hours"]').classList.toggle('hidden', !usesHoursEl.checked);
     });
 
+    // Entrega: quem entrega, regra própria (taxa fixa ou por km) e localização da loja
+    const perKmEl = form.querySelector('[data-role="per-km"]');
+    const geoStatus = form.querySelector('[data-role="geo-status"]');
+    const num = name => { const v = String(form.querySelector(`[name="${name}"]`).value).replace(',', '.').trim(); return v === '' ? null : Number(v); };
+    const deliveryType = () => form.querySelector('[name="delivery_type"]:checked').value;
+    const updateFeePreview = () => {
+        const radius = num('delivery_radius_km') || 0;
+        const rules = { base: num('delivery_fee') || 0, incl: num('delivery_km_included') || 0, perKm: num('delivery_fee_per_km') || 0, radius };
+        const points = [1, 3, 5, 8].filter(km => km <= radius);
+        form.querySelector('[data-role="fee-preview"]').textContent = points.length
+            ? `Exemplo: ${points.map(km => `${km} km = ${formatBRL(feeForDistance(rules, km))}`).join(' · ')}. Acima de ${String(radius).replace('.', ',')} km a loja não entrega.`
+            : 'Defina um raio de pelo menos 1 km.';
+    };
+    form.querySelectorAll('[name="delivery_type"]').forEach(el => el.addEventListener('change', () => {
+        form.querySelector('[data-role="own-rules"]').classList.toggle('hidden', deliveryType() !== 'propria');
+        form.querySelector('[data-role="platform-rules"]').classList.toggle('hidden', deliveryType() === 'propria');
+    }));
+    perKmEl.addEventListener('change', () => {
+        form.querySelector('[data-role="per-km-fields"]').classList.toggle('hidden', !perKmEl.checked);
+        updateFeePreview();
+    });
+    form.addEventListener('input', event => {
+        if (['delivery_fee', 'delivery_km_included', 'delivery_fee_per_km', 'delivery_radius_km'].includes(event.target.name)) updateFeePreview();
+    });
+    updateFeePreview();
+    sb.from('platform_delivery').select('*').maybeSingle().then(({ data: pd }) => {
+        if (!pd) return;
+        const rules = { base: Number(pd.base_fee), incl: Number(pd.km_included), perKm: Number(pd.fee_per_km), radius: Number(pd.radius_km) };
+        form.querySelector('[data-role="platform-rules"]').textContent =
+            `Regra da plataforma: ${formatBRL(rules.base)} até ${String(rules.incl).replace('.', ',')} km, depois ${formatBRL(rules.perKm)} por km, até ${String(rules.radius).replace('.', ',')} km (ex.: 4 km = ${formatBRL(feeForDistance(rules, 4))}). Os pedidos prontos vão para os entregadores da plataforma. Sem a localização da loja, cobra só ${formatBRL(rules.base)}.`;
+    });
+    const setCoords = (pos, msg) => {
+        if (!pos) { geoStatus.textContent = msg; geoStatus.className = 'text-[11px] text-red-600'; return; }
+        form.querySelector('[name="lat"]').value = pos.lat.toFixed(6);
+        form.querySelector('[name="lng"]').value = pos.lng.toFixed(6);
+        geoStatus.textContent = '✓ Localização preenchida. Clique em "Salvar dados".';
+        geoStatus.className = 'text-[11px] text-emerald-700';
+    };
+    form.querySelector('[data-role="use-gps"]').addEventListener('click', async () => {
+        geoStatus.textContent = 'Buscando localização...';
+        setCoords(await getDevicePosition(), 'Não deu para pegar a localização. Libere a permissão ou use "Achar pelo endereço".');
+    });
+    form.querySelector('[data-role="find-address"]').addEventListener('click', async () => {
+        const address = form.querySelector('[name="address_line"]').value.trim();
+        if (!address) return setCoords(null, 'Preencha o endereço (com a cidade) primeiro.');
+        geoStatus.textContent = 'Procurando o endereço...';
+        setCoords(await geocodeAddress(address), 'Endereço não encontrado. Inclua a cidade (ex: Av. das Tipuanas, 140, Joinville).');
+    });
+
     // { "1": "08:00-18:00", ... } só com os dias marcados; null = sempre aberta
     const readHours = () => {
         if (!usesHoursEl.checked) return null;
@@ -112,7 +194,7 @@ function renderStoreSettings(container, store, opts = {}) {
         event.preventDefault();
         const data = Object.fromEntries(new FormData(form).entries());
         const whatsapp = String(data.whatsapp_number || '').replace(/\D/g, '');
-        const fee = Number(data.delivery_fee);
+        const fee = Number(data.delivery_fee || 0);
         const prep = data.avg_prep_time_minutes === '' ? null : Number(data.avg_prep_time_minutes);
 
         const setStatus = (msg, ok) => {
@@ -124,6 +206,18 @@ function renderStoreSettings(container, store, opts = {}) {
         if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) return setStatus('WhatsApp deve ter DDD + número (10 ou 11 dígitos).', false);
         if (!Number.isFinite(fee) || fee < 0) return setStatus('Taxa de entrega inválida.', false);
         if (prep !== null && (!Number.isInteger(prep) || prep < 0 || prep > 240)) return setStatus('Tempo de preparo inválido (0 a 240 minutos).', false);
+        const lat = num('lat'), lng = num('lng');
+        if ((lat === null) !== (lng === null) || (lat !== null && (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180))) {
+            return setStatus('Localização inválida: preencha latitude e longitude (ou use o botão).', false);
+        }
+        const own = deliveryType() === 'propria';
+        const perKm = own && perKmEl.checked;
+        const kmIncluded = num('delivery_km_included') ?? 0, feePerKm = num('delivery_fee_per_km'), radius = num('delivery_radius_km');
+        if (perKm) {
+            if (lat === null) return setStatus('Para cobrar por km, marque a localização da loja.', false);
+            if (!(feePerKm >= 0) || !(kmIncluded >= 0)) return setStatus('Confira os valores da entrega por km.', false);
+            if (!(radius > 0 && radius <= 50)) return setStatus('O raio máximo deve ser entre 0,5 e 50 km.', false);
+        }
         const openingHours = readHours();
         if (openingHours && Object.keys(openingHours).length === 0) {
             return setStatus('Marque pelo menos um dia de funcionamento (ou desligue o horário).', false);
@@ -138,7 +232,13 @@ function renderStoreSettings(container, store, opts = {}) {
             listing_type: data.listing_type,
             description: data.description.trim() || null,
             opening_hours: openingHours,
-            avg_prep_time_minutes: prep
+            avg_prep_time_minutes: prep,
+            delivery_type: own ? 'propria' : 'plataforma',
+            lat,
+            lng,
+            delivery_km_included: perKm ? kmIncluded : 0,
+            delivery_fee_per_km: perKm ? feePerKm : null,
+            delivery_radius_km: perKm ? radius : null
         };
 
         setStatus('Salvando...', true);
