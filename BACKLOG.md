@@ -75,8 +75,11 @@ O que ainda impede a operação real, em ordem de impacto:
   inscreve o aparelho (`push_subscriptions`), o pedido novo dispara (gatilho + pg_net) a função
   `notify-new-order`, que envia com as chaves VAPID do cofre; tocar na notificação abre o painel.
   Contador de pendentes no título da aba. No iPhone precisa instalar o site na tela de início.
-- [ ] **21. Fluxo do entregador de ponta a ponta.** Validar com dados reais: loja marca "pronto",
-  entregador vê a corrida, aceita, conclui com o PIN; tela mais clara (mapa/endereço, ganhos do dia).
+- [x] **21. Fluxo do entregador de ponta a ponta.** _(29/09/2026)_ Testado no banco (transação com
+  rollback) e no CI: corrida livre sem nome/telefone do cliente (`list_available_rides`), aceite,
+  devolver corrida (`release_ride`), PIN na tela, só quem aceitou conclui; entrega própria da loja não
+  vira corrida. Mapa e WhatsApp, lista que se atualiza sozinha, loja e cliente veem o entregador.
+  Próximo passo possível: push para entregadores quando surgir corrida.
 - [ ] **22. Painel do lojista mais simples no celular.** Pedidos novos no topo com botões grandes
   (Aceitar / Pronto / Saiu / Entregue) em vez do seletor, e avisar o cliente no mesmo toque.
 - [ ] **23. Cadastro de loja guiado.** Passo a passo para o lojista novo (dados, horário, primeiros

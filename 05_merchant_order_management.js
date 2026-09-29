@@ -277,8 +277,30 @@ async function fetchOrders() {
         return;
     }
 
+    // Quem está levando: o entregador que aceitou a corrida
+    const withCourier = orders.filter(o => o.courier_ref && ['em_rota', 'entregue'].includes(o.status)).map(o => o.id);
+    if (withCourier.length) {
+        const { data: couriers } = await sb.rpc('order_couriers', { p_order_ids: withCourier });
+        orderCouriers = Object.fromEntries((couriers || []).map(c => [c.order_id, c]));
+    }
+
     renderOrders(orders);
     updateMetrics(orders);
+}
+
+/** Entregador de cada pedido (order_couriers), por id do pedido */
+let orderCouriers = {};
+
+function courierLine(order) {
+    const c = orderCouriers[order.id];
+    if (c) {
+        const wa = toWhatsappNumber(c.phone);
+        return `<p class="text-xs text-gray-700 mt-0.5" data-courier="${escapeHtml(order.id)}">🛵 Entregador: <b>${escapeHtml(c.name)}</b>${c.vehicle ? ` (${escapeHtml(c.vehicle)})` : ''}${wa ? ` · <a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">💬 falar</a>` : ''}</p>`;
+    }
+    if (order.status === 'pronto' && !order.is_takeout) {
+        return `<p class="text-xs text-amber-700 mt-0.5">⏳ Aguardando um entregador aceitar a corrida</p>`;
+    }
+    return '';
 }
 
 /**
@@ -312,6 +334,7 @@ function renderOrders(orders) {
                 ${itemsList ? `<p class="text-xs text-gray-700 mt-1">🛒 ${escapeHtml(itemsList)}</p>` : ''}
                 <p class="text-xs text-gray-600 mt-1">📍 ${order.is_takeout ? 'Retirada no local' : escapeHtml(addr.address || 'Endereço não informado')}</p>
                 ${addr.notes ? `<p class="text-xs text-gray-600 mt-0.5">📝 ${escapeHtml(addr.notes)}</p>` : ''}
+                ${courierLine(order)}
                 <p class="text-xs text-gray-500 mt-0.5">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>
                 ${clientWhatsapp ? `<div class="flex flex-wrap items-center gap-2 mt-2">
                     <a data-notify-client="${escapeHtml(order.id)}" href="https://wa.me/${clientWhatsapp}?text=${encodeURIComponent(customerStatusMessage(order))}" target="_blank" rel="noopener"
@@ -325,7 +348,7 @@ function renderOrders(orders) {
                     <option value="novo" ${order.status === 'novo' ? 'selected' : ''}>Pendente</option>
                     <option value="em_preparacao" ${order.status === 'em_preparacao' ? 'selected' : ''}>Em Preparação</option>
                     <option value="pronto" ${order.status === 'pronto' ? 'selected' : ''}>${order.is_takeout ? 'Pronto p/ Cliente Retirar' : 'Pronto p/ Retirada (entregador)'}</option>
-                    ${order.is_takeout ? '' : `<option value="em_rota" ${order.status === 'em_rota' ? 'selected' : ''}>A Caminho</option>`}
+                    ${order.is_takeout ? '' : `<option value="em_rota" ${order.status === 'em_rota' ? 'selected' : ''}>${order.courier_ref ? 'A Caminho (entregador)' : 'A Caminho (entrega própria)'}</option>`}
                     <option value="entregue" ${order.status === 'entregue' ? 'selected' : ''}>Concluído</option>
                     <option value="cancelado" ${order.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
                 </select>

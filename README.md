@@ -20,7 +20,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Lojista | `15_gerenciar_cardapio.html` + `16_menu_management.js` | Cardápio: adicionar, editar, pausar, remover produtos, com foto (reduzida no navegador e enviada ao Storage) |
 | Lojista | `17_gerenciar_orcamentos.html` + `.js` | Painel das lojas tipo orçamento (visita → proposta → pagamento → execução) |
 | Lojista | `13_printable_table_qr.html?slug=` | Display com QR Code para o balcão, apontando para a página da loja |
-| Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho, aceite exclusivo, PIN conferido no banco, histórico e ganhos |
+| Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho (atualiza sozinha, sem dados do cliente até aceitar), aceite exclusivo, mapa e WhatsApp do cliente/loja, devolver corrida, PIN digitado na tela e conferido no banco, histórico e ganhos. Loja e cliente veem quem está levando |
 | Admin | `14_admin_analytics_dashboard.html` + `admin-manage.js` | GMV, comissão, recorrência, ranking de produtos; editar lojas e definir dono por e-mail; ativar/desativar lojas e entregadores; pedidos do período com cancelamento; moderação do mural |
 
 Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
@@ -75,7 +75,7 @@ Login por **link no e-mail** (Supabase Auth, sem senha) para lojista, entregador
 |---|---|---|
 | Cliente | sem login | faz pedido, acompanha e avalia só pelo link do pedido (funções `place_order`, `get_order_public`, `get_orders_*`, `create_service_request`, ...) |
 | Lojista | `stores.owner_id = auth.uid()` | só a própria loja, produtos, pedidos e orçamentos |
-| Entregador | `couriers.user_id = auth.uid()` | fila de corridas livres e as próprias; aceite e PIN via `accept_ride` / `finish_ride` |
+| Entregador | `couriers.user_id = auth.uid()` | lê só as próprias corridas; as livres vêm de `list_available_rides` (sem nome/telefone); `accept_ride`, `release_ride`, `finish_ride` (só quem aceitou) |
 | Admin | `profiles.role = 'admin'` (e-mails em `admin_emails` viram admin no 1º login) | tudo |
 
 Lojas cadastradas antes do login não têm dono: o primeiro lojista que abrir o painel dela logado
