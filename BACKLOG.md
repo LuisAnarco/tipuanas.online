@@ -25,6 +25,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 7. Manter o padrão do código: HTML + Tailwind CDN + `config.js`/`auth.js`, textos em português,
    sempre `escapeHtml` ao montar HTML com dados do banco, cliente sem login usando funções (RPC).
 8. Atualizar o `README.md` quando mudar telas, tabelas ou fluxo.
+9. **Pular** itens marcados _(depende do Luis)_ ou _(adiado)_; seguir para o próximo `[ ]`.
 
 ## Itens (prioridade de cima para baixo)
 
@@ -88,7 +89,8 @@ O que ainda impede a operação real, em ordem de impacto:
   desativada (gatilho no banco; o dono não consegue se aprovar), fora da vitrine e sem pedidos.
   Painel mostra "Primeiros passos" (logo, horário, 3 produtos, foto, QR) e o botão de pedir aprovação
   pelo WhatsApp; admin vê as pendentes no topo com Aprovar/Recusar.
-- [ ] **24. Fotos de demonstração.** Fotos livres (domínio público) nos produtos fictícios.
+- [ ] **24. Fotos de demonstração.** _(adiado — pedido do Luis em 28/09: foco no funcionamento)_ Fotos
+  livres (domínio público) nos produtos fictícios.
 
 ## Próximos itens (propostos na revisão geral)
 
@@ -118,3 +120,56 @@ O que ainda impede a operação real, em ordem de impacto:
   `02_schema_design.json` (desatualizado) saiu. `profiles` fica (dono das lojas e login).
 - [ ] **18. Domínio de produção.** _(depende do Luis)_ Apontar o domínio no Vercel, incluir a URL em
   Supabase → Auth → Redirect URLs e trocar o e-mail padrão por SMTP próprio quando houver.
+
+## Rodada estilo iFood (levantada em 29/09/2026)
+
+Comparação do que o iFood oferece (ver `Claude outputs/como-o-ifood-funciona.md`) com o que o
+Tipuanas já tem. Ordem: primeiro o que faz o pedido sair certo, depois o que traz o cliente de volta,
+depois ferramentas do lojista e do entregador. Tudo com validação no banco (preço nunca confiado ao
+navegador) e testes no `npm test`.
+
+**Pedido certo**
+- [ ] **25. Adicionais e variações do produto.** Tamanho (P/M/G), sabores (ex.: pizza meio a meio),
+  extras pagos (borda, bacon) e "retirar ingrediente", com mínimo/máximo por grupo e observação por
+  item. Banco: grupos e opções por produto; `place_order` recalcula o preço com as opções e guarda o
+  escolhido em `order_items`. Vitrine abre um painel do produto antes de pôr na sacola; lojista monta
+  os grupos no cardápio. É a maior diferença para o iFood hoje.
+- [ ] **26. Pagamento claro no checkout.** "Troco para quanto?" quando for dinheiro (vai para a loja e
+  para o entregador) e **Pix copia-e-cola / QR** com a chave Pix da loja e o valor exato do pedido
+  (BR Code estático gerado no navegador, sem intermediário). Lojista cadastra a chave Pix nos dados
+  da loja; cliente pode mandar o comprovante pelo WhatsApp.
+- [ ] **27. Pedido mínimo e taxa por bairro.** Lojista define pedido mínimo e, opcionalmente, taxa
+  diferente por bairro/rua (lista simples). Sacola mostra "faltam R$ X para o mínimo" e a taxa certa
+  ao escolher o bairro; `place_order` valida os dois.
+
+**Cliente acompanha e volta**
+- [ ] **28. Aviso no celular do cliente e previsão de entrega.** Web Push opcional no acompanhamento
+  ("Me avise quando mudar") reaproveitando a infraestrutura do lojista (inscrição ligada ao pedido, sem
+  login); a cada mudança de status chega a notificação. Acompanhamento mostra previsão ("chega entre
+  19h40 e 19h55") a partir do tempo de preparo da loja.
+- [ ] **29. "Pedir de novo" e lojas favoritas.** Em Meus pedidos, botão que refaz a sacola com os
+  mesmos itens (avisando o que esgotou ou mudou de preço). Coração nas lojas, faixa "Suas favoritas"
+  no topo da vitrine (guardado no aparelho).
+- [ ] **30. Filtros e ordenação na vitrine.** Chips "Aberto agora", "Entrega grátis", "Com cupom",
+  "Mais bem avaliadas", "Mais rápidas" e ordenação; busca tolerante a acento e erro de digitação.
+- [ ] **31. Agendar pedido.** Loja fechada ou cliente que quer para mais tarde escolhe horário dentro
+  do funcionamento; pedido fica "agendado" e aparece para a loja no horário (com aviso antecipado).
+- [ ] **32. Fidelidade por loja.** Cartão de selos por WhatsApp: a cada N pedidos entregues o cliente
+  ganha um cupom daquela loja (lojista liga/desliga e define N e o desconto). Mostra o progresso no
+  acompanhamento e na página da loja.
+
+**Lojista**
+- [ ] **33. Comanda e pedido parado.** Botão "Imprimir comanda" (layout de impressora térmica 58/80 mm)
+  e alerta forte quando um pedido novo passa de 5 minutos sem ser aceito (som repetido + destaque),
+  com opção de aceite automático.
+- [ ] **34. Lojista responde avaliações.** Resposta pública embaixo da avaliação na página da loja;
+  aviso no painel de avaliação nova e nota média dos últimos 30 dias.
+- [ ] **35. Desempenho da loja.** Horários e dias de pico, ticket médio por dia, clientes novos x
+  recorrentes, produtos que mais saem e os que nunca saem (para tirar do cardápio).
+
+**Entregador**
+- [ ] **36. Aviso de corrida nova e avaliação da entrega.** Push para entregadores ativos quando uma
+  corrida fica livre (quem aceitar primeiro leva); cliente avalia a entrega (1 a 5) no acompanhamento
+  e o entregador vê a própria média. Sem punição automática nem horário obrigatório (ver o alerta
+  sobre vínculo em `como-o-ifood-funciona.md`).
+
