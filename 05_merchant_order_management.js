@@ -304,47 +304,106 @@ function courierLine(order) {
 }
 
 /**
- * Renderiza a lista de pedidos no HTML
+ * Próximo passo de cada pedido: um botão grande por ação, na ordem do fluxo.
+ * O seletor completo fica em "Mais opções" para correções.
+ */
+function nextActions(order) {
+    switch (order.status) {
+        case 'novo':
+            return [{ status: 'em_preparacao', label: '✅ Aceitar pedido', kind: 'primary' }, { status: 'cancelado', label: 'Recusar', kind: 'danger' }];
+        case 'em_preparacao':
+            return [{ status: 'pronto', label: order.is_takeout ? '🛍️ Pronto para o cliente retirar' : '📦 Pronto — chamar entregador', kind: 'primary' }];
+        case 'pronto':
+            return order.is_takeout
+                ? [{ status: 'entregue', label: '✅ Cliente retirou', kind: 'primary' }]
+                : [{ status: 'em_rota', label: '🛵 Saiu com entrega própria', kind: 'secondary' }];
+        case 'em_rota':
+            return order.courier_ref ? [] : [{ status: 'entregue', label: '✅ Entregue', kind: 'primary' }];
+        default:
+            return [];
+    }
+}
+
+const ACTION_STYLES = {
+    primary: 'flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3 rounded-xl',
+    secondary: 'flex-1 bg-white border-2 border-emerald-600 text-emerald-700 text-sm font-bold py-3 rounded-xl',
+    danger: 'bg-white border border-red-200 text-red-600 text-sm font-bold px-4 py-3 rounded-xl'
+};
+
+// Ordem na lista: o que precisa de ação primeiro
+const STATUS_RANK = { novo: 0, em_preparacao: 1, pronto: 2, em_rota: 3, entregue: 4, cancelado: 5 };
+let ordersById = {};
+
+function timeAgo(iso) {
+    const min = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+    if (min < 1) return 'agora';
+    if (min < 60) return `há ${min} min`;
+    if (min < 24 * 60) return `há ${Math.floor(min / 60)} h`;
+    return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * Renderiza a lista de pedidos: ativos no topo (mais antigo primeiro), finalizados depois
  */
 function renderOrders(orders) {
     const listContainer = document.getElementById('orders-list');
+    ordersById = Object.fromEntries((orders || []).map(o => [o.id, o]));
     if (!orders || orders.length === 0) {
         listContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">Aguardando novos pedidos...</p>`;
         return;
     }
 
-    listContainer.innerHTML = orders.map(order => {
-        const addr = order.delivery_address || {};
-        const itemsList = (order.order_items || [])
-            .map(it => `${it.quantity}x ${it.products ? it.products.name : 'Item'}`)
-            .join(', ');
-        const clientWhatsapp = toWhatsappNumber(addr.client_phone);
-        const createdAt = new Date(order.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        const isNew = order.status === 'novo';
+    const isDone = o => ['entregue', 'cancelado'].includes(o.status);
+    const active = orders.filter(o => !isDone(o))
+        .sort((a, b) => (STATUS_RANK[a.status] - STATUS_RANK[b.status]) || (new Date(a.created_at) - new Date(b.created_at)));
+    const done = orders.filter(isDone).slice(0, 30);
 
-        return `
-        <div class="border ${isNew ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'} rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    listContainer.innerHTML = [
+        active.length ? active.map(orderCard).join('') : '<p class="text-sm text-gray-400 text-center py-4">Nenhum pedido em andamento.</p>',
+        done.length ? `<h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 pt-2">Finalizados</h3>${done.map(orderCard).join('')}` : ''
+    ].join('');
+}
+
+function orderCard(order) {
+    const addr = order.delivery_address || {};
+    const itemsList = (order.order_items || [])
+        .map(it => `${it.quantity}x ${it.products ? it.products.name : 'Item'}`)
+        .join(', ');
+    const clientWhatsapp = toWhatsappNumber(addr.client_phone);
+    const isNew = order.status === 'novo';
+    const isDone = ['entregue', 'cancelado'].includes(order.status);
+    const id = escapeHtml(order.id);
+    const actions = nextActions(order);
+    const border = isNew ? 'border-2 border-amber-400 bg-amber-50' : isDone ? 'border border-gray-200 bg-gray-50 opacity-80' : 'border border-emerald-200 bg-white';
+
+    return `
+    <div data-order="${id}" class="${border} rounded-lg p-4 space-y-2">
+        <div class="flex justify-between items-start gap-2">
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="font-bold text-gray-900">#${order.id.slice(0, 8)}</span>
-                    <span class="text-xs text-gray-500">• ${escapeHtml(addr.client_name || 'Cliente')}</span>
                     <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${STATUS_LABELS[order.status] || escapeHtml(order.status)}</span>
-                    <span class="text-[10px] text-gray-400">${createdAt}</span>
+                    <span class="text-[11px] text-gray-400">${escapeHtml(timeAgo(order.created_at))}</span>
                 </div>
-                ${itemsList ? `<p class="text-xs text-gray-700 mt-1">🛒 ${escapeHtml(itemsList)}</p>` : ''}
-                <p class="text-xs text-gray-600 mt-1">📍 ${order.is_takeout ? 'Retirada no local' : escapeHtml(addr.address || 'Endereço não informado')}</p>
-                ${addr.notes ? `<p class="text-xs text-gray-600 mt-0.5">📝 ${escapeHtml(addr.notes)}</p>` : ''}
-                ${courierLine(order)}
-                <p class="text-xs text-gray-500 mt-0.5">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>
-                ${clientWhatsapp ? `<div class="flex flex-wrap items-center gap-2 mt-2">
-                    <a data-notify-client="${escapeHtml(order.id)}" href="https://wa.me/${clientWhatsapp}?text=${encodeURIComponent(customerStatusMessage(order))}" target="_blank" rel="noopener"
-                       class="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-2.5 py-1.5 ${order.id === lastStatusChange ? 'ring-4 ring-emerald-200 animate-pulse' : ''}">📲 Avisar cliente: ${STATUS_LABELS[order.status] || escapeHtml(order.status)}</a>
-                    <a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="text-[11px] text-emerald-700 hover:underline">💬 Conversar (${escapeHtml(addr.client_phone)})</a>
-                </div>` : ''}
+                <p class="text-sm font-semibold text-gray-800 mt-0.5">${escapeHtml(addr.client_name || 'Cliente')} ${order.is_takeout ? '<span class="text-[11px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">RETIRADA</span>' : ''}</p>
             </div>
-            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end shrink-0">
-                <span class="font-bold text-gray-900 text-sm">${formatBRL(order.total_amount)}</span>
-                <select onchange="updateOrderStatus('${order.id}', this.value)" class="text-xs border border-gray-300 rounded p-1.5 bg-white">
+            <span class="font-extrabold text-gray-900 shrink-0">${formatBRL(order.total_amount)}</span>
+        </div>
+        ${itemsList ? `<p class="text-sm text-gray-700">🛒 ${escapeHtml(itemsList)}</p>` : ''}
+        ${order.is_takeout ? '' : `<p class="text-xs text-gray-600">📍 ${escapeHtml(addr.address || 'Endereço não informado')}</p>`}
+        ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
+        ${courierLine(order)}
+        <p class="text-xs text-gray-500">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>
+        ${order.status === 'em_rota' && order.courier_ref ? '<p class="text-[11px] text-gray-500">O entregador conclui com o PIN do cliente.</p>' : ''}
+        ${actions.length ? `<div class="flex gap-2 pt-1">${actions.map(a => `<button data-order-action="${id}" data-status="${a.status}" class="${ACTION_STYLES[a.kind]}">${a.label}</button>`).join('')}</div>` : ''}
+        <div class="flex flex-wrap items-center gap-2">
+            ${clientWhatsapp ? `
+                <a data-notify-client="${id}" href="https://wa.me/${clientWhatsapp}?text=${encodeURIComponent(customerStatusMessage(order))}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-2.5 py-1.5 ${order.id === lastStatusChange ? 'ring-4 ring-emerald-200 animate-pulse' : ''}">📲 Avisar cliente: ${STATUS_LABELS[order.status] || escapeHtml(order.status)}</a>
+                <a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="text-[11px] text-emerald-700 hover:underline">💬 Conversar (${escapeHtml(addr.client_phone)})</a>` : ''}
+            <details class="ml-auto text-[11px] text-gray-500">
+                <summary class="cursor-pointer select-none">Mais opções</summary>
+                <select data-status-select="${id}" onchange="updateOrderStatus('${order.id}', this.value)" class="mt-1 text-xs border border-gray-300 rounded p-1.5 bg-white">
                     <option value="novo" ${order.status === 'novo' ? 'selected' : ''}>Pendente</option>
                     <option value="em_preparacao" ${order.status === 'em_preparacao' ? 'selected' : ''}>Em Preparação</option>
                     <option value="pronto" ${order.status === 'pronto' ? 'selected' : ''}>${order.is_takeout ? 'Pronto p/ Cliente Retirar' : 'Pronto p/ Retirada (entregador)'}</option>
@@ -352,11 +411,51 @@ function renderOrders(orders) {
                     <option value="entregue" ${order.status === 'entregue' ? 'selected' : ''}>Concluído</option>
                     <option value="cancelado" ${order.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
                 </select>
-            </div>
+            </details>
         </div>
-    `;
-    }).join('');
+    </div>`;
 }
+
+/**
+ * Toque no botão de ação. Com "avisar no mesmo toque" ligado, já abre o WhatsApp
+ * do cliente com a mensagem do novo status (tem que ser no clique, antes de
+ * qualquer await, senão o navegador bloqueia a janela).
+ */
+function onOrderAction(orderId, newStatus) {
+    const order = ordersById[orderId];
+    if (!order) return;
+    if (newStatus === 'cancelado' && !confirm('Recusar este pedido? Avise o cliente pelo WhatsApp.')) return;
+    const phone = toWhatsappNumber((order.delivery_address || {}).client_phone);
+    if (phone && isNotifyOnTap()) {
+        const text = customerStatusMessage({ ...order, status: newStatus });
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    }
+    updateOrderStatus(orderId, newStatus, { confirmed: true });
+}
+
+const NOTIFY_ON_TAP_KEY = 'tipuanas_notify_on_tap';
+function isNotifyOnTap() {
+    try { return localStorage.getItem(NOTIFY_ON_TAP_KEY) === '1'; } catch (e) { return false; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const list = document.getElementById('orders-list');
+    if (list) {
+        list.addEventListener('click', event => {
+            const btn = event.target.closest('[data-order-action]');
+            if (!btn) return;
+            btn.disabled = true;
+            onOrderAction(btn.dataset.orderAction, btn.dataset.status);
+        });
+    }
+    const toggle = document.getElementById('notify-on-tap');
+    if (toggle) {
+        toggle.checked = isNotifyOnTap();
+        toggle.addEventListener('change', () => {
+            try { localStorage.setItem(NOTIFY_ON_TAP_KEY, toggle.checked ? '1' : '0'); } catch (e) { /* sem armazenamento */ }
+        });
+    }
+});
 
 /** Pedido cujo status acabou de mudar: o botão "Avisar cliente" dele fica em destaque */
 let lastStatusChange = null;
@@ -390,8 +489,8 @@ function customerStatusMessage(order) {
 /**
  * Atualiza o status de um pedido no banco de dados
  */
-async function updateOrderStatus(orderId, newStatus) {
-    if (newStatus === 'cancelado' && !confirm('Cancelar este pedido? Avise o cliente pelo WhatsApp.')) {
+async function updateOrderStatus(orderId, newStatus, { confirmed = false } = {}) {
+    if (newStatus === 'cancelado' && !confirmed && !confirm('Cancelar este pedido? Avise o cliente pelo WhatsApp.')) {
         fetchOrders();
         return;
     }
@@ -423,7 +522,7 @@ function updateMetrics(orders) {
 
     document.getElementById('total-orders-today').textContent = totalOrders;
     document.getElementById('total-revenue-today').textContent = formatBRL(totalRevenue);
-    document.getElementById('pending-badge').textContent = `${pendingCount} Pendentes`;
+    document.getElementById('pending-badge').textContent = `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}`;
     // Contador na aba: dá para ver pedido novo mesmo olhando outra guia
     document.title = `${pendingCount ? `(${pendingCount}) ` : ''}Painel do Comerciante - Tipuanas.online`;
 

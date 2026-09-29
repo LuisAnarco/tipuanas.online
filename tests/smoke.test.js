@@ -406,11 +406,11 @@ test('login: sem sessão mostra tela de e-mail e envia link para a página atual
 test('lojista: vincula loja sem dono e vê pedidos escapados', { loggedIn: true }, async (page, db) => {
     db.orders.find(o => o.id === O1).status = 'novo';
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
-    await page.waitForSelector('#orders-list select');
+    await page.waitForSelector('#orders-list [data-order]');
     assert.ok(db.calls.some(c => c.fn === 'claim_store'), 'claim_store chamado');
     assert.ok(!(await page.$('#orders-list script')), 'nome do cliente escapado');
     assert.strictEqual(await page.textContent('#total-orders-today'), '2', 'pedidos de hoje sem cancelados');
-    assert.strictEqual(await page.textContent('#pending-badge'), '1 Pendentes');
+    assert.strictEqual(await page.textContent('#pending-badge'), '1 pendente');
     assert.strictEqual(await page.title(), '(1) Painel do Comerciante - Tipuanas.online', 'contador de pendentes na aba');
     assert.ok((await page.textContent('#user-bar')).includes(USER.email));
     await page.waitForSelector('#reviews-section:not(.hidden)');
@@ -453,8 +453,13 @@ test('lojista: avisar o cliente pelo WhatsApp com mensagem do status e link de a
     assert.ok(href.includes('está sendo preparado') && href.includes(`11_order_tracking_realtime.html?id=${O1}`), 'mensagem do status + link');
     assert.ok(!href.includes('<script>'), 'nome do cliente só pelo primeiro nome');
 
-    await page.selectOption(`[data-notify-client="${O1}"] >> xpath=ancestor::div[contains(@class,"rounded-lg")][1] >> select`, 'em_rota');
+    // Botões grandes seguem o fluxo: Pronto → Saiu com entrega própria
+    await page.click(`[data-order-action="${O1}"][data-status="pronto"]`);
+    await page.waitForSelector(`[data-order-action="${O1}"][data-status="em_rota"]`);
+    await page.click(`[data-order-action="${O1}"][data-status="em_rota"]`);
     await page.waitForFunction(id => decodeURIComponent(document.querySelector(`[data-notify-client="${id}"]`).href).includes('saiu para entrega'), O1);
+    assert.ok(await page.$(`[data-order-action="${O1}"][data-status="entregue"]`), 'entrega própria: botão Entregue');
+    assert.deepStrictEqual(db.writes.filter(w => w.table === 'orders').map(w => w.body.status), ['pronto', 'em_rota']);
     href = decodeURIComponent(await page.getAttribute(`[data-notify-client="${O1}"]`, 'href'));
     assert.ok(href.includes('PIN 1234'), 'PIN na mensagem de saída para entrega');
     assert.ok((await page.getAttribute(`[data-notify-client="${O1}"]`, 'class')).includes('animate-pulse'), 'botão em destaque depois da mudança');
@@ -471,7 +476,7 @@ test('push: lojista ativa alertas e o aparelho fica inscrito na loja', { loggedI
         Object.defineProperty(navigator, 'serviceWorker', { value: { register: async () => reg, ready: Promise.resolve(reg) } });
     });
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
-    await page.waitForSelector('#orders-list select');
+    await page.waitForSelector('#orders-list [data-order]');
     await page.click('#alerts-btn');
     await page.waitForSelector('#push-hint:not(.hidden)');
     assert.ok((await page.textContent('#push-hint')).includes('mesmo com o painel fechado'), await page.textContent('#push-hint'));
@@ -507,6 +512,27 @@ test('push: service worker mostra o aviso e abre o painel ao tocar', {}, async (
     await Promise.all(waits);
     assert.ok(closed, 'notificação fechada');
     assert.deepStrictEqual(opened, ['https://tipuanas.test/04_merchant_portal.html?store=' + S1]);
+});
+
+test('lojista: pedido novo no topo, aceitar com um toque e avisar o cliente no mesmo toque', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    db.orders.push({ id: 'aaaaaaaa-0000-0000-0000-000000000009', store_id: S1, status: 'novo', total_amount: 9, delivery_fee: 0, is_takeout: true, delivery_pin: '4444',
+        created_at: new Date().toISOString(), delivery_address: { client_name: 'Duda', client_phone: '48988887777', payment_method: 'Pix' }, order_items: [] });
+    await page.addInitScript(() => { window.__opened = []; window.open = (url) => { window.__opened.push(url); return null; }; });
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#orders-list [data-order]');
+    const order = await page.$$eval('#orders-list [data-order]', els => els.map(e => e.dataset.order));
+    assert.strictEqual(order[0], 'aaaaaaaa-0000-0000-0000-000000000009', 'pedido novo primeiro');
+    assert.strictEqual(order[order.length - 1], 'aaaaaaaa-0000-0000-0000-000000000002', 'finalizado por último');
+
+    await page.check('#notify-on-tap');
+    await page.click('[data-order-action="aaaaaaaa-0000-0000-0000-000000000009"][data-status="em_preparacao"]');
+    await page.waitForSelector('[data-order-action="aaaaaaaa-0000-0000-0000-000000000009"][data-status="pronto"]');
+    const opened = await page.evaluate(() => window.__opened);
+    assert.strictEqual(opened.length, 1);
+    assert.ok(decodeURIComponent(opened[0]).startsWith('https://wa.me/5548988887777?text=') && decodeURIComponent(opened[0]).includes('sendo preparado'), opened[0]);
+    assert.ok((await page.textContent('[data-order-action="aaaaaaaa-0000-0000-0000-000000000009"][data-status="pronto"]')).includes('retirar'), 'retirada: pronto para retirar');
+    assert.strictEqual(await page.evaluate(() => localStorage.getItem('tipuanas_notify_on_tap')), '1', 'preferência lembrada');
 });
 
 test('lojista: extrato do mês com comissão, filtro por mês e CSV', { loggedIn: true }, async (page, db) => {
