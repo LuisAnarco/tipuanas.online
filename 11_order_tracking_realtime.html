@@ -286,6 +286,11 @@
             if (isTakeout && order.status === 'pronto') {
                 current = { icon: '🏪', title: 'Pronto para Retirada', desc: 'Pode passar na loja para buscar seu pedido.' };
             }
+            // Quem está levando (primeiro nome e veículo, quando um entregador aceitou)
+            if (order.status === 'em_rota' && order.courier && order.courier.name) {
+                const vehicle = order.courier.vehicle ? ` (${order.courier.vehicle})` : '';
+                current = { ...current, desc: `${order.courier.name}${vehicle} está levando seu pedido. Tenha o PIN em mãos.` };
+            }
             document.getElementById('status-icon').textContent = current.icon;
             document.getElementById('status-title').textContent = current.title;
             document.getElementById('status-desc').textContent = current.desc;

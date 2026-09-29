@@ -50,16 +50,17 @@
         </div>
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
           <p class="text-[11px] text-gray-500">Ganhos hoje</p>
-          <p id="stat-today-earn" class="text-xl font-bold text-emerald-600">R$ 0.00</p>
+          <p id="stat-today-earn" class="text-xl font-bold text-emerald-600">R$ 0,00</p>
         </div>
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
           <p class="text-[11px] text-gray-500">Ganhos totais</p>
-          <p id="stat-total-earn" class="text-xl font-bold text-emerald-600">R$ 0.00</p>
+          <p id="stat-total-earn" class="text-xl font-bold text-emerald-600">R$ 0,00</p>
         </div>
       </div>
 
       <div>
         <h2 class="text-lg font-bold mb-3">Minhas entregas em andamento</h2>
+        <p class="text-xs text-gray-500 -mt-2 mb-3">Na entrega, peça ao cliente o PIN de 4 dígitos (ele aparece na página de acompanhamento do pedido).</p>
         <div id="feed-mine" class="space-y-4"></div>
       </div>
 
@@ -76,22 +77,27 @@
       </div>
     </section>
   </div>
+  <div id="toast" class="hidden" role="status" aria-live="polite"></div>
 
   <script>
     // Sem delivery_pin: o PIN só é conferido no banco (finish_ride)
     const RIDE_COLUMNS = 'id, store_id, status, total_amount, delivery_fee, delivery_address, created_at, courier_ref';
+    const REFRESH_MS = 20000; // corridas livres não chegam pelo tempo real (RLS), então atualiza sozinho
     let currentUser = null;
     let courier = null;
     let storesCache = {};
+    let refreshTimer = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('su-submit').addEventListener('click', cadastrar);
         // Delegação: botões das corridas
         document.getElementById('panel-section').addEventListener('click', event => {
             const accept = event.target.closest('[data-accept]');
-            if (accept) aceitarCorrida(accept.dataset.accept);
+            if (accept) aceitarCorrida(accept.dataset.accept, accept);
             const finish = event.target.closest('[data-finish]');
-            if (finish) finalizarEntrega(finish.dataset.finish);
+            if (finish) finalizarEntrega(finish.dataset.finish, finish);
+            const release = event.target.closest('[data-release]');
+            if (release) desistir(release.dataset.release);
         });
         init();
     });
@@ -151,18 +157,26 @@
         document.getElementById('courier-name').textContent = `${record.name}${record.vehicle ? ` • ${record.vehicle}` : ''}`;
         document.getElementById('panel-section').classList.remove('hidden');
         loadAll();
+        // Tempo real: mudanças nas minhas corridas (ex.: loja cancelou)
         sb.channel('public:orders:entregador')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => loadAll())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `courier_ref=eq.${record.id}` }, () => loadAll())
             .subscribe();
+        refreshTimer = setInterval(() => { if (!document.hidden) loadAll(); }, REFRESH_MS);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) loadAll(); });
+    }
+
+    function toast(message, kind = 'ok') {
+        const el = document.getElementById('toast');
+        el.textContent = message;
+        el.className = `fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] text-center text-sm font-bold px-4 py-3 rounded-xl shadow-lg ${kind === 'ok' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`;
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => el.classList.add('hidden'), 3500);
     }
 
     async function loadAll() {
-        // pronto = aguardando entregador aceitar; em_rota sem entregador = corrida antiga (antes do cadastro)
         const [available, mine, history] = await Promise.all([
-            sb.from('orders').select(RIDE_COLUMNS)
-                .or('status.eq.pronto,and(status.eq.em_rota,courier_ref.is.null)')
-                .not('is_takeout', 'is', true) // retirada pelo próprio cliente não vira corrida
-                .order('created_at', { ascending: true }),
+            // Corridas livres: sem nome/telefone do cliente até aceitar
+            sb.rpc('list_available_rides'),
             sb.from('orders').select(RIDE_COLUMNS).eq('status', 'em_rota').eq('courier_ref', courier.id).order('created_at', { ascending: true }),
             sb.from('orders').select('id, store_id, delivery_fee, created_at, delivery_address').eq('status', 'entregue').eq('courier_ref', courier.id).order('created_at', { ascending: false }).limit(100)
         ]);
@@ -173,10 +187,12 @@
             return;
         }
 
-        await ensureStoresLoaded([...available.data, ...mine.data, ...history.data].map(o => o.store_id));
+        await ensureStoresLoaded([...mine.data, ...history.data].map(o => o.store_id));
 
-        renderFeed('feed-mine', mine.data, 'Nenhuma entrega em andamento.');
-        renderFeed('feed-entregas', available.data, 'Nenhuma corrida disponível no momento.');
+        const count = (available.data || []).length;
+        document.title = `${count ? `(${count}) ` : ''}Painel do Entregador — Tipuanas.online`;
+        renderMine(mine.data);
+        renderAvailable(available.data || []);
         renderHistory(history.data);
     }
 
@@ -192,43 +208,80 @@
         (stores || []).forEach(s => { storesCache[s.id] = s; });
     }
 
-    function renderFeed(elementId, orders, emptyMsg) {
-        const el = document.getElementById(elementId);
-        if (!orders || orders.length === 0) {
-            el.innerHTML = `<p class="text-gray-500 text-sm">${emptyMsg}</p>`;
+    function mapsLink(address) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    }
+
+    function feeLabel(fee) {
+        return Number(fee || 0) > 0 ? `Você ganha ${formatBRL(fee)}` : 'Taxa a combinar';
+    }
+
+    function renderAvailable(rides) {
+        const el = document.getElementById('feed-entregas');
+        if (rides.length === 0) {
+            el.innerHTML = '<p class="text-gray-500 text-sm">Nenhuma corrida disponível no momento. A lista se atualiza sozinha.</p>';
             return;
         }
+        el.innerHTML = rides.map(r => `
+            <div class="bg-white p-4 rounded-xl shadow border border-amber-200 space-y-2" data-ride="${escapeHtml(r.id)}">
+                <div class="flex justify-between items-start gap-2">
+                    <div>
+                        <p class="text-xs text-gray-500">#${escapeHtml(r.id.slice(0, 6))} • ${escapeHtml(timeAgo(r.created_at))}</p>
+                        <h3 class="font-bold">${escapeHtml(r.store_name || 'Loja')}</h3>
+                    </div>
+                    <span class="shrink-0 bg-emerald-100 text-emerald-800 text-sm font-extrabold px-2.5 py-1 rounded-lg">${feeLabel(r.delivery_fee)}</span>
+                </div>
+                <p class="text-xs text-gray-600">📍 Retirar: ${escapeHtml(r.store_address || 'endereço não informado')}</p>
+                <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(r.delivery_address || 'endereço não informado')}</p>
+                <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(r.total_amount)} (${escapeHtml(r.payment_method || '—')})</p>
+                <button data-accept="${escapeHtml(r.id)}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm py-3 rounded-xl">Aceitar corrida</button>
+            </div>
+        `).join('');
+    }
 
+    function renderMine(orders) {
+        const el = document.getElementById('feed-mine');
+        if (!orders || orders.length === 0) {
+            el.innerHTML = '<p class="text-gray-500 text-sm">Nenhuma entrega em andamento.</p>';
+            return;
+        }
         el.innerHTML = orders.map(order => {
-            const store = storesCache[order.store_id];
-            const storeName = store ? store.name : 'Loja';
-            const storeAddress = store ? store.address_line : '';
+            const store = storesCache[order.store_id] || {};
             const addr = order.delivery_address || {};
             const clientWhatsapp = toWhatsappNumber(addr.client_phone);
-            const fee = Number(order.delivery_fee || 0);
-            const isReady = order.status === 'pronto';
-
+            const storeWhatsapp = toWhatsappNumber(store.whatsapp_number);
+            const id = escapeHtml(order.id);
             return `
-                <div class="bg-white p-5 rounded-xl shadow border border-gray-200 flex flex-col md:flex-row justify-between md:items-center gap-3">
-                    <div>
-                        <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">Retirar em: ${escapeHtml(storeName)}</span>
-                        <h3 class="font-bold text-lg mt-1">Corrida #${order.id.slice(0, 6)} <span class="text-emerald-600 text-base">• ${fee > 0 ? `Você ganha ${formatBRL(fee)}` : 'Taxa a combinar'}</span></h3>
-                        <p class="text-xs text-gray-500">📍 Retirada: ${escapeHtml(storeAddress || 'endereço não informado')}</p>
-                        <p class="text-xs text-gray-500">🏁 Entrega: ${escapeHtml(addr.address || 'endereço não informado')}${addr.client_name ? ` — ${escapeHtml(addr.client_name)}` : ''}</p>
-                        <p class="text-xs text-gray-500">💳 Cobrar: ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</p>
-                        ${addr.notes ? `<p class="text-xs text-gray-500">📝 ${escapeHtml(addr.notes)}</p>` : ''}
-                        ${!isReady && clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="inline-block text-xs text-emerald-700 hover:underline mt-1">💬 Falar com o cliente</a>` : ''}
+                <div class="bg-white p-4 rounded-xl shadow border-2 border-emerald-300 space-y-2">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <p class="text-xs text-gray-500">#${escapeHtml(order.id.slice(0, 6))} • ${escapeHtml(store.name || 'Loja')}</p>
+                            <h3 class="font-bold">${escapeHtml(addr.client_name || 'Cliente')}</h3>
+                        </div>
+                        <span class="shrink-0 text-emerald-700 text-sm font-extrabold">${feeLabel(order.delivery_fee)}</span>
                     </div>
-
-                    <div class="shrink-0">
-                        ${isReady
-                            ? `<button data-accept="${escapeHtml(order.id)}" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-lg">Aceitar Corrida</button>`
-                            : `<button data-finish="${escapeHtml(order.id)}" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-lg">Confirmar PIN e Entregar</button>`
-                        }
+                    <p class="text-xs text-gray-600">📍 Retirar: ${escapeHtml(store.address_line || 'endereço não informado')}</p>
+                    <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(addr.address || 'endereço não informado')}</p>
+                    <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</p>
+                    ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
+                    <div class="grid grid-cols-3 gap-2 text-xs font-bold text-center">
+                        ${addr.address ? `<a href="${mapsLink(addr.address)}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🗺️ Mapa</a>` : '<span></span>'}
+                        ${clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">💬 Cliente</a>` : '<span></span>'}
+                        ${storeWhatsapp ? `<a href="https://wa.me/${storeWhatsapp}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🏪 Loja</a>` : '<span></span>'}
                     </div>
+                    <div class="flex gap-2">
+                        <input data-pin-for="${id}" type="text" inputmode="numeric" maxlength="4" placeholder="PIN do cliente" class="w-32 text-center text-lg tracking-widest font-bold p-2 rounded-lg border border-gray-300">
+                        <button data-finish="${id}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold text-sm py-3 rounded-xl">Confirmar entrega</button>
+                    </div>
+                    <button data-release="${id}" class="w-full text-[11px] text-gray-400 hover:text-red-600 underline">Não vou conseguir levar — devolver corrida</button>
                 </div>
             `;
         }).join('');
+    }
+
+    function timeAgo(iso) {
+        const min = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+        return min < 1 ? 'agora' : min < 60 ? `há ${min} min` : `há ${Math.floor(min / 60)} h`;
     }
 
     function renderHistory(orders) {
@@ -260,38 +313,54 @@
         }).join('');
     }
 
-    async function aceitarCorrida(orderId) {
+    async function aceitarCorrida(orderId, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Aceitando...';
         // A função no banco só aceita se a corrida ainda estiver livre
         const { data: accepted, error } = await sb.rpc('accept_ride', { p_order_id: orderId });
-
         if (error) {
-            alert('Não foi possível aceitar a corrida. Tente novamente.');
             console.error(error);
-            return;
-        }
-        if (!accepted) {
-            alert('Essa corrida já foi aceita por outro entregador.');
+            toast('Não foi possível aceitar a corrida. Tente novamente.', 'error');
+        } else if (!accepted) {
+            toast('Essa corrida já foi aceita por outro entregador.', 'error');
+        } else {
+            toast('Corrida aceita! Vá até a loja retirar o pedido.');
         }
         loadAll();
     }
 
-    async function finalizarEntrega(orderId) {
-        const pinDigitado = prompt('Digite o PIN de 4 dígitos informado pelo cliente:');
-        if (pinDigitado === null) return;
-
+    async function finalizarEntrega(orderId, btn) {
+        const pin = (document.querySelector(`[data-pin-for="${orderId}"]`).value || '').replace(/\D/g, '');
+        if (pin.length !== 4) {
+            toast('Digite o PIN de 4 dígitos que o cliente tem no acompanhamento do pedido.', 'error');
+            return;
+        }
+        btn.disabled = true;
         // O PIN é conferido no banco (não vem para o navegador)
-        const { data: finished, error } = await sb.rpc('finish_ride', { p_order_id: orderId, p_pin: pinDigitado.trim() });
-
+        const { data: finished, error } = await sb.rpc('finish_ride', { p_order_id: orderId, p_pin: pin });
+        btn.disabled = false;
         if (error) {
-            alert('Erro ao concluir a entrega. Tente novamente.');
             console.error(error);
+            toast('Erro ao concluir a entrega. Tente novamente.', 'error');
             return;
         }
         if (!finished) {
-            alert('PIN incorreto! Confirme com o cliente.');
+            toast('PIN incorreto. Confirme com o cliente.', 'error');
             return;
         }
-        alert('Entrega finalizada com sucesso!');
+        toast('Entrega concluída! 🎉');
+        loadAll();
+    }
+
+    async function desistir(orderId) {
+        if (!confirm('Devolver esta corrida? Ela volta para a lista e outro entregador pode aceitar.')) return;
+        const { data: released, error } = await sb.rpc('release_ride', { p_order_id: orderId });
+        if (error || !released) {
+            console.error(error);
+            toast('Não foi possível devolver a corrida.', 'error');
+        } else {
+            toast('Corrida devolvida.');
+        }
         loadAll();
     }
   </script>

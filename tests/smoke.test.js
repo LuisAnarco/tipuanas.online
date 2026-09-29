@@ -623,19 +623,60 @@ test('lojista: painel de orçamentos carrega com login', { loggedIn: true }, asy
 });
 
 // ---------------------------------------------------------------- Entregador
-test('entregador: cadastro vinculado ao usuário e aceite via accept_ride', { loggedIn: true }, async (page, db) => {
+test('entregador: cadastro, corrida sem dados do cliente, aceite, desistência e PIN', { loggedIn: true }, async (page, db) => {
+    const O3 = 'aaaaaaaa-0000-0000-0000-000000000003';
     await page.goto(BASE + 'entregador.html');
     await page.waitForSelector('#signup-section:not(.hidden)');
     await page.fill('#su-name', 'Joao');
     await page.fill('#su-phone', '48911112222');
+    await page.fill('#su-vehicle', 'Moto');
     await page.click('#su-submit');
-    await page.waitForSelector('#feed-entregas [data-accept]');
+    await page.waitForSelector(`#feed-entregas [data-accept="${O3}"]`);
     assert.strictEqual(db.writes.find(x => x.table === 'couriers').body[0].user_id, USER.id);
-    await page.click('#feed-entregas [data-accept]');
-    await page.waitForTimeout(200);
-    assert.ok(db.calls.some(c => c.fn === 'accept_ride'));
+    const card = await page.textContent(`[data-ride="${O3}"]`);
+    assert.ok(card.includes('Rua 3') && !card.includes('Caio'), 'corrida livre mostra destino, sem nome do cliente');
+    assert.strictEqual(await page.title(), '(1) Painel do Entregador — Tipuanas.online');
+
+    // Aceita: vai para "em andamento" com cliente, mapa e WhatsApp
+    await page.click(`[data-accept="${O3}"]`);
+    await page.waitForSelector(`#feed-mine [data-finish="${O3}"]`);
+    assert.ok((await page.textContent('#feed-mine')).includes('Caio'), 'nome do cliente depois de aceitar');
+    assert.ok(await page.$('#feed-mine a[href^="https://www.google.com/maps/search/"]'), 'link do mapa');
+    assert.ok((await page.textContent('#feed-entregas')).includes('Nenhuma corrida'));
+
+    // Desiste: volta para a lista
+    await page.click(`[data-release="${O3}"]`);
+    await page.waitForSelector(`#feed-entregas [data-accept="${O3}"]`);
+    assert.ok(db.calls.some(c => c.fn === 'release_ride'));
+
+    // Aceita de novo e conclui: PIN errado avisa, certo conclui
+    await page.click(`[data-accept="${O3}"]`);
+    await page.waitForSelector(`[data-pin-for="${O3}"]`);
+    await page.fill(`[data-pin-for="${O3}"]`, '0000');
+    await page.click(`[data-finish="${O3}"]`);
+    await page.waitForSelector('#toast:text("PIN incorreto")');
+    await page.fill(`[data-pin-for="${O3}"]`, '9999');
+    await page.click(`[data-finish="${O3}"]`);
+    await page.waitForSelector('#toast:text("Entrega concluída")');
+    await page.waitForFunction(() => document.getElementById('stat-today-count').textContent === '1');
+
     const orderReads = await page.evaluate(() => performance.getEntriesByType('resource').map(r => r.name).filter(n => n.includes('/rest/v1/orders')));
     assert.ok(orderReads.every(u => !decodeURIComponent(u).includes('delivery_pin') && !u.includes('select=*')), 'PIN não é buscado pelo entregador');
+});
+
+test('lojista e cliente veem quem está levando o pedido', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    db.couriers.push({ id: 'c1', name: 'Joao Silva', phone: '48911112222', vehicle: 'Moto', user_id: 'outro', is_active: true });
+    Object.assign(db.orders.find(o => o.id === O1), { status: 'em_rota', courier_ref: 'c1' });
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector(`[data-courier="${O1}"]`);
+    const line = await page.textContent(`[data-courier="${O1}"]`);
+    assert.ok(line.includes('Joao Silva') && line.includes('Moto'), line);
+    assert.ok(await page.$(`[data-courier="${O1}"] a[href="https://wa.me/5548911112222"]`));
+
+    db.orderStatus = 'em_rota';
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#status-desc:text("Joao (Moto) está levando")');
 });
 
 // ---------------------------------------------------------------- Admin

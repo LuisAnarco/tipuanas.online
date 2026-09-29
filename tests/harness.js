@@ -95,7 +95,9 @@ function rpc(db, fn, body) {
         case 'get_order_public': {
             const o = db.orders.find(x => x.id === body.p_id);
             if (!o) return null;
+            const c = db.couriers.find(x => x.id === o.courier_ref);
             return { ...o, status: db.orderStatus, has_review: false, delivery_address: { address: o.delivery_address.address },
+                courier: c ? { name: c.name.split(' ')[0], vehicle: c.vehicle } : null,
                 stores: { name: "Padaria d'Ouro", whatsapp_number: '47999706651', address_line: 'Av. 10' } };
         }
         case 'get_orders_by_phone':
@@ -132,8 +134,36 @@ function rpc(db, fn, body) {
             db.posts = db.posts.filter(p => p.id !== body.p_id);
             return true;
         }
-        case 'accept_ride': return true;
-        case 'finish_ride': return body.p_pin === '1234';
+        case 'list_available_rides':
+            return db.orders.filter(o => o.status === 'pronto' && !o.courier_ref && !o.is_takeout).map(o => {
+                const st = db.stores.find(s => s.id === o.store_id) || {};
+                return { id: o.id, created_at: o.created_at, delivery_fee: o.delivery_fee, total_amount: o.total_amount,
+                         payment_method: o.delivery_address.payment_method, delivery_address: o.delivery_address.address,
+                         store_id: o.store_id, store_name: st.name, store_address: st.address_line };
+            });
+        case 'accept_ride': {
+            const o = db.orders.find(x => x.id === body.p_order_id && x.status === 'pronto' && !x.courier_ref);
+            if (!o) return false;
+            Object.assign(o, { status: 'em_rota', courier_ref: db.couriers[0].id });
+            return true;
+        }
+        case 'release_ride': {
+            const o = db.orders.find(x => x.id === body.p_order_id && x.status === 'em_rota' && x.courier_ref === db.couriers[0].id);
+            if (!o) return false;
+            Object.assign(o, { status: 'pronto', courier_ref: null });
+            return true;
+        }
+        case 'finish_ride': {
+            const o = db.orders.find(x => x.id === body.p_order_id && x.status === 'em_rota' && x.delivery_pin === body.p_pin);
+            if (!o) return false;
+            o.status = 'entregue';
+            return true;
+        }
+        case 'order_couriers':
+            return db.orders.filter(o => body.p_order_ids.includes(o.id) && o.courier_ref).map(o => {
+                const c = db.couriers.find(x => x.id === o.courier_ref) || {};
+                return { order_id: o.id, name: c.name, phone: c.phone, vehicle: c.vehicle };
+            });
         case 'create_service_request': return 'cccccccc-0000-0000-0000-000000000001';
         case 'get_service_request_public':
             return { request: { id: body.p_id, status: 'proposta_enviada', proposal_amount: 100, proposal_description: 'Lavagem', client_name: 'X' },
@@ -158,7 +188,7 @@ function select(db, table, url) {
     switch (table) {
         case 'stores': return byEq(byEq(byEq(db.stores, 'id'), 'owner_id'), 'slug');
         case 'products': return byEq(byEq(db.products, 'id'), 'store_id');
-        case 'orders': return byEq(byEq(db.orders, 'id'), 'store_id');
+        case 'orders': return byEq(byEq(byEq(byEq(db.orders, 'id'), 'store_id'), 'status'), 'courier_ref');
         case 'reviews': return byEq(db.reviews, 'store_id');
         case 'community_posts': return db.posts.filter(p => !url.searchParams.get('post_type') || url.searchParams.get('post_type') === 'eq.' + p.post_type);
         case 'couriers': return db.couriers;
