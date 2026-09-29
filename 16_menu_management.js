@@ -8,6 +8,7 @@
 
 let currentStore = null;
 let editingProductId = null;
+let productsCache = [];
 
 /** Foto do produto: reduzida e enviada para a pasta da loja (ver uploadImage em config.js) */
 function uploadProductPhoto(file) {
@@ -55,6 +56,7 @@ async function loadProducts() {
         return;
     }
 
+    productsCache = products || [];
     const sections = [...new Set((products || []).map(p => (p.section || '').trim()).filter(Boolean))].sort();
     document.getElementById('section-options').innerHTML = sections.map(sec => `<option value="${escapeHtml(sec)}"></option>`).join('');
     renderProducts(products || []);
@@ -129,6 +131,7 @@ function renderProducts(products) {
                 </div>
                 <div class="flex gap-2">
                     <button onclick="iniciarEdicao('${p.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-3 py-1.5 rounded-lg">Editar</button>
+                    <button data-edit-options="${escapeHtml(p.id)}" class="bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold px-3 py-1.5 rounded-lg">⚙️ Opções${(p.options || []).length ? ` (${p.options.length})` : ''}</button>
                     <button onclick="alternarDisponibilidade('${p.id}', ${p.is_paused})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg">
                         ${p.is_paused ? '✅ Voltou' : '🚫 Esgotou'}
                     </button>
@@ -273,6 +276,184 @@ async function removerProduto(productId) {
         return;
     }
 
+    loadProducts();
+}
+
+// ============================================================== OPÇÕES DO PRODUTO
+// Grupos de escolha (tamanho, borda, adicionais) gravados em products.options.
+// O banco confere o formato (product_options_valid) e o preço no place_order.
+
+const OPTION_TEMPLATES = {
+    tamanho: { name: 'Tamanho', min: 1, max: 1, options: [{ name: 'Pequeno', price: 0 }, { name: 'Médio', price: 5 }, { name: 'Grande', price: 10 }] },
+    adicionais: { name: 'Adicionais', min: 0, max: 3, options: [{ name: 'Queijo extra', price: 3 }, { name: 'Bacon', price: 4 }] },
+    retirar: { name: 'Retirar ingrediente', min: 0, max: 5, options: [{ name: 'Sem cebola', price: 0 }, { name: 'Sem tomate', price: 0 }] },
+    ponto: { name: 'Ponto da carne', min: 1, max: 1, options: [{ name: 'Mal passado', price: 0 }, { name: 'Ao ponto', price: 0 }, { name: 'Bem passado', price: 0 }] }
+};
+
+let optionsDraft = null; // { productId, groups: [...] }
+
+document.addEventListener('click', event => {
+    const open = event.target.closest('[data-edit-options]');
+    if (open) return openOptionsEditor(open.dataset.editOptions);
+    if (!optionsDraft) return;
+    const el = event.target.closest('[data-oe]');
+    if (!el) {
+        if (event.target.id === 'options-editor') closeOptionsEditor();
+        return;
+    }
+    const [action, gi, oi] = el.dataset.oe.split(':');
+    syncOptionsDraft();
+    const groups = optionsDraft.groups;
+    if (action === 'close') return closeOptionsEditor();
+    if (action === 'save') return saveOptions();
+    if (action === 'template') groups.push(JSON.parse(JSON.stringify(OPTION_TEMPLATES[gi])));
+    if (action === 'add-group') groups.push({ name: '', min: 0, max: 1, options: [{ name: '', price: 0 }] });
+    if (action === 'del-group') groups.splice(Number(gi), 1);
+    if (action === 'up' && Number(gi) > 0) groups.splice(Number(gi) - 1, 0, groups.splice(Number(gi), 1)[0]);
+    if (action === 'add-opt') groups[gi].options.push({ name: '', price: 0 });
+    if (action === 'del-opt') groups[gi].options.splice(Number(oi), 1);
+    renderOptionsEditor();
+});
+
+document.addEventListener('change', event => {
+    if (!optionsDraft || event.target.id !== 'oe-copy' || !event.target.value) return;
+    const source = productsCache.find(p => p.id === event.target.value);
+    if (source && Array.isArray(source.options)) {
+        syncOptionsDraft();
+        optionsDraft.groups = JSON.parse(JSON.stringify(source.options));
+        renderOptionsEditor();
+    }
+});
+
+function openOptionsEditor(productId) {
+    const product = productsCache.find(p => p.id === productId);
+    if (!product) return;
+    optionsDraft = { productId, groups: JSON.parse(JSON.stringify(product.options || [])) };
+    renderOptionsEditor();
+}
+
+function closeOptionsEditor() {
+    optionsDraft = null;
+    const el = document.getElementById('options-editor');
+    if (el) el.remove();
+}
+
+/** Lê os campos da tela para o rascunho (antes de redesenhar ou salvar) */
+function syncOptionsDraft() {
+    const root = document.getElementById('options-editor');
+    if (!root) return;
+    optionsDraft.groups.forEach((g, gi) => {
+        const val = sel => { const el = root.querySelector(sel); return el ? el.value : undefined; };
+        if (val(`[data-g-name="${gi}"]`) !== undefined) g.name = val(`[data-g-name="${gi}"]`);
+        if (val(`[data-g-min="${gi}"]`) !== undefined) g.min = parseInt(val(`[data-g-min="${gi}"]`), 10) || 0;
+        if (val(`[data-g-max="${gi}"]`) !== undefined) g.max = parseInt(val(`[data-g-max="${gi}"]`), 10) || 0;
+        g.options.forEach((o, oi) => {
+            if (val(`[data-o-name="${gi}:${oi}"]`) !== undefined) o.name = val(`[data-o-name="${gi}:${oi}"]`);
+            if (val(`[data-o-price="${gi}:${oi}"]`) !== undefined) o.price = Math.max(0, parseFloat(val(`[data-o-price="${gi}:${oi}"]`)) || 0);
+        });
+    });
+}
+
+/** Mesmas regras do banco (product_options_valid), com mensagem em português */
+function validateOptions(groups) {
+    if (groups.length > 10) return 'No máximo 10 grupos por produto.';
+    for (const g of groups) {
+        const label = g.name.trim() || 'sem nome';
+        if (!g.name.trim()) return 'Dê um nome para cada grupo (ex: Tamanho).';
+        if (g.options.length < 1 || g.options.length > 30) return `O grupo "${label}" precisa ter de 1 a 30 opções.`;
+        if (g.options.some(o => !o.name.trim())) return `Preencha o nome de todas as opções do grupo "${label}".`;
+        if (g.min < 0 || g.min > g.options.length) return `No grupo "${label}", o mínimo não pode passar do número de opções.`;
+        if (g.max < Math.max(1, g.min)) return `No grupo "${label}", o máximo precisa ser pelo menos ${Math.max(1, g.min)}.`;
+    }
+    return null;
+}
+
+function renderOptionsEditor() {
+    const product = productsCache.find(p => p.id === optionsDraft.productId);
+    const others = productsCache.filter(p => p.id !== optionsDraft.productId && (p.options || []).length);
+    let root = document.getElementById('options-editor');
+    if (!root) {
+        root = document.createElement('div');
+        root.id = 'options-editor';
+        root.className = 'fixed inset-0 z-50 bg-black/40 flex items-end md:items-center justify-center';
+        document.body.appendChild(root);
+    }
+    const inputCls = 'text-sm p-2 rounded border border-gray-300';
+    root.innerHTML = `
+        <div class="bg-white w-full max-w-lg rounded-t-2xl md:rounded-2xl max-h-[92vh] flex flex-col" role="dialog" aria-modal="true">
+            <div class="p-4 border-b flex justify-between items-start gap-2">
+                <div>
+                    <p class="text-xs text-gray-500">Opções de</p>
+                    <h2 class="font-bold text-gray-900">${escapeHtml(product ? product.name : 'Produto')}</h2>
+                    <p class="text-[11px] text-gray-500">O preço de cada opção é somado ao preço do produto. Mínimo 1 = obrigatório.</p>
+                </div>
+                <button data-oe="close" class="text-2xl text-gray-400 leading-none" aria-label="Fechar">×</button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-4 space-y-4">
+                <div class="flex flex-wrap gap-2 text-xs">
+                    <span class="text-gray-500 self-center">Modelos:</span>
+                    <button data-oe="template:tamanho" class="border rounded-full px-2.5 py-1">+ Tamanho</button>
+                    <button data-oe="template:adicionais" class="border rounded-full px-2.5 py-1">+ Adicionais</button>
+                    <button data-oe="template:retirar" class="border rounded-full px-2.5 py-1">+ Retirar ingrediente</button>
+                    <button data-oe="template:ponto" class="border rounded-full px-2.5 py-1">+ Ponto da carne</button>
+                </div>
+                ${others.length ? `<select id="oe-copy" class="w-full ${inputCls} text-xs"><option value="">Copiar opções de outro produto…</option>${others.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('')}</select>` : ''}
+                ${optionsDraft.groups.length ? '' : '<p class="text-sm text-gray-400 text-center py-4">Sem opções: o cliente põe o produto direto na sacola.</p>'}
+                ${optionsDraft.groups.map((g, gi) => `
+                    <fieldset data-group-card="${gi}" class="border border-gray-200 rounded-xl p-3 space-y-2">
+                        <div class="flex gap-2 items-center">
+                            <input data-g-name="${gi}" value="${escapeHtml(g.name)}" maxlength="40" placeholder="Nome do grupo (ex: Tamanho)" class="flex-1 font-semibold ${inputCls}">
+                            ${gi > 0 ? `<button data-oe="up:${gi}" class="text-gray-400 text-sm" title="Subir">▲</button>` : ''}
+                            <button data-oe="del-group:${gi}" class="text-red-500 text-xs font-bold" title="Remover grupo">Remover</button>
+                        </div>
+                        <div class="flex gap-3 text-xs text-gray-600 items-center">
+                            <label>Mínimo <input data-g-min="${gi}" type="number" min="0" max="30" value="${Number(g.min)}" class="w-14 ${inputCls}"></label>
+                            <label>Máximo <input data-g-max="${gi}" type="number" min="1" max="30" value="${Number(g.max)}" class="w-14 ${inputCls}"></label>
+                            <span class="text-[11px] text-gray-400">${Number(g.min) > 0 ? 'obrigatório' : 'opcional'}</span>
+                        </div>
+                        ${g.options.map((o, oi) => `
+                            <div class="flex gap-2 items-center">
+                                <input data-o-name="${gi}:${oi}" value="${escapeHtml(o.name)}" maxlength="60" placeholder="Opção (ex: Grande)" class="flex-1 ${inputCls}">
+                                <span class="text-xs text-gray-500 whitespace-nowrap">+ R$</span>
+                                <input data-o-price="${gi}:${oi}" type="number" min="0" step="0.01" value="${Number(o.price)}" class="w-20 ${inputCls}">
+                                <button data-oe="del-opt:${gi}:${oi}" class="text-gray-400 hover:text-red-600 text-lg leading-none" title="Remover opção">×</button>
+                            </div>`).join('')}
+                        <button data-oe="add-opt:${gi}" class="text-xs font-bold text-emerald-700">+ Opção</button>
+                    </fieldset>`).join('')}
+                <button data-oe="add-group" class="w-full border-2 border-dashed border-gray-300 rounded-xl py-2 text-sm font-bold text-gray-600">+ Novo grupo</button>
+                <p id="oe-error" class="hidden text-xs text-red-600"></p>
+            </div>
+            <div class="p-4 border-t flex gap-2">
+                <button data-oe="close" class="flex-1 bg-gray-100 rounded-lg py-2.5 text-sm font-bold">Cancelar</button>
+                <button data-oe="save" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg py-2.5 text-sm font-bold">Salvar opções</button>
+            </div>
+        </div>`;
+}
+
+async function saveOptions() {
+    const groups = optionsDraft.groups.map(g => ({
+        name: g.name.trim(),
+        min: Number(g.min) || 0,
+        max: Number(g.max) || 0,
+        options: g.options.map(o => ({ name: o.name.trim(), price: Math.round(Number(o.price || 0) * 100) / 100 }))
+    }));
+    const problem = validateOptions(groups);
+    const errorEl = document.getElementById('oe-error');
+    if (problem) {
+        errorEl.textContent = problem;
+        errorEl.classList.remove('hidden');
+        return;
+    }
+    const { error } = await sb.from('products')
+        .update({ options: groups.length ? groups : null })
+        .eq('id', optionsDraft.productId);
+    if (error) {
+        console.error('Erro ao salvar opções:', error);
+        errorEl.textContent = 'Não foi possível salvar. Confira os campos e tente de novo.';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+    closeOptionsEditor();
     loadProducts();
 }
 

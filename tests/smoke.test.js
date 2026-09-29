@@ -676,6 +676,47 @@ test('lojista: cardápio carrega com login', { loggedIn: true }, async (page, db
     assert.ok(!(await page.$('#products-list img')), 'descrição escapada');
 });
 
+test('cardápio: lojista monta as opções do produto (modelo, validação e copiar de outro)', { loggedIn: true }, async (page, db) => {
+    db.products.find(p => p.id === 'p2').options = [{ name: 'Recheio <i>', min: 1, max: 1, options: [{ name: 'Creme', price: 0 }, { name: 'Doce de leite', price: 1.5 }] }];
+    await page.goto(BASE + '15_gerenciar_cardapio.html?store=' + S1);
+    await page.waitForSelector('[data-edit-options="p1"]');
+    assert.ok((await page.textContent('[data-edit-options="p2"]')).includes('(1)'), 'contador de grupos');
+
+    await page.click('[data-edit-options="p1"]');
+    await page.waitForSelector('#options-editor');
+    await page.click('[data-oe="template:tamanho"]');
+    await page.fill('[data-o-name="0:2"]', 'Família');
+    await page.fill('[data-o-price="0:2"]', '12.5');
+    await page.click('[data-oe="del-opt:0:1"]');
+    assert.strictEqual(await page.inputValue('[data-o-name="0:1"]'), 'Família', 'removeu a opção do meio e manteve o texto digitado');
+
+    // Grupo novo vazio: salvar mostra o erro e não grava
+    await page.click('[data-oe="add-group"]');
+    await page.click('[data-oe="save"]');
+    await page.waitForSelector('#oe-error:not(.hidden)');
+    assert.ok(!db.writes.some(w => w.table === 'products' && w.body && 'options' in w.body), 'nada gravado com erro');
+    await page.fill('[data-g-name="1"]', 'Adicionais');
+    await page.fill('[data-o-name="1:0"]', 'Queijo');
+    await page.fill('[data-o-price="1:0"]', '3');
+    await page.fill('[data-g-max="1"]', '2');
+    await page.click('[data-oe="save"]');
+    await page.waitForSelector('#options-editor', { state: 'detached' });
+    const w = db.writes.find(x => x.table === 'products' && x.body && 'options' in x.body);
+    assert.ok(w.url.includes('id=eq.p1'));
+    assert.deepStrictEqual(w.body.options, [
+        { name: 'Tamanho', min: 1, max: 1, options: [{ name: 'Pequeno', price: 0 }, { name: 'Família', price: 12.5 }] },
+        { name: 'Adicionais', min: 0, max: 2, options: [{ name: 'Queijo', price: 3 }] }
+    ]);
+
+    // Copiar de outro produto (nome escapado na lista)
+    await page.click('[data-edit-options="p1"]');
+    await page.selectOption('#oe-copy', 'p2');
+    assert.strictEqual(await page.inputValue('[data-g-name="0"]'), 'Recheio <i>');
+    assert.ok(!(await page.$('#options-editor i')), 'nome escapado');
+    await page.click('[data-oe="close"]');
+    await page.waitForSelector('#options-editor', { state: 'detached' });
+});
+
 test('cardápio: produto novo com foto reduzida e enviada para a pasta da loja', { loggedIn: true }, async (page, db) => {
     db.stores.find(s => s.id === S1).owner_id = USER.id;
     await page.goto(BASE + '15_gerenciar_cardapio.html?store=' + S1);

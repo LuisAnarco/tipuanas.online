@@ -129,7 +129,7 @@ depois ferramentas do lojista e do entregador. Tudo com validação no banco (pr
 navegador) e testes no `npm test`.
 
 **Pedido certo**
-- [ ] **25. Adicionais e variações do produto.** Tamanho (P/M/G), sabores (ex.: pizza meio a meio),
+- [x] **25. Adicionais e variações do produto.** Tamanho (P/M/G), sabores (ex.: pizza meio a meio),
   extras pagos (borda, bacon) e "retirar ingrediente", com mínimo/máximo por grupo e observação por
   item. Banco: grupos e opções por produto; `place_order` recalcula o preço com as opções e guarda o
   escolhido em `order_items`. Vitrine abre um painel do produto antes de pôr na sacola; lojista monta
@@ -138,8 +138,9 @@ navegador) e testes no `npm test`.
     validado por `product_options_valid`), `place_order` confere as escolhas e soma os extras
     (`order_items.options`/`note`), painel do produto na vitrine com observação e quantidade, sacola com
     linhas por escolha, loja e acompanhamento mostram as opções. Demonstração: pizzas, açaís e lanches.
-  - [ ] **25b. Lojista monta as opções no cardápio.** Editor de grupos e opções por produto (com
-    "copiar de outro produto"), em `15_gerenciar_cardapio.html` / `16_menu_management.js`.
+  - [x] **25b. Lojista monta as opções no cardápio.** _(29/09/2026, PR #31)_ Botão "⚙️ Opções" em cada produto
+    abre o editor: grupos com mínimo/máximo, opções com preço, modelos prontos (Tamanho, Adicionais,
+    Retirar ingrediente, Ponto da carne), reordenar, copiar de outro produto e validação igual à do banco.
 - [ ] **26. Pagamento claro no checkout.** "Troco para quanto?" quando for dinheiro (vai para a loja e
   para o entregador) e **Pix copia-e-cola / QR** com a chave Pix da loja e o valor exato do pedido
   (BR Code estático gerado no navegador, sem intermediário). Lojista cadastra a chave Pix nos dados
