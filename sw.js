@@ -3,9 +3,10 @@
  * - Arquivos do próprio site: rede primeiro; sem conexão, usa a última cópia.
  * - Supabase (dados, login) e CDNs: sempre direto da rede, nunca em cache —
  *   pedidos e status precisam estar sempre atualizados.
+ * - Push: mostra o aviso de pedido novo do lojista e abre o painel ao tocar.
  * Troque CACHE_VERSION para forçar a limpeza do cache antigo.
  */
-const CACHE_VERSION = 'tipuanas-v1';
+const CACHE_VERSION = 'tipuanas-v2';
 const PRECACHE = [
     './', 'index.html', 'loja.html', 'pedidos.html', '10_checkout_whatsapp_flow.html',
     '11_order_tracking_realtime.html', 'config.js', '09_multistore_cart.js',
@@ -40,5 +41,30 @@ self.addEventListener('fetch', event => {
             })
             .catch(() => caches.match(request, { ignoreSearch: request.mode === 'navigate' })
                 .then(cached => cached || caches.match('index.html')))
+    );
+});
+
+self.addEventListener('push', event => {
+    let data = {};
+    try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data && event.data.text() }; }
+    event.waitUntil(self.registration.showNotification(data.title || '🛎️ Novo pedido', {
+        body: data.body || 'Abra o painel para ver.',
+        icon: 'icons/icon-192.png',
+        badge: 'icons/icon-192.png',
+        tag: data.tag,
+        renotify: true,
+        requireInteraction: true,
+        data: { url: data.url || '04_merchant_portal.html' }
+    }));
+});
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    const target = new URL(event.notification.data && event.notification.data.url || '04_merchant_portal.html', self.location.origin).href;
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+            const open = list.find(c => c.url.split('?')[0] === target.split('?')[0]);
+            return open ? open.focus() : self.clients.openWindow(target);
+        })
     );
 });

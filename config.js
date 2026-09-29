@@ -21,6 +21,9 @@ const PLATFORM_COMMISSION_RATE = 0.08;
 // Contato da plataforma (privacidade, exclusão de dados, suporte). Trocar pelo número oficial.
 const PLATFORM_CONTACT_WHATSAPP = '47999706651';
 
+// Chave pública VAPID do push (a privada fica só no cofre do Supabase)
+const VAPID_PUBLIC_KEY = 'BHms9KxbQqVS1ctLRBMQQNNorjHE203JtAKQaDBWTOfSvlrFss4thUoacv-O9KybxYnrJ2f0_y0kWubJfYi95S0';
+
 /**
  * Escapa texto vindo do banco antes de montar HTML com template string.
  * Qualquer campo digitado por usuário (nome de loja, produto, post do mural...)

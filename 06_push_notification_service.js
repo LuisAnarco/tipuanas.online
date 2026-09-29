@@ -43,6 +43,40 @@ class MerchantNotificationService {
     }
 
     /**
+     * Inscreve este aparelho no push da loja: o pedido chega no celular mesmo
+     * com o painel fechado. Retorna 'ok', 'unsupported', 'denied' ou 'error'.
+     * No iPhone só funciona com o site instalado na tela de início.
+     */
+    async subscribePush(storeId) {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof VAPID_PUBLIC_KEY === 'undefined') return 'unsupported';
+        if (!this.hasPermission) return 'denied';
+        try {
+            const reg = await navigator.serviceWorker.register('sw.js');
+            await navigator.serviceWorker.ready;
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+            }
+            const json = sub.toJSON();
+            const { error } = await sb.from('push_subscriptions').upsert({
+                store_id: storeId,
+                endpoint: json.endpoint,
+                p256dh: json.keys.p256dh,
+                auth: json.keys.auth,
+                user_agent: navigator.userAgent.slice(0, 200)
+            }, { onConflict: 'endpoint' });
+            if (error) throw error;
+            return 'ok';
+        } catch (e) {
+            console.warn('Push não ativado:', e);
+            return 'error';
+        }
+    }
+
+    /**
      * Dispara um alerta sonoro e visual para novos pedidos
      */
     notifyNewOrder(order) {
@@ -92,4 +126,11 @@ class MerchantNotificationService {
             console.error('Erro ao reproduzir áudio de notificação:', e);
         }
     }
+}
+
+/** Converte a chave VAPID (base64url) no formato que o pushManager pede. */
+function urlBase64ToUint8Array(base64) {
+    const padded = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(padded);
+    return Uint8Array.from(raw, c => c.charCodeAt(0));
 }

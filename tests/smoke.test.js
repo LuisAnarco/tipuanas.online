@@ -404,11 +404,14 @@ test('login: sem sessão mostra tela de e-mail e envia link para a página atual
 
 // ---------------------------------------------------------------- Lojista
 test('lojista: vincula loja sem dono e vê pedidos escapados', { loggedIn: true }, async (page, db) => {
+    db.orders.find(o => o.id === O1).status = 'novo';
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
     await page.waitForSelector('#orders-list select');
     assert.ok(db.calls.some(c => c.fn === 'claim_store'), 'claim_store chamado');
     assert.ok(!(await page.$('#orders-list script')), 'nome do cliente escapado');
     assert.strictEqual(await page.textContent('#total-orders-today'), '2', 'pedidos de hoje sem cancelados');
+    assert.strictEqual(await page.textContent('#pending-badge'), '1 Pendentes');
+    assert.strictEqual(await page.title(), '(1) Painel do Comerciante - Tipuanas.online', 'contador de pendentes na aba');
     assert.ok((await page.textContent('#user-bar')).includes(USER.email));
     await page.waitForSelector('#reviews-section:not(.hidden)');
     assert.ok(!(await page.$('#reviews-list b')), 'comentário escapado');
@@ -455,6 +458,55 @@ test('lojista: avisar o cliente pelo WhatsApp com mensagem do status e link de a
     href = decodeURIComponent(await page.getAttribute(`[data-notify-client="${O1}"]`, 'href'));
     assert.ok(href.includes('PIN 1234'), 'PIN na mensagem de saída para entrega');
     assert.ok((await page.getAttribute(`[data-notify-client="${O1}"]`, 'class')).includes('animate-pulse'), 'botão em destaque depois da mudança');
+});
+
+test('push: lojista ativa alertas e o aparelho fica inscrito na loja', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    // Navegador simulado: permissão concedida e pushManager falso
+    await page.addInitScript(() => {
+        window.Notification = class { static permission = 'granted'; static requestPermission() { return Promise.resolve('granted'); } };
+        window.PushManager = function () {};
+        const sub = { toJSON: () => ({ endpoint: 'https://push.example/abc', keys: { p256dh: 'P256', auth: 'AUTH' } }) };
+        const reg = { pushManager: { getSubscription: async () => null, subscribe: async opts => { window.__pushOpts = opts; return sub; } } };
+        Object.defineProperty(navigator, 'serviceWorker', { value: { register: async () => reg, ready: Promise.resolve(reg) } });
+    });
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#orders-list select');
+    await page.click('#alerts-btn');
+    await page.waitForSelector('#push-hint:not(.hidden)');
+    assert.ok((await page.textContent('#push-hint')).includes('mesmo com o painel fechado'), await page.textContent('#push-hint'));
+    const w = db.writes.find(x => x.table === 'push_subscriptions');
+    assert.ok(w && w.method === 'POST', 'inscrição salva');
+    assert.deepStrictEqual([w.body.store_id, w.body.endpoint, w.body.p256dh, w.body.auth], [S1, 'https://push.example/abc', 'P256', 'AUTH']);
+    assert.ok(w.url.includes('on_conflict=endpoint'), 'upsert por endpoint');
+    assert.strictEqual(await page.evaluate(() => window.__pushOpts.applicationServerKey.length), 65, 'chave VAPID decodificada (65 bytes)');
+});
+
+test('push: service worker mostra o aviso e abre o painel ao tocar', {}, async () => {
+    const vm = require('vm');
+    const handlers = {};
+    const shown = [];
+    const opened = [];
+    const self = {
+        location: { origin: 'https://tipuanas.test' },
+        addEventListener: (type, fn) => { handlers[type] = fn; },
+        registration: { showNotification: async (title, opts) => shown.push({ title, opts }) },
+        clients: { matchAll: async () => [], openWindow: async url => opened.push(url), claim: async () => {} },
+        skipWaiting: () => {}
+    };
+    vm.runInNewContext(require('fs').readFileSync(require('path').join(__dirname, '..', 'sw.js'), 'utf8'), { self, caches: {}, fetch: () => {}, URL });
+    const waits = [];
+    const payload = { title: '🛎️ Novo pedido — Loja', body: 'Ana • R$ 12,90 • Entrega', url: '04_merchant_portal.html?store=' + S1, tag: 'o1' };
+    handlers.push({ data: { json: () => payload }, waitUntil: p => waits.push(p) });
+    await Promise.all(waits);
+    assert.strictEqual(shown[0].title, payload.title);
+    assert.strictEqual(shown[0].opts.body, payload.body);
+    assert.strictEqual(shown[0].opts.tag, 'o1');
+    let closed = false;
+    handlers.notificationclick({ notification: { close: () => { closed = true; }, data: shown[0].opts.data }, waitUntil: p => waits.push(p) });
+    await Promise.all(waits);
+    assert.ok(closed, 'notificação fechada');
+    assert.deepStrictEqual(opened, ['https://tipuanas.test/04_merchant_portal.html?store=' + S1]);
 });
 
 test('lojista: extrato do mês com comissão, filtro por mês e CSV', { loggedIn: true }, async (page, db) => {
