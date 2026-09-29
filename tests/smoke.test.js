@@ -837,6 +837,7 @@ test('publicação: vercel.json válido, página 404 e prévia de link (Open Gra
     const all = vercel.headers.find(h => h.source === '/(.*)').headers.map(h => h.key);
     for (const key of ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy']) assert.ok(all.includes(key), key);
     assert.ok(vercel.headers.some(h => h.source === '/sw.js'), 'sw.js sem cache');
+    assert.ok(vercel.redirects.some(r => r.source === '/lojista.html' && r.destination === '/04_merchant_portal.html'), 'tela antiga redireciona');
 
     await page.goto(BASE + '404.html');
     await page.waitForSelector('text=Página não encontrada');

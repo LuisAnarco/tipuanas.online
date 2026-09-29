@@ -112,7 +112,9 @@ O que ainda impede a operação real, em ordem de impacto:
   retirar) e link do acompanhamento.
 - [x] **16. Produto esgotado com um toque.** _(28/09/2026, PR #21)_ Atalho no painel de pedidos/cardápio para pausar e
   reativar produtos rapidamente, e a vitrine mostrando "esgotado" em vez de esconder.
-- [ ] **17. Limpeza de legado.** Levantar tabelas antigas sem uso (`express_jobs`, `ingredients`,
-  `recipes`, `trechos_codigo`) e telas órfãs e remover o que não for usado (dados fictícios).
+- [x] **17. Limpeza de legado.** _(29/09/2026)_ Removidas (vazias e sem uso): `express_jobs`,
+  `ingredients`, `recipes`, `trechos_codigo` + `buscar_codigo_referencia` + extensão `vector`,
+  `orders.courier_id` e o tipo `unit_type`. `lojista.html` virou redirecionamento no `vercel.json`;
+  `02_schema_design.json` (desatualizado) saiu. `profiles` fica (dono das lojas e login).
 - [ ] **18. Domínio de produção.** _(depende do Luis)_ Apontar o domínio no Vercel, incluir a URL em
   Supabase → Auth → Redirect URLs e trocar o e-mail padrão por SMTP próprio quando houver.

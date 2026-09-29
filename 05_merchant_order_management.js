@@ -4,9 +4,6 @@
  * ARQUIVO: 05_merchant_order_management.js
  * DESCRIÇÃO: Identificação da loja (bootstrap + URL/localStorage) e gestão de
  *            pedidos em tempo real via Supabase, filtrada pela loja logada.
- *            Usa o banco avançado "avenidadastipuanas.online" (multi-loja,
- *            estoque, corridas expressas) — ver comentários de mapeamento
- *            de status abaixo.
  * ==============================================================================
  */
 
