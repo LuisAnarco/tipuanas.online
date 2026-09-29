@@ -178,11 +178,14 @@
             return groups;
         }
 
-        function changeQuantity(productId, delta) {
-            const item = cart.find(i => i.id === productId);
+        // Linha da sacola: produto + opções + observação (itens antigos usam só o id)
+        const lineKey = item => item.key || item.id;
+
+        function changeQuantity(key, delta) {
+            const item = cart.find(i => lineKey(i) === key);
             if (!item) return;
             item.quantity += delta;
-            if (item.quantity <= 0) cart = cart.filter(i => i.id !== productId);
+            if (item.quantity <= 0) cart = cart.filter(i => i !== item);
             localStorage.setItem(CART_KEY, JSON.stringify(cart));
             renderCheckout();
         }
@@ -289,12 +292,14 @@
                                 ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-11 h-11 rounded-lg object-cover bg-slate-100 shrink-0">` : ''}
                                 <div class="min-w-0 flex-1">
                                     <p class="font-semibold text-slate-800 truncate">${escapeHtml(item.name)}</p>
+                                    ${item.optionsLabel ? `<p data-role="item-options" class="text-[11px] text-slate-500 leading-tight">${escapeHtml(item.optionsLabel)}</p>` : ''}
+                                    ${item.note ? `<p class="text-[11px] text-slate-400 italic leading-tight">“${escapeHtml(item.note)}”</p>` : ''}
                                     <p class="text-slate-500">${formatBRL(item.price * item.quantity)}</p>
                                 </div>
                                 <div class="flex items-center border border-slate-200 rounded-full shrink-0">
-                                    <button data-id="${escapeHtml(item.id)}" data-qty="-1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="${item.quantity === 1 ? 'Remover' : 'Diminuir'}">${item.quantity === 1 ? '🗑' : '−'}</button>
+                                    <button data-id="${escapeHtml(lineKey(item))}" data-qty="-1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="${item.quantity === 1 ? 'Remover' : 'Diminuir'}">${item.quantity === 1 ? '🗑' : '−'}</button>
                                     <span class="px-1 font-extrabold text-slate-800">${item.quantity}</span>
-                                    <button data-id="${escapeHtml(item.id)}" data-qty="1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="Aumentar">+</button>
+                                    <button data-id="${escapeHtml(lineKey(item))}" data-qty="1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="Aumentar">+</button>
                                 </div>
                             </div>
                         `).join('')}
@@ -369,6 +374,7 @@
                 store_unavailable: 'loja fechada no momento',
                 store_closed: 'fora do horário de funcionamento',
                 items_unavailable: 'itens indisponíveis',
+                invalid_options: 'as opções de um produto mudaram; tire da sacola e escolha de novo',
                 invalid_customer: 'dados de entrega incompletos',
                 invalid_coupon: 'cupom inválido',
                 coupon_min_order: 'pedido abaixo do mínimo do cupom',
@@ -384,7 +390,7 @@
 
                 const { data: result, error } = await sb.rpc('place_order', {
                     p_store_id: storeId,
-                    p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity })),
+                    p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity, options: item.options || [], note: item.note || null })),
                     p_customer: { name, phone, address, payment_method: payment, notes },
                     p_is_takeout: takeout,
                     p_coupon: appliedCoupon && appliedCoupon.store_id === storeId ? appliedCoupon.code : null
@@ -412,6 +418,8 @@
                 message += `\n*ITENS:*\n`;
                 result.items.forEach(item => {
                     message += `• ${item.quantity}x ${item.name} (${formatBRL(item.unit_price * item.quantity)})\n`;
+                    if (item.options && item.options.length) message += `   ${item.options.map(o => `${o.group}: ${o.name}`).join(' · ')}\n`;
+                    if (item.note) message += `   Obs: ${item.note}\n`;
                 });
                 if (Number(result.discount) > 0) {
                     message += `\n🏷️ *Cupom ${result.coupon_code}:* -${formatBRL(result.discount)}`;

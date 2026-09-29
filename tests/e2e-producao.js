@@ -17,6 +17,14 @@ fs.mkdirSync(OUT, { recursive: true });
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, ignoreHTTPSErrors: true });
   // Atrás de proxy (ambiente de nuvem), o Node busca cada requisição: o Chromium falha no túnel
   if (process.env.HTTPS_PROXY) await ctx.route('**/*', async route => {
+    // E2E_URL=http://localhost:PORTA/ testa os arquivos locais (antes do deploy) com o banco real
+    const local = route.request().url().match(/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/([^?#]*)/);
+    if (local) {
+      const file = require('path').join(__dirname, '..', decodeURIComponent(local[1]) || 'index.html');
+      if (!fs.existsSync(file)) return route.fulfill({ status: 404, body: 'not found' });
+      const type = file.endsWith('.js') ? 'application/javascript' : file.endsWith('.json') ? 'application/json' : file.endsWith('.png') ? 'image/png' : file.endsWith('.svg') ? 'image/svg+xml' : 'text/html';
+      return route.fulfill({ status: 200, contentType: type, body: fs.readFileSync(file) });
+    }
     for (let i = 0; i < 3; i++) {
       try { const r = await route.fetch({ timeout: 30000 }); return route.fulfill({ response: r }); }
       catch (e) { if (i === 2) return route.abort(); }
@@ -55,8 +63,19 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.goto(BASE + 'loja.html?slug=pizzaria-forno-da-tipuanas', { waitUntil: 'networkidle' });
     await page.waitForSelector('[data-add-product]', { timeout: 15000 });
     const first = await page.$eval('[data-add-product]', e => e.dataset.addProduct);
-    await page.click(`[data-add-product="${first}"]`);
-    await page.click(`[data-add-product="${first}"]`);
+    // Produto com opções: marca a primeira opção dos grupos obrigatórios e adiciona
+    const addOne = async () => {
+      await page.click(`[data-add-product="${first}"]`);
+      if (await page.waitForSelector('#options-sheet', { timeout: 1500 }).catch(() => null)) {
+        await page.$$eval('#options-sheet fieldset', sets => sets.forEach(fs => {
+          if (fs.querySelector('.bg-slate-700')) fs.querySelector('[data-opt]').click();
+        }));
+        console.log('     opções:', await page.textContent('[data-sheet-add]'));
+        await page.click('[data-sheet-add]');
+      }
+    };
+    await addOne();
+    await addOne();
     console.log('     sacola:', await page.textContent('#cart-item-count'), await page.textContent('#cart-total-price'));
   });
   await step('04-sacola', async () => {

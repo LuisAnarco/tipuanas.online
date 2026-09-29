@@ -134,6 +134,12 @@ navegador) e testes no `npm test`.
   item. Banco: grupos e opções por produto; `place_order` recalcula o preço com as opções e guarda o
   escolhido em `order_items`. Vitrine abre um painel do produto antes de pôr na sacola; lojista monta
   os grupos no cardápio. É a maior diferença para o iFood hoje.
+  - [x] **25a. Banco + cliente.** _(29/09/2026, PR #30)_ `products.options` (grupos com mínimo/máximo e preço,
+    validado por `product_options_valid`), `place_order` confere as escolhas e soma os extras
+    (`order_items.options`/`note`), painel do produto na vitrine com observação e quantidade, sacola com
+    linhas por escolha, loja e acompanhamento mostram as opções. Demonstração: pizzas, açaís e lanches.
+  - [ ] **25b. Lojista monta as opções no cardápio.** Editor de grupos e opções por produto (com
+    "copiar de outro produto"), em `15_gerenciar_cardapio.html` / `16_menu_management.js`.
 - [ ] **26. Pagamento claro no checkout.** "Troco para quanto?" quando for dinheiro (vai para a loja e
   para o entregador) e **Pix copia-e-cola / QR** com a chave Pix da loja e o valor exato do pedido
   (BR Code estático gerado no navegador, sem intermediário). Lojista cadastra a chave Pix nos dados

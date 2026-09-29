@@ -80,6 +80,56 @@ test('página da loja: capa, cupom, abas por seção, avaliações e carrinho', 
     assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
 });
 
+test('opções do produto: escolhe tamanho e adicionais, sacola separa as linhas e o pedido leva as escolhas', {}, async (page, db) => {
+    Object.assign(db.products.find(p => p.id === 'p1'), { price: 20, options: [
+        { name: 'Tamanho <b>', min: 1, max: 1, options: [{ name: 'Pequeno', price: 0 }, { name: 'Grande', price: 6 }] },
+        { name: 'Adicionais', min: 0, max: 2, options: [{ name: 'Queijo', price: 2 }, { name: 'Bacon', price: 4 }, { name: 'Ovo', price: 1 }] },
+        { name: 'Borda', min: 0, max: 1, options: [{ name: 'Catupiry', price: 8 }, { name: 'Cheddar', price: 8 }] }
+    ] });
+    await page.goto(BASE + 'loja.html?slug=padaria-ouro');
+    await page.waitForSelector('[data-add-product="p1"]');
+    await page.click('[data-add-product="p1"]');
+    await page.waitForSelector('#options-sheet');
+    assert.ok(!(await page.$('#options-sheet b')), 'nome do grupo escapado');
+    assert.ok(await page.$eval('[data-sheet-add]', b => b.disabled), 'sem tamanho não adiciona');
+
+    await page.check('[data-opt="0:1"]');
+    await page.check('[data-opt="1:0"]');
+    await page.check('[data-opt="1:1"]');
+    assert.ok(await page.$eval('[data-opt="1:2"]', i => i.disabled), 'máximo de 2 adicionais');
+    // Borda opcional de escolha única: troca e depois desmarca
+    await page.check('[data-opt="2:0"]');
+    await page.check('[data-opt="2:1"]');
+    assert.ok(!(await page.isChecked('[data-opt="2:0"]')), 'só uma borda');
+    await page.uncheck('[data-opt="2:1"]');
+    await page.click('[data-sheet-qty="1"]');
+    assert.ok((await page.textContent('[data-sheet-add]')).includes('R$ 64,00'), '(20+6+2+4) x 2');
+    await page.fill('[data-sheet-note]', 'bem passado');
+    await page.click('[data-sheet-add]');
+    await page.waitForSelector('#options-sheet', { state: 'detached' });
+
+    // Outra linha do mesmo produto, só com o tamanho pequeno
+    await page.click('[data-cart-slot="p1"] [data-add-product="p1"]');
+    await page.check('[data-opt="0:0"]');
+    await page.click('[data-sheet-add]');
+    assert.strictEqual(await page.textContent('[data-cart-slot="p1"] [data-role="qty"]'), '3');
+    const cart = await page.evaluate(() => JSON.parse(localStorage.getItem('tipuanas_cart')));
+    assert.strictEqual(cart.length, 2, 'duas linhas');
+    assert.deepStrictEqual(cart[0].options, [[0, 1], [1, 0], [1, 1]]);
+    assert.strictEqual(cart[0].price, 32);
+
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForSelector('[data-role="item-options"]');
+    assert.ok((await page.textContent('#checkout-items')).includes('Grande, Queijo, Bacon'));
+    await page.fill('#client-name', 'Ana');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Rua 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#confirmation-view:not(.hidden)');
+    const call = db.calls.find(c => c.fn === 'place_order');
+    assert.deepStrictEqual(call.body.p_items.map(i => [i.options, i.note]), [[[[0, 1], [1, 0], [1, 1]], 'bem passado'], [[[0, 0]], null]]);
+});
+
 test('sacola: taxa de entrega, retirada, foto e sacola vazia', {}, async (page, db) => {
     db.products.find(p => p.id === 'p1').image_url = 'https://img.test/pao.jpg';
     await page.goto(BASE + 'loja.html?slug=padaria-ouro');

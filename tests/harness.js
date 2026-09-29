@@ -80,7 +80,13 @@ function rpc(db, fn, body) {
             if (db.tooManyOrders) throw { status: 400, body: { code: 'P0001', message: 'too_many_orders' } };
             const items = body.p_items.map(it => {
                 const p = db.products.find(x => x.id === it.product_id);
-                return { product_id: p.id, name: p.name, quantity: it.quantity, unit_price: p.promo_price || p.price };
+                // Opções: soma os preços como o banco (e confere o mínimo de cada grupo)
+                const chosen = (it.options || []).map(([g, o]) => ({ group: p.options[g].name, name: p.options[g].options[o].name, price: p.options[g].options[o].price }));
+                (p.options || []).forEach((g, gi) => {
+                    const n = (it.options || []).filter(([x]) => x === gi).length;
+                    if (n < g.min || n > g.max) throw { status: 400, body: { code: 'P0001', message: 'invalid_options' } };
+                });
+                return { product_id: p.id, name: p.name, quantity: it.quantity, unit_price: (p.promo_price || p.price) + chosen.reduce((a, c) => a + c.price, 0), options: chosen, note: it.note || null };
             });
             const subtotal = items.reduce((a, i) => a + i.unit_price * i.quantity, 0);
             const fee = body.p_is_takeout ? 0 : store.delivery_fee;
