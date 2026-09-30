@@ -6,10 +6,10 @@
  * - Push: mostra o aviso de pedido novo do lojista e abre o painel ao tocar.
  * Troque CACHE_VERSION para forçar a limpeza do cache antigo.
  */
-const CACHE_VERSION = 'tipuanas-v2';
+const CACHE_VERSION = 'tipuanas-v3';
 const PRECACHE = [
     './', 'index.html', 'loja.html', 'pedidos.html', '10_checkout_whatsapp_flow.html',
-    '11_order_tracking_realtime.html', 'config.js', '09_multistore_cart.js',
+    '11_order_tracking_realtime.html', 'config.js', 'theme.js', '09_multistore_cart.js',
     '07_client_pwa_manifest.json', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 

@@ -1032,6 +1032,7 @@ test('PWA: manifest válido, ícones no repositório e todas as telas ligadas ao
         const html = fs.readFileSync(path.join(root, f), 'utf8');
         assert.ok(/rel="manifest" href="\/?07_client_pwa_manifest\.json"/.test(html), 'manifest em ' + f);
         assert.ok(html.includes('name="theme-color"'), 'theme-color em ' + f);
+        if (html.includes('cdn.tailwindcss.com')) assert.ok(/cdn\.tailwindcss\.com"><\/script>\s*<script src="theme\.js"><\/script>/.test(html), 'identidade (theme.js) logo depois do Tailwind em ' + f);
     }
     await page.goto(BASE + 'sw.js');
     assert.ok((await page.content()).includes('CACHE_VERSION'));

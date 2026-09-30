@@ -9,6 +9,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <title>Painel de Orçamentos - Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="theme.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
@@ -28,7 +29,7 @@
                     <span id="status-dot" class="inline-block w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
                     <span id="status-text" class="text-sm font-semibold text-gray-700">Loja Aberta</span>
                 </div>
-                <button id="toggle-pause-btn" onclick="togglePause()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition">
+                <button id="toggle-pause-btn" onclick="togglePause()" class="bg-white border border-emerald-600 text-emerald-800 hover:bg-emerald-50 px-3 min-h-[44px] rounded-lg text-sm font-bold transition">
                     Pausar
                 </button>
             </div>

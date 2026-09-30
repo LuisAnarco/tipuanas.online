@@ -9,6 +9,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <title>Painel do Entregador — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="theme.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
@@ -35,7 +36,7 @@
         <input id="su-name" type="text" autocomplete="name" placeholder="Seu nome" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
         <input id="su-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="WhatsApp com DDD (ex: 48999998888)" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
         <input id="su-vehicle" type="text" placeholder="Veículo (ex: Moto, Bicicleta, A pé)" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
-        <button id="su-submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-lg text-sm">Cadastrar e ver corridas</button>
+        <button id="su-submit" class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-900 font-bold py-2.5 rounded-lg text-sm">Cadastrar e ver corridas</button>
         <p id="su-error" class="hidden text-xs text-red-600"></p>
       </div>
       <p class="text-[11px] text-gray-400">Seu cadastro fica vinculado ao e-mail com que você entrou — em outro aparelho, é só entrar com o mesmo e-mail.</p>
@@ -234,7 +235,7 @@
                 <p class="text-xs text-gray-600">📍 Retirar: ${escapeHtml(r.store_address || 'endereço não informado')}</p>
                 <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(r.delivery_address || 'endereço não informado')}${r.distance_km != null ? ` <b data-role="ride-distance">· ${escapeHtml(String(r.distance_km).replace('.', ','))} km da loja</b>` : ''}</p>
                 <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(r.total_amount)} (${escapeHtml(r.payment_method || '—')})</p>
-                <button data-accept="${escapeHtml(r.id)}" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm py-3 rounded-xl">Aceitar corrida</button>
+                <button data-accept="${escapeHtml(r.id)}" class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-900 font-bold text-sm py-3 rounded-xl">Aceitar corrida</button>
             </div>
         `).join('');
     }

@@ -217,7 +217,7 @@ function renderBanners() {
         const off = c.discount_type === 'percentage' ? `${Number(c.discount_value)}% OFF` : `${formatBRL(c.discount_value)} OFF`;
         const href = c.store_slug ? `loja.html?slug=${encodeURIComponent(c.store_slug)}` : '#';
         banners.push(`
-            <a href="${href}" data-banner="coupon" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-gradient-to-br from-rose-500 to-orange-500 shadow-sm relative overflow-hidden">
+            <a href="${href}" data-banner="coupon" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-emerald-800 shadow-sm relative overflow-hidden">
                 <span class="absolute -right-3 -bottom-4 text-7xl opacity-25">🏷️</span>
                 <p class="text-[10px] font-bold uppercase tracking-wider text-white/80">Cupom · ${escapeHtml(c.store_name)}</p>
                 <p class="text-2xl font-extrabold mt-0.5">${off}</p>
@@ -228,7 +228,7 @@ function renderBanners() {
     const freeDelivery = allStores.filter(s => s.listing_type !== 'orcamento' && deliveryFeeLabel(s, platformDelivery) === 'Entrega grátis');
     if (freeDelivery.length) {
         banners.push(`
-            <div data-banner="free" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-gradient-to-br from-emerald-600 to-teal-700 shadow-sm relative overflow-hidden">
+            <div data-banner="free" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-emerald-700 shadow-sm relative overflow-hidden">
                 <span class="absolute -right-3 -bottom-4 text-7xl opacity-25">🛵</span>
                 <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-100">Entrega grátis</p>
                 <p class="text-lg font-extrabold mt-0.5 leading-tight">${freeDelivery.length === 1 ? escapeHtml(freeDelivery[0].name) : `${freeDelivery.length} lojas sem taxa`}</p>
@@ -237,7 +237,7 @@ function renderBanners() {
     }
 
     banners.push(`
-        <a href="20_mural_vizinhanca.html" data-banner="mural" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-gradient-to-br from-indigo-600 to-violet-700 shadow-sm relative overflow-hidden">
+        <a href="20_mural_vizinhanca.html" data-banner="mural" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-emerald-600 shadow-sm relative overflow-hidden">
             <span class="absolute -right-3 -bottom-4 text-7xl opacity-25">🎁</span>
             <p class="text-[10px] font-bold uppercase tracking-wider text-indigo-100">Mural da Vizinhança</p>
             <p class="text-lg font-extrabold mt-0.5 leading-tight">Desapegue ou encontre o que procura</p>
@@ -245,7 +245,7 @@ function renderBanners() {
         </a>`);
 
     banners.push(`
-        <a href="04_merchant_portal.html" data-banner="lojista" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-gradient-to-br from-slate-700 to-slate-900 shadow-sm relative overflow-hidden">
+        <a href="04_merchant_portal.html" data-banner="lojista" class="snap-start shrink-0 w-[85%] rounded-2xl p-4 text-white bg-slate-900 shadow-sm relative overflow-hidden">
             <span class="absolute -right-3 -bottom-4 text-7xl opacity-25">🏪</span>
             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Tem um comércio na avenida?</p>
             <p class="text-lg font-extrabold mt-0.5 leading-tight">Venda pelo Tipuanas.online</p>
@@ -327,7 +327,7 @@ function refreshCartSlots(productId) {
 function productThumb(product, store, cls) {
     return product.image_url
         ? `<img src="${escapeHtml(product.image_url)}" alt="" loading="lazy" class="${cls} object-cover bg-slate-100">`
-        : `<div class="${cls} bg-gradient-to-br from-emerald-50 to-slate-100 flex items-center justify-center text-3xl">${categoryIcon(store && store.category)}</div>`;
+        : `<div class="${cls} bg-slate-100 flex items-center justify-center text-3xl">${categoryIcon(store && store.category)}</div>`;
 }
 
 /** Cartão de produto para as faixas horizontais (ofertas / destaques) */
@@ -551,7 +551,7 @@ function renderStoreHeader(store, reviews) {
         <div class="-mx-4 -mt-5 mb-10 relative">
             ${store.cover_url
                 ? `<img src="${escapeHtml(store.cover_url)}" alt="" class="w-full h-36 object-cover">`
-                : `<div class="w-full h-32 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex items-center justify-center text-6xl opacity-90">${categoryIcon(store.category)}</div>`}
+                : `<div class="w-full h-32 bg-emerald-700 flex items-center justify-center text-6xl opacity-90">${categoryIcon(store.category)}</div>`}
             <div class="absolute left-4 -bottom-8">${storeLogo(store, 'w-16 h-16 text-3xl ring-4 ring-slate-50')}</div>
         </div>
         <div class="space-y-2">
