@@ -44,10 +44,12 @@ fs.mkdirSync(OUT, { recursive: true });
     catch (e) { failures++; console.log('FAIL', name, '-', e.message.split('\n')[0]); }
     await page.screenshot({ path: OUT + name + '.png', fullPage: true }).catch(() => {});
   };
+  // Espera o elemento da tela, não a rede ociosa: atrás do proxy da nuvem as fontes e CDNs às vezes
+  // demoram e a rede nunca fica ociosa. Só a sacola espera a rede (precisa das taxas carregadas).
   let orderId = null, pin = null, failures = 0;
 
   await step('01-home', async () => {
-    await page.goto(BASE + 'index.html', { waitUntil: 'networkidle' });
+    await page.goto(BASE + 'index.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForSelector('#stores-container a', { timeout: 15000 });
     console.log('     lojas:', await page.$$eval('#stores-container > a', e => e.length),
       '| ofertas:', await page.$$eval('#offers-row > div', e => e.length),
@@ -60,7 +62,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.fill('#search-input', '');
   });
   await step('03-loja', async () => {
-    await page.goto(BASE + 'loja.html?slug=pizzaria-forno-da-tipuanas', { waitUntil: 'networkidle' });
+    await page.goto(BASE + 'loja.html?slug=pizzaria-forno-da-tipuanas', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForSelector('[data-add-product]', { timeout: 15000 });
     const first = await page.$eval('[data-add-product]', e => e.dataset.addProduct);
     // Produto com opções: marca a primeira opção dos grupos obrigatórios e adiciona
@@ -97,12 +99,13 @@ fs.mkdirSync(OUT, { recursive: true });
     console.log('     pedido:', orderId, '| PIN:', pin, '| wa.me:', /wa\.me\/55\d+/.test(html));
   });
   await step('05-acompanhamento', async () => {
-    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + orderId, { waitUntil: 'networkidle' });
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + orderId, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForSelector('#order-details:not(.hidden)', { timeout: 15000 });
     console.log('     PIN na tela:', await page.textContent('#delivery-pin'));
   });
   await step('06-meus-pedidos-pin', async () => {
-    await page.goto(BASE + 'pedidos.html', { waitUntil: 'networkidle' });
+    await page.goto(BASE + 'pedidos.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForSelector('#phone-input', { timeout: 30000 });
     await page.fill('#phone-input', '47999706651');
     await page.fill('#pin-input', pin || '0000');
     await page.click('#search-btn');
@@ -110,8 +113,8 @@ fs.mkdirSync(OUT, { recursive: true });
     console.log('     pedidos encontrados:', await page.$$eval('#orders-list a', e => e.length));
   });
   await step('07-cancelar', async () => {
-    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + orderId, { waitUntil: 'networkidle' });
-    await page.waitForSelector('#cancel-order-btn', { timeout: 15000 });
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + orderId, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForSelector('#cancel-order-btn', { timeout: 30000 });
     await page.click('#cancel-order-btn');
     await page.waitForTimeout(3000);
     console.log('     status:', (await page.textContent('body')).includes('Cancelado') ? 'cancelado' : 'NÃO cancelou');
@@ -121,11 +124,11 @@ fs.mkdirSync(OUT, { recursive: true });
     ['10-privacidade', 'privacidade.html', '#privacy-contact'], ['11-lojista-login', '04_merchant_portal.html', 'input[type=email]'],
     ['12-entregador', 'entregador.html', 'input[type=email]'], ['13-admin', '14_admin_analytics_dashboard.html', 'input[type=email]'],
     ['14-404', 'nao-existe-xyz', 'body']]) {
-    // Telas só abertas: espera o elemento, não a rede ociosa (o proxy da nuvem às vezes atrasa CDNs)
     await step(name, async () => { await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 45000 }); await page.waitForSelector(sel, { timeout: 30000 }); });
   }
   // Aviso esperado atrás de proxy: o service worker não passa pelo route do Playwright
-  const problems = log.filter(l => !/unknown error occurred when fetching the script|14-404\]/.test(l) && !/dialog: Cancelar/.test(l));
+  // ERR_ABORTED: requisição cortada porque o teste já foi para a próxima tela (não é erro do site)
+  const problems = log.filter(l => !/unknown error occurred when fetching the script|14-404\]/.test(l) && !/dialog: Cancelar/.test(l) && !/net::ERR_ABORTED/.test(l));
   console.log('\n--- PROBLEMAS ---\n' + (problems.join('\n') || 'nenhum'));
   await b.close();
   process.exit(problems.length || failures ? 1 : 0);
