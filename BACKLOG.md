@@ -36,7 +36,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
   algarismos tabulares, sem gradiente e sem emoji, um só botão dourado por tela, elementos semânticos
   reais, voz "Direto da avenida". Sinais "Loja verificada" e "Recomendada por N vizinhos" só visuais por
   enquanto. Não perder nenhuma funcionalidade existente.
-  - [x] **G1a. Fundação.** _(30/09/2026)_ `theme.js` em todas as páginas logo após o Tailwind: paletas
+  - [x] **G1a. Fundação.** _(30/09/2026, PR #34)_ `theme.js` em todas as páginas logo após o Tailwind: paletas
     que o código usa apontam para a marca (emerald→copa, amber→floração, red→tijolo, slate/gray→ink/papel),
     Bricolage Grotesque + Karla, texto mínimo 12px, algarismos tabulares, foco visível; gradientes da
     vitrine viraram cores sólidas; botão dourado com texto escuro.
