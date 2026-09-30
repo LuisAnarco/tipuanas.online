@@ -10,6 +10,7 @@
     <title>Finalizar Pedido — Tipuanas.online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
@@ -85,15 +86,20 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Forma de Pagamento</label>
                     <select id="payment-method" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500 bg-white">
-                        <option value="Pix">Pix (no recebimento)</option>
+                        <option value="Pix">Pix</option>
                         <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito (na entrega)</option>
                         <option value="Dinheiro">Dinheiro</option>
                     </select>
+                    <p id="pix-hint" class="text-[10px] text-slate-400 mt-1">Depois de enviar, mostramos o Pix copia-e-cola da loja com o valor exato.</p>
+                    <div id="change-wrap" class="hidden mt-2">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Troco para quanto? (opcional)</label>
+                        <input type="number" id="change-for" min="0" step="1" inputmode="decimal" placeholder="Ex: 50" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Observações (opcional)</label>
-                    <input type="text" id="client-notes" placeholder="Ex: sem cebola, troco pra R$ 50, interfone 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                    <input type="text" id="client-notes" placeholder="Ex: interfone 202, deixar na portaria" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
                 </div>
 
                 <div>
@@ -140,6 +146,22 @@
 
             document.getElementById('coupon-apply').addEventListener('click', applyCoupon);
             document.getElementById('use-location').addEventListener('click', useMyLocation);
+            // Pagamento: dinheiro pergunta o troco; Pix explica o copia-e-cola
+            const paymentEl = document.getElementById('payment-method');
+            const onPayment = () => {
+                document.getElementById('change-wrap').classList.toggle('hidden', paymentEl.value !== 'Dinheiro');
+                document.getElementById('pix-hint').classList.toggle('hidden', paymentEl.value !== 'Pix');
+            };
+            paymentEl.addEventListener('change', onPayment);
+            onPayment();
+            document.getElementById('confirmation-cards').addEventListener('click', event => {
+                const btn = event.target.closest('[data-copy-pix]');
+                if (!btn) return;
+                const code = document.querySelector(`[data-pix-code="${btn.dataset.copyPix}"]`).value;
+                (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject())
+                    .catch(() => { const el = document.querySelector(`[data-pix-code="${btn.dataset.copyPix}"]`); el.select(); document.execCommand('copy'); })
+                    .finally(() => { btn.textContent = '✓ Código copiado'; });
+            });
             // Endereço digitado (sem GPS): procura no mapa quando o cliente sai do campo
             document.getElementById('client-address').addEventListener('change', () => {
                 if (customerPos && customerPos.source === 'gps') return;
@@ -421,6 +443,7 @@
             const address = takeout ? '' : document.getElementById('client-address').value.trim();
             const payment = document.getElementById('payment-method').value;
             const notes = document.getElementById('client-notes').value.trim();
+            const changeFor = payment === 'Dinheiro' ? Number(String(document.getElementById('change-for').value).replace(',', '.')) || null : null;
             const submitBtn = document.getElementById('submit-btn');
 
             if (!name || (!takeout && !address)) {
@@ -471,7 +494,7 @@
                 const { data: result, error } = await sb.rpc('place_order', {
                     p_store_id: storeId,
                     p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity, options: item.options || [], note: item.note || null })),
-                    p_customer: { name, phone, address, payment_method: payment, notes, ...(customerPos && !takeout ? { lat: customerPos.lat, lng: customerPos.lng } : {}) },
+                    p_customer: { name, phone, address, payment_method: payment, notes, ...(changeFor ? { change_for: changeFor } : {}), ...(customerPos && !takeout ? { lat: customerPos.lat, lng: customerPos.lng } : {}) },
                     p_is_takeout: takeout,
                     p_coupon: appliedCoupon && appliedCoupon.store_id === storeId ? appliedCoupon.code : null
                 });
@@ -494,6 +517,7 @@
                 message += `📱 *WhatsApp:* ${phone}\n`;
                 message += takeout ? `🏪 *Retirada na loja*\n` : `📍 *Endereço:* ${address}\n`;
                 message += `💳 *Pagamento:* ${payment}\n`;
+                if (result.change_for) message += `💵 *Troco para:* ${formatBRL(result.change_for)} (levar ${formatBRL(Number(result.change_for) - total)})\n`;
                 if (notes) message += `📝 *Obs:* ${notes}\n`;
                 message += `\n*ITENS:*\n`;
                 result.items.forEach(item => {
@@ -511,6 +535,11 @@
                 message += `\n\n🔎 Acompanhamento: ${trackUrl}`;
 
                 const whatsappNumber = toWhatsappNumber(result.store && result.store.whatsapp_number);
+                const store = result.store || {};
+                const pix = payment === 'Pix' && store.pix_key
+                    ? pixPayload({ key: store.pix_key, name: store.name || storeName, city: store.pix_city, amount: total, txid: `TP${orderId.replace(/-/g, '').slice(0, 20)}` })
+                    : null;
+                if (pix) message += `\n\n💠 Pix copia-e-cola (${formatBRL(total)}):\n${pix}`;
 
                 confirmations.push({
                     storeName: (result.store && result.store.name) || storeName,
@@ -518,6 +547,8 @@
                     orderId,
                     pin: result.pin,
                     waLink: whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}` : null,
+                    pix,
+                    changeFor: result.change_for ? Number(result.change_for) : null,
                     trackLink: `11_order_tracking_realtime.html?id=${orderId}`
                 });
                 doneStoreIds.push(storeId);
@@ -561,12 +592,31 @@
                         <span class="font-extrabold text-emerald-600 text-sm">${formatBRL(c.total)}</span>
                     </div>
                     <p class="text-[11px] text-slate-500">PIN de entrega: <strong class="text-emerald-700 font-mono">${c.pin}</strong> — informe ao entregador.</p>
+                    ${c.pix ? `
+                    <div data-role="pix-box" class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 space-y-2">
+                        <p class="text-xs font-bold text-emerald-900">💠 Pague com Pix: ${formatBRL(c.total)}</p>
+                        <div data-pix-qr="${escapeHtml(c.orderId)}" class="hidden flex justify-center bg-white rounded-lg p-2"></div>
+                        <textarea data-pix-code="${escapeHtml(c.orderId)}" readonly rows="3" class="w-full text-[10px] font-mono p-2 rounded-lg border border-emerald-200 bg-white">${escapeHtml(c.pix)}</textarea>
+                        <button data-copy-pix="${escapeHtml(c.orderId)}" class="w-full bg-emerald-700 text-white font-bold py-2 rounded-lg text-xs">📋 Copiar código Pix</button>
+                        <p class="text-[10px] text-emerald-800">Cole no app do seu banco (Pix → Copia e Cola). O dinheiro vai direto para a loja. Mande o comprovante no WhatsApp.</p>
+                    </div>` : ''}
+                    ${c.changeFor ? `<p class="text-[11px] text-slate-600">💵 Troco para ${formatBRL(c.changeFor)} — o entregador leva ${formatBRL(c.changeFor - c.total)}.</p>` : ''}
                     ${c.waLink
                         ? `<a href="${c.waLink}" target="_blank" rel="noopener" class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">💬 Enviar para esta loja no WhatsApp</a>`
                         : `<p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Esta loja ainda não tem WhatsApp cadastrado. Seu pedido já chegou no painel dela — é só acompanhar abaixo.</p>`}
                     <a href="${c.trackLink}" class="block w-full text-center border border-slate-200 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-50">Acompanhar este pedido</a>
                 </div>
             `).join('');
+
+            // QR do Pix (se a biblioteca carregou; o copia-e-cola funciona sem ele)
+            if (typeof QRCode === 'function') {
+                confirmations.filter(c => c.pix).forEach(c => {
+                    const el = document.querySelector(`[data-pix-qr="${CSS.escape(c.orderId)}"]`);
+                    if (!el) return;
+                    new QRCode(el, { text: c.pix, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+                    el.classList.remove('hidden');
+                });
+            }
         }
     </script>
 </body>

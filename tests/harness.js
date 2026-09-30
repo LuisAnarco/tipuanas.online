@@ -97,7 +97,10 @@ function rpc(db, fn, body) {
                 if (!c) throw { status: 400, body: { code: 'P0001', message: 'invalid_coupon' } };
                 discount = Math.round(Math.min(subtotal, c.discount_type === 'percentage' ? subtotal * c.discount_value / 100 : c.discount_value) * 100) / 100;
             }
-            return { id: 'bbbbbbbb-0000-0000-0000-00000000000' + db.calls.length, pin: '4321', subtotal, discount, coupon_code: body.p_coupon || null, delivery_fee: fee, total: subtotal - discount + fee, items, store: { name: store.name, whatsapp_number: store.whatsapp_number } };
+            const total = subtotal - discount + fee;
+            const change = body.p_customer.payment_method === 'Dinheiro' && body.p_customer.change_for >= total ? body.p_customer.change_for : null;
+            return { id: 'bbbbbbbb-0000-0000-0000-00000000000' + db.calls.length, pin: '4321', subtotal, discount, coupon_code: body.p_coupon || null, delivery_fee: fee, total, change_for: change, items,
+                store: { name: store.name, whatsapp_number: store.whatsapp_number, pix_key: store.pix_key || null, pix_city: store.pix_city || null } };
         }
         case 'get_order_public': {
             const o = db.orders.find(x => x.id === body.p_id);

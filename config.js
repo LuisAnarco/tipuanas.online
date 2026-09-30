@@ -190,6 +190,35 @@ async function geocodeAddress(query, near) {
     }
 }
 
+// ============================================================== PIX COPIA-E-COLA
+// BR Code estático (padrão EMV do Banco Central) com a chave da loja e o valor exato do pedido.
+// Gerado no navegador: o dinheiro vai direto para a conta da loja, sem intermediário.
+
+function pixCrc16(text) {
+    let crc = 0xFFFF;
+    for (const byte of new TextEncoder().encode(text)) {
+        crc ^= byte << 8;
+        for (let i = 0; i < 8; i++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+    }
+    return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+/** Texto em maiúsculas sem acento, só letras/números/espaço (exigência do padrão para nome e cidade) */
+function pixText(value, max) {
+    return String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function pixPayload({ key, name, city, amount, txid }) {
+    const f = (id, value) => id + String(value.length).padStart(2, '0') + value;
+    const account = f('00', 'br.gov.bcb.pix') + f('01', String(key).trim());
+    const ref = String(txid || '***').replace(/[^A-Za-z0-9]/g, '').slice(0, 25) || '***';
+    const body = f('00', '01') + f('26', account) + f('52', '0000') + f('53', '986')
+        + (amount > 0 ? f('54', Number(amount).toFixed(2)) : '')
+        + f('58', 'BR') + f('59', pixText(name, 25) || 'LOJA') + f('60', pixText(city, 15) || 'BRASIL')
+        + f('62', f('05', ref)) + '6304';
+    return body + pixCrc16(body);
+}
+
 // PWA: registra o service worker (só em HTTPS — produção e previews da Vercel)
 if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
     window.addEventListener('load', () => {

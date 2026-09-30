@@ -357,6 +357,42 @@ test('entrega: loja escolhe entregar por conta própria com taxa por km; admin d
     assert.deepStrictEqual([pw.body.base_fee, pw.body.km_included, pw.body.fee_per_km, pw.body.radius_km], [7, 2, 1.5, 4]);
 });
 
+test('pagamento: Pix copia-e-cola com valor exato e troco no dinheiro', {}, async (page, db) => {
+    Object.assign(db.stores.find(s => s.id === S1), { pix_key: 'pix@padaria.com', pix_city: 'Joinville' });
+    const cart = [{ id: 'p2', name: 'Sonho', price: 6, storeId: S1, storeName: 'Padaria', quantity: 2 }];
+    await page.goto(BASE + 'index.html');
+    await page.evaluate(c => localStorage.setItem('tipuanas_cart', JSON.stringify(c)), cart);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Rua 1');
+    assert.ok(await isShown(page, '#pix-hint') && !(await isShown(page, '#change-wrap')), 'Pix é o padrão');
+    await page.click('#submit-btn');
+    await page.waitForSelector('[data-role="pix-box"]');
+    const code = await page.inputValue('[data-pix-code]');
+    // 2 x 6 (promo 4,50 no mock → 9) + entrega 5 = 14,00
+    assert.ok(code.startsWith('000201') && code.includes('0014br.gov.bcb.pix0115pix@padaria.com') && code.includes('540514.00') && code.includes('6009JOINVILLE'), code);
+    const crc = await page.evaluate(c => pixCrc16(c.slice(0, -4)), code);
+    assert.strictEqual(code.slice(-4), crc, 'CRC do BR Code confere');
+    assert.ok(decodeURIComponent(await page.getAttribute('#confirmation-cards a[href^="https://wa.me/"]', 'href')).includes('Pix copia-e-cola'), 'código vai na mensagem da loja');
+    await page.click('[data-copy-pix]');
+    await page.waitForSelector('[data-copy-pix]:text("copiado")');
+
+    // Dinheiro: troco para 50
+    await page.evaluate(c => localStorage.setItem('tipuanas_cart', JSON.stringify(c)), cart);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.selectOption('#payment-method', 'Dinheiro');
+    assert.ok(await isShown(page, '#change-wrap'), 'pergunta o troco');
+    await page.fill('#change-for', '50');
+    await page.fill('#client-address', 'Rua 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#confirmation-view:not(.hidden)');
+    const call = db.calls.filter(c => c.fn === 'place_order').pop();
+    assert.strictEqual(call.body.p_customer.change_for, 50);
+    assert.ok((await page.textContent('#confirmation-cards')).includes('Troco para R$ 50,00'));
+    assert.ok(!(await page.$('[data-role="pix-box"]')), 'sem Pix quando paga em dinheiro');
+});
+
 test('checkout: cria pedido via place_order, WhatsApp com 55 e pula loja fechada', {}, async (page, db) => {
     await page.goto(BASE + 'index.html');
     await page.evaluate(([s1, s2]) => localStorage.setItem('tipuanas_cart', JSON.stringify([
@@ -534,12 +570,14 @@ test('login: sem sessão mostra tela de e-mail e envia link para a página atual
 // ---------------------------------------------------------------- Lojista
 test('lojista: vincula loja sem dono e vê pedidos escapados', { loggedIn: true }, async (page, db) => {
     db.orders.find(o => o.id === O1).status = 'novo';
+    db.orders.find(o => o.id === O1).delivery_address.change_for = 50;
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
     await page.waitForSelector('#orders-list [data-order]');
     assert.ok(db.calls.some(c => c.fn === 'claim_store'), 'claim_store chamado');
     assert.ok(!(await page.$('#orders-list script')), 'nome do cliente escapado');
     assert.strictEqual(await page.textContent('#total-orders-today'), '2', 'pedidos de hoje sem cancelados');
     assert.strictEqual(await page.textContent('#pending-badge'), '1 pendente');
+    assert.ok((await page.textContent('[data-role="change"]')).includes('levar R$ 36,00'), 'troco: 50 - 14');
     assert.strictEqual(await page.title(), '(1) Painel do Comerciante - Tipuanas.online', 'contador de pendentes na aba');
     assert.ok((await page.textContent('#user-bar')).includes(USER.email));
     await page.waitForSelector('#reviews-section:not(.hidden)');

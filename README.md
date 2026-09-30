@@ -11,7 +11,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Cliente | `index.html` + `09_multistore_cart.js` | Vitrine estilo app de delivery: banners de cupons, categorias com ícones, Ofertas do dia, Destaques, Mais bem avaliadas, lista de lojas, busca de lojas e produtos, barra inferior e carrinho multi-loja |
 | Cliente | `loja.html?slug=` | Página própria da loja: capa e logo, cupons, abas por seção do cardápio, destaques, preço promocional, produto com opções (tamanho, borda, adicionais com mínimo/máximo e observação, preço conferido no `place_order`), avaliações e compartilhar (link do QR do balcão) |
 | Cliente | `privacidade.html` | Privacidade e termos (LGPD): dados guardados, uso, compartilhamento, prazo, direitos, contato e botão para apagar os dados do aparelho |
-| Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto, taxa por distância com "Usar minha localização" ou endereço no mapa, aviso de fora da área), cria um pedido por loja e abre o WhatsApp de cada uma |
+| Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto, taxa por distância com "Usar minha localização" ou endereço no mapa, aviso de fora da área, Pix copia-e-cola com QR e valor exato, troco no dinheiro), cria um pedido por loja e abre o WhatsApp de cada uma |
 | Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento com PIN de entrega, cancelamento enquanto o pedido é "novo" e avaliação da loja após a entrega |
 | Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
