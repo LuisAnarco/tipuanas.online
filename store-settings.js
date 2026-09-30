@@ -51,6 +51,8 @@ function renderStoreSettings(container, store, opts = {}) {
                 ${field('Categoria', `<input name="category" maxlength="60" class="${inputCls}" value="${escapeHtml(store.category || '')}" placeholder="Ex: Padaria, Mercado, Serviços">`)}
                 ${field('WhatsApp para pedidos (com DDD)', `<input name="whatsapp_number" inputmode="tel" class="${inputCls}" value="${escapeHtml(store.whatsapp_number || '')}" placeholder="Ex: 48999998888">`)}
                 ${field('Endereço na avenida', `<input name="address_line" maxlength="200" class="${inputCls}" value="${escapeHtml(store.address_line || '')}">`)}
+                ${field('Chave Pix (aparece para o cliente pagar)', `<input name="pix_key" maxlength="77" class="${inputCls}" value="${escapeHtml(store.pix_key || '')}" placeholder="E-mail, CNPJ, aleatória ou +5547999999999">`)}
+                ${field('Cidade da conta Pix', `<input name="pix_city" maxlength="15" class="${inputCls}" value="${escapeHtml(store.pix_city || '')}" placeholder="Ex: Joinville">`)}
                 ${field('Tempo médio de preparo (min)', `<input name="avg_prep_time_minutes" type="number" min="0" max="240" step="5" class="${inputCls}" value="${Number(store.avg_prep_time_minutes || 0) || ''}" placeholder="Ex: 30">`)}
                 ${field('Tipo de negócio', `
                     <select name="listing_type" class="${inputCls} bg-white">
@@ -218,6 +220,8 @@ function renderStoreSettings(container, store, opts = {}) {
             if (!(feePerKm >= 0) || !(kmIncluded >= 0)) return setStatus('Confira os valores da entrega por km.', false);
             if (!(radius > 0 && radius <= 50)) return setStatus('O raio máximo deve ser entre 0,5 e 50 km.', false);
         }
+        const pixKey = String(data.pix_key || '').trim();
+        if (pixKey && (pixKey.length < 5 || pixKey.length > 77)) return setStatus('Chave Pix inválida.', false);
         const openingHours = readHours();
         if (openingHours && Object.keys(openingHours).length === 0) {
             return setStatus('Marque pelo menos um dia de funcionamento (ou desligue o horário).', false);
@@ -233,6 +237,8 @@ function renderStoreSettings(container, store, opts = {}) {
             description: data.description.trim() || null,
             opening_hours: openingHours,
             avg_prep_time_minutes: prep,
+            pix_key: pixKey || null,
+            pix_city: String(data.pix_city || '').trim().slice(0, 15) || null,
             delivery_type: own ? 'propria' : 'plataforma',
             lat,
             lng,

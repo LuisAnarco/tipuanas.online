@@ -141,11 +141,13 @@ navegador) e testes no `npm test`.
   - [x] **25b. Lojista monta as opções no cardápio.** _(29/09/2026, PR #31)_ Botão "⚙️ Opções" em cada produto
     abre o editor: grupos com mínimo/máximo, opções com preço, modelos prontos (Tamanho, Adicionais,
     Retirar ingrediente, Ponto da carne), reordenar, copiar de outro produto e validação igual à do banco.
-- [ ] **26. Pagamento claro no checkout.** "Troco para quanto?" quando for dinheiro (vai para a loja e
+- [x] **26. Pagamento claro no checkout.** _(30/09/2026)_ Feito: `stores.pix_key`/`pix_city`, BR Code
+  gerado no navegador (CRC conferido com o exemplo do Banco Central) com QR e botão copiar na confirmação
+  e na mensagem da loja; "Troco para quanto?" gravado pelo `place_order` e mostrado à loja e ao entregador. "Troco para quanto?" quando for dinheiro (vai para a loja e
   para o entregador) e **Pix copia-e-cola / QR** com a chave Pix da loja e o valor exato do pedido
   (BR Code estático gerado no navegador, sem intermediário). Lojista cadastra a chave Pix nos dados
   da loja; cliente pode mandar o comprovante pelo WhatsApp.
-- [x] **27a. Taxa de entrega por km/raio (pedido do Luis).** _(29/09/2026)_ Quem entrega decide:
+- [x] **27a. Taxa de entrega por km/raio (pedido do Luis).** _(29/09/2026, PR #32)_ Quem entrega decide:
   loja com **entrega própria** define taxa base, km incluídos, R$/km e raio; loja com **entregadores da
   plataforma** segue a regra do admin (`platform_delivery`). Banco: `delivery_quote`/`quote_delivery`,
   `place_order` cobra pela distância (linha reta, degraus de R$ 0,50), recusa fora do raio e guarda o

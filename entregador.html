@@ -263,6 +263,7 @@
                     <p class="text-xs text-gray-600">📍 Retirar: ${escapeHtml(store.address_line || 'endereço não informado')}</p>
                     <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(addr.address || 'endereço não informado')}</p>
                     <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</p>
+                    ${addr.change_for ? `<p class="text-xs font-bold text-amber-700">💵 Levar troco: ${formatBRL(Number(addr.change_for) - Number(order.total_amount))} (cliente paga com ${formatBRL(addr.change_for)})</p>` : ''}
                     ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
                     <div class="grid grid-cols-3 gap-2 text-xs font-bold text-center">
                         ${addr.address || addr.lat != null ? `<a href="${mapsLink(addr.lat != null ? `${addr.lat},${addr.lng}` : addr.address)}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🗺️ Mapa</a>` : '<span></span>'}

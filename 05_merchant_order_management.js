@@ -493,6 +493,7 @@ function orderCard(order) {
         ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
         ${courierLine(order)}
         <p class="text-xs text-gray-500">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>
+        ${addr.change_for ? `<p data-role="change" class="text-xs font-semibold text-amber-800">💵 Troco para ${formatBRL(addr.change_for)} — levar ${formatBRL(Number(addr.change_for) - Number(order.total_amount))}</p>` : ''}
         ${order.status === 'em_rota' && order.courier_ref ? '<p class="text-[11px] text-gray-500">O entregador conclui com o PIN do cliente.</p>' : ''}
         ${actions.length ? `<div class="flex gap-2 pt-1">${actions.map(a => `<button data-order-action="${id}" data-status="${a.status}" class="${ACTION_STYLES[a.kind]}">${a.label}</button>`).join('')}</div>` : ''}
         <div class="flex flex-wrap items-center gap-2">
