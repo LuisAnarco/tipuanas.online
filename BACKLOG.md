@@ -141,7 +141,7 @@ navegador) e testes no `npm test`.
   - [x] **25b. Lojista monta as opções no cardápio.** _(29/09/2026, PR #31)_ Botão "⚙️ Opções" em cada produto
     abre o editor: grupos com mínimo/máximo, opções com preço, modelos prontos (Tamanho, Adicionais,
     Retirar ingrediente, Ponto da carne), reordenar, copiar de outro produto e validação igual à do banco.
-- [x] **26. Pagamento claro no checkout.** _(30/09/2026)_ Feito: `stores.pix_key`/`pix_city`, BR Code
+- [x] **26. Pagamento claro no checkout.** _(30/09/2026, PR #33)_ Feito: `stores.pix_key`/`pix_city`, BR Code
   gerado no navegador (CRC conferido com o exemplo do Banco Central) com QR e botão copiar na confirmação
   e na mensagem da loja; "Troco para quanto?" gravado pelo `place_order` e mostrado à loja e ao entregador. "Troco para quanto?" quando for dinheiro (vai para a loja e
   para o entregador) e **Pix copia-e-cola / QR** com a chave Pix da loja e o valor exato do pedido
