@@ -23,7 +23,7 @@ function freshDb() {
     const now = new Date().toISOString();
     return {
         stores: [
-            { id: S1, name: "Padaria d'Ouro <b>x</b>", category: 'Padaria', whatsapp_number: '47999706651', address_line: 'Av. 10', delivery_fee: 5, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: null, description: 'Pães', slug: 'padaria-ouro', avg_prep_time_minutes: 30 },
+            { id: S1, name: "Padaria d'Ouro <b>x</b>", category: 'Padaria', whatsapp_number: '47999706651', address_line: 'Av. 10', delivery_fee: 5, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: null, description: 'Pães', slug: 'padaria-ouro', avg_prep_time_minutes: 30, approval_status: 'aprovada' },
             { id: S2, name: 'Baratissimo', category: 'Mercado', whatsapp_number: null, address_line: 'Av. 20', delivery_fee: 0, is_active: true, is_paused: false, listing_type: 'catalogo', owner_id: 'outra-conta', slug: 'baratissimo' },
             { id: S3, name: 'BOA! Lavagem', category: 'Serviços', whatsapp_number: '47999706651', address_line: '', delivery_fee: 0, is_active: true, is_paused: false, listing_type: 'orcamento', owner_id: USER.id, description: 'Lavagem' },
         ],

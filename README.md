@@ -23,9 +23,9 @@ via CDN) em cima do Supabase, publicado na Vercel.
 | Entregador | `entregador.html` | Cadastro, corridas disponíveis com ganho (atualiza sozinha, sem dados do cliente até aceitar), aceite exclusivo, mapa e WhatsApp do cliente/loja, devolver corrida, PIN digitado na tela e conferido no banco, histórico e ganhos. Loja e cliente veem quem está levando |
 | Admin | `14_admin_analytics_dashboard.html` + `admin-manage.js` | GMV, comissão, recorrência, ranking de produtos; aprovar/recusar lojas novas; regra de entrega da plataforma (taxa base, km incluídos, R$/km, raio); editar lojas e definir dono por e-mail; ativar/desativar lojas e entregadores; pedidos do período com cancelamento; moderação do mural |
 
-Arquivos de apoio: `config.js` (cliente Supabase e utilitários compartilhados — todas as páginas
+Arquivos de apoio: `config.js` (inclui `icon()`/`data-icon`: ícones SVG da marca no lugar de emoji) (cliente Supabase e utilitários compartilhados — todas as páginas
 carregam ele), `store-settings.js` (formulário "Dados da loja", usado pelo lojista e pelo admin), `06_push_notification_service.js` (alertas do lojista), `07_client_pwa_manifest.json`,
-`theme.js` (identidade canopy+bloom: paletas, fontes e regras de legibilidade, carregado logo após o Tailwind em todas as páginas), `vercel.json` (cabeçalhos de segurança e cache), `404.html`, `sw.js` (service worker do PWA: rede primeiro, cópia offline dos arquivos do site; nunca guarda dados do Supabase), `icons/` (ícones do app), `12_merchant_pitch_script.md` e `Claude outputs/` (roadmap e estudos).
+`theme.js` (identidade canopy+bloom: paletas, fontes e regras de legibilidade, carregado logo após o Tailwind em todas as páginas; classe `hit44` para alvo de toque de 44px), `vercel.json` (cabeçalhos de segurança e cache), `404.html`, `sw.js` (service worker do PWA: rede primeiro, cópia offline dos arquivos do site; nunca guarda dados do Supabase), `icons/` (ícones do app), `12_merchant_pitch_script.md` e `Claude outputs/` (roadmap e estudos).
 
 ## Rodando localmente
 
