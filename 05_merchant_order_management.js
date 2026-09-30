@@ -174,7 +174,7 @@ async function renderOnboarding(store) {
     const approvalBox = {
         pendente: `<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-2">
                 <p><b>⏳ Sua loja está em análise.</b> Enquanto isso ela não aparece na vitrine nem recebe pedidos, mas você já pode montar o cardápio.</p>
-                <a data-ask-approval href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(approvalText)}" target="_blank" rel="noopener" class="inline-block font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-2">💬 Pedir aprovação pelo WhatsApp</a>
+                <a data-ask-approval href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(approvalText)}" target="_blank" rel="noopener" class="inline-block font-bold bg-amber-500 hover:bg-amber-600 text-emerald-900 rounded-lg px-3 py-2">💬 Pedir aprovação pelo WhatsApp</a>
             </div>`,
         recusada: `<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800 space-y-2">
                 <p><b>A loja não foi aprovada.</b> Fale com a administração para entender o que ajustar.</p>

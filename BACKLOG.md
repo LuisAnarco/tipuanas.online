@@ -27,6 +27,31 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 8. Atualizar o `README.md` quando mudar telas, tabelas ou fluxo.
 9. **Pular** itens marcados _(depende do Luis)_ ou _(adiado)_; seguir para o próximo `[ ]`.
 
+## Prioridade — pedidos do Glorioso (30/09/2026)
+
+- [ ] **G1. Design → código: identidade canopy+bloom no site atual.** Aplicar ao código ATUAL a identidade
+  do canvas https://claude.ai/artifact/5CeEkXL2XpmdcZho6NtHaz (o site ainda usa emerald/amber). Tokens de
+  texto sobre fundo claro: mel-texto #8A5A17, tijolo-texto #9A4726, ink-soft #5B6154 (legendas), ink-mute
+  #6E7166 (placeholder). Fonte mínima 12px (rótulo em caixa alta 11px), alvo de toque ≥ 44px, preços com
+  algarismos tabulares, sem gradiente e sem emoji, um só botão dourado por tela, elementos semânticos
+  reais, voz "Direto da avenida". Sinais "Loja verificada" e "Recomendada por N vizinhos" só visuais por
+  enquanto. Não perder nenhuma funcionalidade existente.
+  - [x] **G1a. Fundação.** _(30/09/2026)_ `theme.js` em todas as páginas logo após o Tailwind: paletas
+    que o código usa apontam para a marca (emerald→copa, amber→floração, red→tijolo, slate/gray→ink/papel),
+    Bricolage Grotesque + Karla, texto mínimo 12px, algarismos tabulares, foco visível; gradientes da
+    vitrine viraram cores sólidas; botão dourado com texto escuro.
+  - [ ] **G1b. Telas do cliente** (vitrine, loja, sacola/checkout, acompanhamento, Meus pedidos): emoji →
+    ícones SVG, alvos ≥ 44px, um só botão dourado por tela, voz "Direto da avenida", selos "Loja
+    verificada" e "Recomendada por N vizinhos" (visuais), `<button>`/`<a>`/`<label>` reais — seguindo as
+    pranchas Home, Store, Checkout e OrderTracking do canvas.
+  - [ ] **G1c. Painéis** (lojista, cardápio, orçamentos, entregador, admin) — pranchas MerchantPanel,
+    MerchantOnboarding, MerchantOrcamento, CourierApp e AdminDashboard.
+  - [ ] **G1d. Demais telas** (mural, orçamento do cliente, privacidade, 404, QR do balcão, telas) —
+    pranchas Mural, OrcamentoRequest e OrcamentoTracking.
+- [ ] **G2. Pesquisa (sem contatar ninguém):** confirmar o canal oficial ativo da Associação de Moradores
+  do Bairro São Sebastião (Facebook "Bairro São Sebastião - Palhoça -SC" × Instagram
+  @assmoradoressaosebastiao × @associacao_saosebast) e registrar em `docs/`.
+
 ## Itens (prioridade de cima para baixo)
 
 - [x] **1. Testes automatizados + CI.** _(26/09/2026, PR #4)_ Trazer para `tests/` uma suíte Playwright com Supabase e login
