@@ -17,6 +17,13 @@ test('vitrine: banners, categorias, ofertas, lojas, busca e carrinho', {}, async
     assert.ok(stores.includes('★ 4,5') && stores.includes('30 min'), 'nota média e tempo de preparo no cartão');
     assert.ok(!(await page.$('#stores-container b')), 'nome da loja escapado');
     assert.ok(stores.includes('Sob orçamento'), 'loja de orçamento com selo');
+    // Identidade (G1b): selos de confiança, ícones SVG no lugar de emoji e um só botão dourado
+    assert.ok(await page.$('#stores-container a[href="loja.html?slug=padaria-ouro"] [data-role="verified"]'), 'selo Loja verificada');
+    assert.ok(!(await page.$('#stores-container a[href="loja.html?slug=baratissimo"] [data-role="verified"]')), 'sem selo sem aprovação');
+    assert.ok((await page.textContent('#stores-container [data-role="recommended"]')).includes('vizinho'), 'recomendada por vizinhos');
+    const bodyText = await page.textContent('body');
+    assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(bodyText), 'sem emoji na vitrine');
+    assert.ok(await page.$('#category-chips button[aria-pressed="true"]'), 'chips com aria-pressed');
 
     // Banner do cupom público e ofertas com preço antigo riscado
     const banners = await page.innerHTML('#banners');
@@ -31,6 +38,8 @@ test('vitrine: banners, categorias, ofertas, lojas, busca e carrinho', {}, async
     // Carrinho usa o preço promocional
     await page.click('#offers-row [data-add-product="p2"]');
     assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
+    const golds = await page.$$eval('.bg-amber-500', els => els.filter(e => e.offsetParent !== null).length);
+    assert.strictEqual(golds, 1, 'um só botão dourado na tela (Ver sacola)');
     assert.strictEqual(await page.textContent('#cart-total-price'), 'R$ 4,50');
 
     // Busca por produto mostra o produto com botão de adicionar (descrição escapada)
@@ -59,7 +68,7 @@ test('página da loja: capa, cupom, abas por seção, avaliações e carrinho', 
     const html = await page.innerHTML('#stores-container');
     assert.ok(!html.includes('Arroz'), 'não mostra produto de outra loja');
     const sections = await page.$$eval('#stores-container [data-section]', els => els.map(e => e.dataset.section));
-    assert.deepStrictEqual(sections, ['⭐ Destaques', 'Doces <i>x</i>', 'Pães'], 'destaques + seções em ordem');
+    assert.deepStrictEqual(sections, ['Destaques', 'Doces <i>x</i>', 'Pães'], 'destaques + seções em ordem');
     assert.ok(!(await page.$('#stores-container i')), 'nome da seção escapado');
     assert.strictEqual((await page.$$('#section-tabs [data-section-tab]')).length, 3, 'abas das seções');
     const header = await page.innerHTML('#store-header');
@@ -603,7 +612,7 @@ test('esgotado: lojista marca com um toque e a vitrine mostra "Esgotado" sem bot
     await page.waitForSelector('[data-role="sold-out"]');
     assert.ok(!(await page.$('[data-add-product="p2"]')), 'produto esgotado sem botão de adicionar');
     assert.ok(await page.$('[data-add-product="p1"]'), 'os demais continuam');
-    const destaques = await page.$('#stores-container [data-section="⭐ Destaques"]');
+    const destaques = await page.$('#stores-container [data-section="Destaques"]');
     assert.ok(!destaques, 'esgotado sai dos destaques');
 
     await page.goto(BASE + 'index.html');

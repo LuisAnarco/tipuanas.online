@@ -39,6 +39,52 @@ function formatBRL(value) {
 }
 
 /**
+ * Ícones da marca (traço, 24x24) no lugar de emoji. `icon('busca', 'w-5 h-5')`.
+ * Decorativos (aria-hidden): o texto ao lado ou o aria-label do botão diz o que é.
+ */
+const ICONS = {
+    busca: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+    inicio: '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
+    pedidos: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+    mural: '<path d="M4 20v-6a2 2 0 0 1 2-2h2"/><path d="M8 20V9l4-5 4 5v11"/><path d="M16 20v-6a2 2 0 0 1 2-2h2v8"/>',
+    verificada: '<path d="M12 3 5 6v5c0 4.5 3 8.2 7 10 4-1.8 7-5.5 7-10V6l-7-3z"/><path d="m9 12 2 2 4-4"/>',
+    entrega: '<circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7M4 13h6l2-5h3l3 6.5"/><path d="M14 8h2"/>',
+    relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    local: '<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+    cupom: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+    conversa: '<path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z"/>',
+    compartilhar: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+    loja: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>',
+    baixar: '<path d="M12 3v12m-5-5 5 5 5-5"/><path d="M5 21h14"/>',
+    voltar: '<path d="m15 6-6 6 6 6"/>',
+    seguir: '<path d="m9 6 6 6-6 6"/>',
+    fechar: '<path d="M18 6 6 18M6 6l12 12"/>',
+    mais: '<path d="M12 5v14M5 12h14"/>',
+    menos: '<path d="M5 12h14"/>',
+    todas: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
+    comida: '<path d="M4 10a8 5 0 0 1 16 0z"/><path d="M3.5 13.5h17"/><path d="M5 17h14v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/>',
+    mercado: '<circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><path d="M3 4h2l2.5 11h11l2-8H6.5"/>',
+    farmacia: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/>',
+    pet: '<circle cx="7" cy="9" r="1.8"/><circle cx="12" cy="6.5" r="1.8"/><circle cx="17" cy="9" r="1.8"/><path d="M8 17a4 4 0 0 1 8 0c0 2-2 3-4 3s-4-1-4-3z"/>',
+    carro: '<path d="M4 16v-4l2-5h12l2 5v4z"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/>',
+    servico: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-2.5z"/>',
+    cafe: '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h2a2 2 0 0 1 0 4h-2"/><path d="M8 3v2M12 3v2"/>',
+    bebida: '<path d="M6 4h12l-1.5 16h-9z"/><path d="M6.5 9h11"/>',
+    beleza: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1 20 20M8.1 15.9 20 4"/>',
+    horti: '<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19 13 11"/>'
+};
+
+function icon(name, cls = 'w-5 h-5') {
+    return `<svg class="${cls} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS.loja}</svg>`;
+}
+
+/** Troca os <span data-icon="nome" class="..."> do HTML estático pelo SVG */
+function fillIcons(root = document) {
+    root.querySelectorAll('[data-icon]').forEach(el => { el.outerHTML = icon(el.dataset.icon, el.className); });
+}
+document.addEventListener('DOMContentLoaded', () => fillIcons());
+
+/**
  * Reduz a imagem no navegador (JPEG, lado maior até maxSide) e envia para o
  * Storage na pasta da loja (product-images/<store_id>/...). Devolve a URL pública.
  * O banco só aceita o envio de quem é dono da loja (ou admin).

@@ -74,6 +74,10 @@
         .text-\\[9px\\], .text-\\[10px\\], .text-\\[11px\\] { font-size: 12px !important; line-height: 1.35 !important; }
         input::placeholder, textarea::placeholder { color: #6E7166; }
         :focus-visible { outline: 2px solid #26402C; outline-offset: 2px; }
+        /* Alvo de toque de 44px em botões que precisam parecer menores (+, −, fechar) */
+        .hit44 { position: relative; }
+        .hit44::before { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     `;
     document.head.appendChild(style);
 })();
