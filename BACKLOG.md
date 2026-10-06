@@ -67,9 +67,14 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
     404). Pendente fora do site: o título do push da edge function `notify-new-order` ainda tem emoji (exige
     reimplantar a função).
 
-- [ ] **G2. Pesquisa (sem contatar ninguém):** confirmar o canal oficial ativo da Associação de Moradores
+- [x] **G2. Pesquisa (sem contatar ninguém):** confirmar o canal oficial ativo da Associação de Moradores
   do Bairro São Sebastião (Facebook "Bairro São Sebastião - Palhoça -SC" × Instagram
   @assmoradoressaosebastiao × @associacao_saosebast) e registrar em `docs/`.
+  _(06/10/2026, PR #42)_ Resultado em `docs/pesquisa-associacao-moradores-sao-sebastiao.md`: canal mais provável é o
+  Instagram @assmoradoressaosebastiao (nome, bio e endereço na Av. das Tipuanas); @associacao_saosebast é de
+  União da Vitória/PR; a página do Facebook é comunitária, não da associação. A entidade com CNPJ ativo no
+  bairro é o Conselho Comunitário de São Sebastião (76.554.989/0001-47). Falta conferir, logado, a data da
+  última publicação do Instagram _(depende do Luis/Glorioso)_.
 
 ## Itens (prioridade de cima para baixo)
 
