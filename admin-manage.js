@@ -39,18 +39,18 @@ function openStoreEditor(storeId) {
     box.innerHTML = `
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-sm font-bold text-white">Editando: ${escapeHtml(store.name)}</h3>
-            <button data-close-editor class="text-xs text-slate-400 underline">Fechar</button>
+            <button type="button" data-close-editor class="min-h-[44px] px-2 text-sm text-slate-500 underline">Fechar</button>
         </div>
         <div data-role="settings"></div>
         <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6 space-y-2">
-            <p class="text-sm font-bold text-gray-800">👤 Dono da loja</p>
+            <p class="text-sm font-bold text-gray-800">Dono da loja</p>
             <p class="text-xs text-gray-500">A pessoa precisa ter entrado no site pelo menos uma vez com esse e-mail. Deixe em branco para remover o dono (a loja volta a poder ser vinculada no painel do lojista).</p>
             <div class="flex flex-col sm:flex-row gap-2">
                 <input data-role="owner-email" type="email" value="${escapeHtml(ownersByStore[store.id] || '')}" placeholder="email@dono.com" class="flex-1 text-sm p-2.5 rounded-lg border border-gray-300">
-                <button data-role="owner-save" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm">Salvar dono</button>
+                <button type="button" data-role="owner-save" class="min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 rounded-lg text-sm">Salvar dono</button>
             </div>
             <p data-role="owner-status" class="text-xs"></p>
-            <a href="04_merchant_portal.html?store=${encodeURIComponent(store.id)}" class="inline-block text-xs text-emerald-700 underline">Abrir o painel desta loja →</a>
+            <a href="04_merchant_portal.html?store=${encodeURIComponent(store.id)}" class="inline-flex min-h-[44px] items-center text-sm text-emerald-700 underline">Abrir o painel desta loja</a>
         </div>
     `;
 
@@ -113,7 +113,7 @@ function renderAdminOrders() {
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-700">${ORDER_STATUS_LABELS[o.status] || escapeHtml(o.status)}</span>
                     <span class="font-bold text-emerald-400">${formatBRL(o.total_amount)}</span>
-                    ${canCancel ? `<button data-cancel-order="${escapeHtml(o.id)}" class="text-[10px] text-red-400 border border-red-400/40 rounded px-2 py-0.5 hover:bg-red-500/10">Cancelar</button>` : ''}
+                    ${canCancel ? `<button type="button" data-cancel-order="${escapeHtml(o.id)}" class="text-sm text-red-400 border border-red-400/40 rounded px-3 min-h-[44px] hover:bg-red-500/10">Cancelar</button>` : ''}
                 </div>
             </div>
         `;
@@ -156,7 +156,7 @@ async function loadCouriers(delivered) {
                     <p class="font-semibold text-white">${escapeHtml(c.name)} ${c.vehicle ? `<span class="text-slate-400 font-normal">• ${escapeHtml(c.vehicle)}</span>` : ''}</p>
                     <p class="text-[10px] text-slate-400">${wa ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="underline">${escapeHtml(c.phone)}</a>` : ''} • ${rides.length} entrega(s) no período • ${formatBRL(earned)} em taxas</p>
                 </div>
-                <button data-toggle-courier="${escapeHtml(c.id)}" class="text-[10px] border border-slate-600 hover:bg-slate-700 rounded px-2 py-0.5">${c.is_active ? 'Desativar' : 'Ativar'}</button>
+                <button type="button" data-toggle-courier="${escapeHtml(c.id)}" class="text-sm border border-slate-600 hover:bg-slate-700 rounded px-3 min-h-[44px]">${c.is_active ? 'Desativar' : 'Ativar'}</button>
             </div>
         `;
     }).join('');
@@ -197,10 +197,10 @@ async function loadMuralAdmin() {
     el.innerHTML = data.map(p => `
         <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
             <div class="min-w-0">
-                <p class="font-semibold text-white">${p.post_type === 'desapego' ? '🎁' : '🔎'} ${escapeHtml(p.title)}</p>
+                <p class="font-semibold text-white"><span class="text-xs font-bold uppercase tracking-wide text-amber-500">${p.post_type === 'desapego' ? 'Desapego' : 'Procura'}</span> ${escapeHtml(p.title)}</p>
                 <p class="text-[10px] text-slate-400">${escapeHtml(p.author_name)} • ${escapeHtml(p.author_whatsapp)} • vence ${new Date(p.expires_at).toLocaleDateString('pt-BR')}</p>
             </div>
-            <button data-remove-mural="${escapeHtml(p.id)}" class="text-[10px] text-red-400 border border-red-400/40 rounded px-2 py-0.5 hover:bg-red-500/10">Remover</button>
+            <button type="button" data-remove-mural="${escapeHtml(p.id)}" class="text-sm text-red-400 border border-red-400/40 rounded px-3 min-h-[44px] hover:bg-red-500/10">Remover</button>
         </div>
     `).join('');
 }
@@ -263,7 +263,7 @@ async function savePlatformDelivery(event) {
         status.className = 'text-[11px] text-red-400';
         return;
     }
-    status.textContent = 'Regra salva ✓';
+    status.textContent = 'Regra salva';
     status.className = 'text-[11px] text-emerald-300';
 }
 

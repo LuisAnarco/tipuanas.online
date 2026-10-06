@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#26402C">
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -16,8 +16,6 @@
     <script src="auth.js"></script>
     <script src="store-settings.js"></script>
     <script src="admin-manage.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 antialiased">
 
@@ -27,18 +25,19 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800 p-6 rounded-2xl border border-slate-700/60 shadow-xl">
             <div>
                 <div class="flex items-center gap-2">
-                    <span class="text-xl">📊</span>
-                    <h1 class="text-xl font-black text-white">Painel Master Admin</h1>
+                    <span data-icon="grafico" class="w-6 h-6 text-amber-500"></span>
+                    <h1 class="text-xl font-extrabold text-white">Painel do admin</h1>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">Gestão Financeira & Operacional • Tipuanas.online</p>
+                <p class="text-xs text-slate-300 mt-1">Gestão financeira e operacional · Direto da avenida</p>
             </div>
             <div class="flex items-center gap-3">
-                <select id="period" class="text-xs bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
+                <label for="period" class="sr-only">Período</label>
+                <select id="period" class="text-sm min-h-[44px] bg-slate-900 border border-slate-700 rounded-lg px-2 text-slate-200">
                     <option value="7">Últimos 7 dias</option>
                     <option value="30" selected>Últimos 30 dias</option>
                     <option value="0">Todo o período</option>
                 </select>
-                <a href="index.html" class="text-xs text-slate-400 hover:text-emerald-400 underline">Ir para Vitrine</a>
+                <a href="index.html" class="min-h-[44px] flex items-center text-sm text-slate-300 hover:text-emerald-300 underline">Ir para a vitrine</a>
             </div>
         </header>
 
@@ -101,7 +100,8 @@
         <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-3">
             <div class="flex flex-wrap justify-between items-center gap-2">
                 <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Pedidos do Período</h2>
-                <select id="orders-filter" class="text-xs bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
+                <label for="orders-filter" class="sr-only">Filtrar pedidos</label>
+                <select id="orders-filter" class="text-sm min-h-[44px] bg-slate-900 border border-slate-700 rounded-lg px-2 text-slate-200">
                     <option value="abertos">Em aberto</option>
                     <option value="">Todos</option>
                     <option value="novo">Pendentes</option>
@@ -120,16 +120,16 @@
 
         <!-- Regra de entrega da plataforma (lojas que usam os entregadores da plataforma) -->
         <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700/60 shadow-xl space-y-3">
-            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">🛵 Entrega pela plataforma</h2>
+            <h2 class="flex items-center gap-2 text-sm font-bold text-slate-300 uppercase tracking-wider"><span data-icon="entrega" class="w-5 h-5"></span>Entrega pela plataforma</h2>
             <p class="text-[11px] text-slate-400">Vale para as lojas que escolheram "Entregadores da plataforma". Quem entrega por conta própria define a própria taxa e raio.</p>
             <form id="platform-delivery-form" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-300">
-                <label>Taxa base (R$)<input name="base_fee" type="number" min="0" step="0.5" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
-                <label>Km incluídos<input name="km_included" type="number" min="0" step="0.5" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
-                <label>R$ por km a mais<input name="fee_per_km" type="number" min="0" step="0.1" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
-                <label>Raio máximo (km)<input name="radius_km" type="number" min="0.5" max="50" step="0.5" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-600 text-white"></label>
+                <label>Taxa base (R$)<input name="base_fee" type="number" min="0" step="0.5" class="w-full mt-1 min-h-[44px] px-2 text-base rounded-lg bg-slate-900 border border-slate-600 text-white"></label>
+                <label>Km incluídos<input name="km_included" type="number" min="0" step="0.5" class="w-full mt-1 min-h-[44px] px-2 text-base rounded-lg bg-slate-900 border border-slate-600 text-white"></label>
+                <label>R$ por km a mais<input name="fee_per_km" type="number" min="0" step="0.1" class="w-full mt-1 min-h-[44px] px-2 text-base rounded-lg bg-slate-900 border border-slate-600 text-white"></label>
+                <label>Raio máximo (km)<input name="radius_km" type="number" min="0.5" max="50" step="0.5" class="w-full mt-1 min-h-[44px] px-2 text-base rounded-lg bg-slate-900 border border-slate-600 text-white"></label>
                 <p data-role="preview" class="col-span-2 md:col-span-4 text-[11px] text-emerald-300"></p>
                 <div class="col-span-2 md:col-span-4 flex items-center gap-3">
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-4 py-2">Salvar regra</button>
+                    <button type="submit" class="min-h-[44px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-4">Salvar regra</button>
                     <span data-role="status" class="text-[11px]"></span>
                 </div>
             </form>
@@ -159,7 +159,7 @@
                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700/60 text-center space-y-2">
                         <p class="text-lg font-bold text-white">Acesso restrito</p>
                         <p class="text-xs text-slate-400">Esta conta não é de administrador.</p>
-                        <button onclick="signOut()" class="text-xs text-emerald-400 underline">Entrar com outra conta</button>
+                        <button type="button" onclick="signOut()" class="min-h-[44px] text-sm text-emerald-300 underline">Entrar com outra conta</button>
                     </div>`;
                 return;
             }
@@ -268,7 +268,7 @@
             // Pendentes de aprovação primeiro
             const pendingCount = stores.filter(s => s.approval_status === 'pendente').length;
             const alertEl = document.getElementById('pending-stores-alert');
-            alertEl.textContent = pendingCount ? `⏳ ${pendingCount} loja${pendingCount === 1 ? '' : 's'} aguardando aprovação` : '';
+            alertEl.textContent = pendingCount ? `${pendingCount} loja${pendingCount === 1 ? '' : 's'} aguardando aprovação` : '';
             alertEl.classList.toggle('hidden', !pendingCount);
             stores = [...stores].sort((a, b) => (b.approval_status === 'pendente') - (a.approval_status === 'pendente'));
             document.getElementById('stores-admin-table').innerHTML = stores.map(store => {
@@ -300,14 +300,14 @@
                             <div class="flex items-center gap-2">
                                 ${situation}
                                 ${pending
-                                    ? `<button data-approve-store="${escapeHtml(store.id)}" class="text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded px-2 py-0.5">Aprovar</button>
-                                       <button data-reject-store="${escapeHtml(store.id)}" class="text-[10px] border border-red-500 text-red-300 rounded px-2 py-0.5">Recusar</button>`
-                                    : `<button data-toggle-store="${escapeHtml(store.id)}" class="text-[10px] border border-slate-600 hover:bg-slate-700 rounded px-2 py-0.5">${store.is_active ? 'Desativar' : 'Ativar'}</button>`}
+                                    ? `<button type="button" data-approve-store="${escapeHtml(store.id)}" class="text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded px-3 min-h-[44px]">Aprovar</button>
+                                       <button type="button" data-reject-store="${escapeHtml(store.id)}" class="text-sm border border-red-500 text-red-300 rounded px-3 min-h-[44px]">Recusar</button>`
+                                    : `<button type="button" data-toggle-store="${escapeHtml(store.id)}" class="text-sm border border-slate-600 hover:bg-slate-700 rounded px-3 min-h-[44px]">${store.is_active ? 'Desativar' : 'Ativar'}</button>`}
                             </div>
                         </td>
                         <td class="p-3">
                             <p class="text-[10px] ${ownersByStore[store.id] ? 'text-slate-300' : 'text-amber-400'}">${escapeHtml(ownersByStore[store.id] || 'sem dono')}</p>
-                            <button data-edit-store="${escapeHtml(store.id)}" class="text-[10px] text-emerald-400 underline">Editar</button>
+                            <button type="button" data-edit-store="${escapeHtml(store.id)}" class="min-h-[44px] px-1 text-sm text-emerald-300 underline">Editar</button>
                         </td>
                     </tr>
                 `;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#26402C">
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,62 +18,65 @@
   <div class="max-w-4xl mx-auto">
     <header class="flex flex-wrap justify-between items-center gap-2 border-b pb-4 mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-amber-600">🛵 Painel do Entregador</h1>
+        <h1 class="flex items-center gap-2 text-2xl font-extrabold text-emerald-800"><span data-icon="entrega" class="w-7 h-7"></span>Painel do entregador</h1>
         <p id="courier-name" class="text-xs text-gray-500"></p>
       </div>
       <div class="flex items-center gap-3">
-        <a href="index.html" class="text-sm text-gray-600 hover:text-black">Ir para Vitrine</a>
+        <a href="index.html" class="min-h-[44px] flex items-center text-sm text-gray-600 hover:text-emerald-700 underline">Ir para a vitrine</a>
       </div>
     </header>
 
     <!-- Cadastro / entrada do entregador -->
     <section id="signup-section" class="hidden bg-white rounded-xl shadow border border-gray-200 p-5 space-y-4 max-w-md">
       <div>
-        <h2 class="text-lg font-bold">Cadastro do entregador</h2>
+        <h2 class="text-lg font-extrabold text-emerald-800">Cadastro do entregador</h2>
         <p class="text-xs text-gray-500">Leva 1 minuto. Você aceita as corridas que quiser, quando quiser — não há horário mínimo.</p>
       </div>
       <div class="space-y-3">
-        <input id="su-name" type="text" autocomplete="name" placeholder="Seu nome" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
-        <input id="su-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="WhatsApp com DDD (ex: 48999998888)" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
-        <input id="su-vehicle" type="text" placeholder="Veículo (ex: Moto, Bicicleta, A pé)" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
-        <button id="su-submit" class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-900 font-bold py-2.5 rounded-lg text-sm">Cadastrar e ver corridas</button>
+        <label for="su-name" class="block text-sm font-bold text-gray-900 -mb-2">Seu nome</label>
+        <input id="su-name" type="text" autocomplete="name" placeholder="Ex: Maria Silva" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
+        <label for="su-phone" class="block text-sm font-bold text-gray-900 -mb-2">WhatsApp com DDD</label>
+        <input id="su-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ex: 48999998888" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
+        <label for="su-vehicle" class="block text-sm font-bold text-gray-900 -mb-2">Veículo</label>
+        <input id="su-vehicle" type="text" placeholder="Ex: Moto, Bicicleta, A pé" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
+        <button type="button" id="su-submit" class="w-full min-h-[48px] bg-amber-500 hover:bg-amber-600 text-emerald-900 font-extrabold rounded-lg text-base">Cadastrar e ver corridas</button>
         <p id="su-error" class="hidden text-xs text-red-600"></p>
       </div>
-      <p class="text-[11px] text-gray-400">Seu cadastro fica vinculado ao e-mail com que você entrou — em outro aparelho, é só entrar com o mesmo e-mail.</p>
+      <p class="text-xs text-gray-500">Seu cadastro fica vinculado ao e-mail com que você entrou — em outro aparelho, é só entrar com o mesmo e-mail.</p>
     </section>
 
     <!-- Painel -->
     <section id="panel-section" class="hidden space-y-6">
-      <div class="grid grid-cols-3 gap-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-white p-3 rounded-xl border border-gray-200">
           <p class="text-[11px] text-gray-500">Entregas hoje</p>
-          <p id="stat-today-count" class="text-xl font-bold">0</p>
+          <p id="stat-today-count" class="text-xl font-extrabold tabular-nums">0</p>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+        <div class="bg-white p-3 rounded-xl border border-gray-200">
           <p class="text-[11px] text-gray-500">Ganhos hoje</p>
-          <p id="stat-today-earn" class="text-xl font-bold text-emerald-600">R$ 0,00</p>
+          <p id="stat-today-earn" class="text-lg font-extrabold text-emerald-800 tabular-nums whitespace-nowrap">R$ 0,00</p>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+        <div class="bg-white p-3 rounded-xl border border-gray-200">
           <p class="text-[11px] text-gray-500">Ganhos totais</p>
-          <p id="stat-total-earn" class="text-xl font-bold text-emerald-600">R$ 0,00</p>
+          <p id="stat-total-earn" class="text-lg font-extrabold text-emerald-800 tabular-nums whitespace-nowrap">R$ 0,00</p>
         </div>
       </div>
 
       <div>
-        <h2 class="text-lg font-bold mb-3">Minhas entregas em andamento</h2>
+        <h2 class="text-lg font-extrabold text-emerald-800 mb-3">Minhas entregas em andamento</h2>
         <p class="text-xs text-gray-500 -mt-2 mb-3">Na entrega, peça ao cliente o PIN de 4 dígitos (ele aparece na página de acompanhamento do pedido).</p>
         <div id="feed-mine" class="space-y-4"></div>
       </div>
 
       <div>
-        <h2 class="text-lg font-bold mb-3">Corridas disponíveis</h2>
+        <h2 class="text-lg font-extrabold text-emerald-800 mb-3">Corridas disponíveis</h2>
         <div id="feed-entregas" class="space-y-4">
           <p class="text-gray-500">Procurando entregas no bairro...</p>
         </div>
       </div>
 
       <div>
-        <h2 class="text-lg font-bold mb-3">Histórico</h2>
+        <h2 class="text-lg font-extrabold text-emerald-800 mb-3">Histórico</h2>
         <div id="feed-history" class="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100 text-sm"></div>
       </div>
     </section>
@@ -224,18 +227,18 @@
             return;
         }
         el.innerHTML = rides.map(r => `
-            <div class="bg-white p-4 rounded-xl shadow border border-amber-200 space-y-2" data-ride="${escapeHtml(r.id)}">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2" data-ride="${escapeHtml(r.id)}">
                 <div class="flex justify-between items-start gap-2">
                     <div>
                         <p class="text-xs text-gray-500">#${escapeHtml(r.id.slice(0, 6))} • ${escapeHtml(timeAgo(r.created_at))}</p>
                         <h3 class="font-bold">${escapeHtml(r.store_name || 'Loja')}</h3>
                     </div>
-                    <span class="shrink-0 bg-emerald-100 text-emerald-800 text-sm font-extrabold px-2.5 py-1 rounded-lg">${feeLabel(r.delivery_fee)}</span>
+                    <span class="shrink-0 bg-emerald-100 text-emerald-800 text-base font-extrabold px-2.5 py-1 rounded-lg tabular-nums">${feeLabel(r.delivery_fee)}</span>
                 </div>
-                <p class="text-xs text-gray-600">📍 Retirar: ${escapeHtml(r.store_address || 'endereço não informado')}</p>
-                <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(r.delivery_address || 'endereço não informado')}${r.distance_km != null ? ` <b data-role="ride-distance">· ${escapeHtml(String(r.distance_km).replace('.', ','))} km da loja</b>` : ''}</p>
-                <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(r.total_amount)} (${escapeHtml(r.payment_method || '—')})</p>
-                <button data-accept="${escapeHtml(r.id)}" class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-900 font-bold text-sm py-3 rounded-xl">Aceitar corrida</button>
+                <p class="flex items-start gap-1.5 text-sm text-gray-600">${icon('loja', 'w-4 h-4 mt-0.5')}<span>Retirar: ${escapeHtml(r.store_address || 'endereço não informado')}</span></p>
+                <p class="flex items-start gap-1.5 text-sm text-gray-600">${icon('local', 'w-4 h-4 mt-0.5')}<span>Entregar: ${escapeHtml(r.delivery_address || 'endereço não informado')}${r.distance_km != null ? ` <b data-role="ride-distance">· ${escapeHtml(String(r.distance_km).replace('.', ','))} km da loja</b>` : ''}</span></p>
+                <p class="flex items-start gap-1.5 text-sm text-gray-600 tabular-nums">${icon('cartao', 'w-4 h-4 mt-0.5')}<span>Cobrar ${formatBRL(r.total_amount)} (${escapeHtml(r.payment_method || '—')})</span></p>
+                <button type="button" data-accept="${escapeHtml(r.id)}" class="w-full min-h-[48px] bg-emerald-700 hover:bg-emerald-800 text-gray-50 font-bold text-base rounded-xl">Aceitar corrida</button>
             </div>
         `).join('');
     }
@@ -259,23 +262,23 @@
                             <p class="text-xs text-gray-500">#${escapeHtml(order.id.slice(0, 6))} • ${escapeHtml(store.name || 'Loja')}</p>
                             <h3 class="font-bold">${escapeHtml(addr.client_name || 'Cliente')}</h3>
                         </div>
-                        <span class="shrink-0 text-emerald-700 text-sm font-extrabold">${feeLabel(order.delivery_fee)}</span>
+                        <span class="shrink-0 text-emerald-700 text-base font-extrabold tabular-nums">${feeLabel(order.delivery_fee)}</span>
                     </div>
-                    <p class="text-xs text-gray-600">📍 Retirar: ${escapeHtml(store.address_line || 'endereço não informado')}</p>
-                    <p class="text-xs text-gray-600">🏁 Entregar: ${escapeHtml(addr.address || 'endereço não informado')}</p>
-                    <p class="text-xs text-gray-600">💳 Cobrar ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</p>
-                    ${addr.change_for ? `<p class="text-xs font-bold text-amber-700">💵 Levar troco: ${formatBRL(Number(addr.change_for) - Number(order.total_amount))} (cliente paga com ${formatBRL(addr.change_for)})</p>` : ''}
-                    ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
-                    <div class="grid grid-cols-3 gap-2 text-xs font-bold text-center">
-                        ${addr.address || addr.lat != null ? `<a href="${mapsLink(addr.lat != null ? `${addr.lat},${addr.lng}` : addr.address)}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🗺️ Mapa</a>` : '<span></span>'}
-                        ${clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">💬 Cliente</a>` : '<span></span>'}
-                        ${storeWhatsapp ? `<a href="https://wa.me/${storeWhatsapp}" target="_blank" rel="noopener" class="border border-gray-300 rounded-lg py-2">🏪 Loja</a>` : '<span></span>'}
+                    <p class="flex items-start gap-1.5 text-sm text-gray-600">${icon('loja', 'w-4 h-4 mt-0.5')}<span>Retirar: ${escapeHtml(store.address_line || 'endereço não informado')}</span></p>
+                    <p class="flex items-start gap-1.5 text-sm text-gray-600">${icon('local', 'w-4 h-4 mt-0.5')}<span>Entregar: ${escapeHtml(addr.address || 'endereço não informado')}</span></p>
+                    <p class="flex items-start gap-1.5 text-sm text-gray-600 tabular-nums">${icon('cartao', 'w-4 h-4 mt-0.5')}<span>Cobrar ${formatBRL(order.total_amount)} (${escapeHtml(addr.payment_method || '—')})</span></p>
+                    ${addr.change_for ? `<p class="text-sm font-bold text-amber-700 tabular-nums">Levar troco: ${formatBRL(Number(addr.change_for) - Number(order.total_amount))} (cliente paga com ${formatBRL(addr.change_for)})</p>` : ''}
+                    ${addr.notes ? `<p class="text-sm text-gray-600"><b>Obs:</b> ${escapeHtml(addr.notes)}</p>` : ''}
+                    <div class="grid grid-cols-3 gap-2 text-sm font-bold text-center">
+                        ${addr.address || addr.lat != null ? `<a href="${mapsLink(addr.lat != null ? `${addr.lat},${addr.lng}` : addr.address)}" target="_blank" rel="noopener" class="min-h-[44px] flex items-center justify-center gap-1 border border-gray-300 rounded-lg">${icon('local', 'w-4 h-4')}Mapa</a>` : '<span></span>'}
+                        ${clientWhatsapp ? `<a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="min-h-[44px] flex items-center justify-center gap-1 border border-gray-300 rounded-lg">${icon('conversa', 'w-4 h-4')}Cliente</a>` : '<span></span>'}
+                        ${storeWhatsapp ? `<a href="https://wa.me/${storeWhatsapp}" target="_blank" rel="noopener" class="min-h-[44px] flex items-center justify-center gap-1 border border-gray-300 rounded-lg">${icon('loja', 'w-4 h-4')}Loja</a>` : '<span></span>'}
                     </div>
                     <div class="flex gap-2">
-                        <input data-pin-for="${id}" type="text" inputmode="numeric" maxlength="4" placeholder="PIN do cliente" class="w-32 text-center text-lg tracking-widest font-bold p-2 rounded-lg border border-gray-300">
-                        <button data-finish="${id}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold text-sm py-3 rounded-xl">Confirmar entrega</button>
+                        <input data-pin-for="${id}" type="text" inputmode="numeric" maxlength="4" placeholder="PIN" aria-label="PIN do cliente" class="w-32 min-h-[48px] text-center text-lg tracking-widest font-bold px-2 rounded-lg border border-gray-300">
+                        <button type="button" data-finish="${id}" class="flex-1 min-h-[48px] bg-emerald-700 hover:bg-emerald-800 text-gray-50 font-bold text-base rounded-xl">Confirmar entrega</button>
                     </div>
-                    <button data-release="${id}" class="w-full text-[11px] text-gray-400 hover:text-red-600 underline">Não vou conseguir levar — devolver corrida</button>
+                    <button type="button" data-release="${id}" class="w-full min-h-[44px] text-sm text-gray-500 hover:text-red-600 underline">Não vou conseguir levar — devolver corrida</button>
                 </div>
             `;
         }).join('');
@@ -350,7 +353,7 @@
             toast('PIN incorreto. Confirme com o cliente.', 'error');
             return;
         }
-        toast('Entrega concluída! 🎉');
+        toast('Entrega concluída!');
         loadAll();
     }
 

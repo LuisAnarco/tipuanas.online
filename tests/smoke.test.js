@@ -1015,6 +1015,28 @@ test('lojista e cliente veem quem está levando o pedido', { loggedIn: true }, a
 });
 
 // ---------------------------------------------------------------- Admin
+test('identidade no entregador e no admin: sem emoji, botões de 44px e nenhuma corrida dourada', { loggedIn: true }, async (page, db) => {
+    const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2604}\u{2606}-\u{27BF}]/u;
+    const O3 = 'aaaaaaaa-0000-0000-0000-000000000003';
+    await page.goto(BASE + 'entregador.html');
+    await page.waitForSelector('#signup-section:not(.hidden)');
+    assert.strictEqual(await visibleGolds(page), 1, 'cadastro: "Cadastrar e ver corridas" é o dourado');
+    await page.fill('#su-name', 'Joao');
+    await page.fill('#su-phone', '48911112222');
+    await page.fill('#su-vehicle', 'Moto');
+    await page.click('#su-submit');
+    await page.waitForSelector(`#feed-entregas [data-accept="${O3}"]`);
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'entregador sem emoji');
+    assert.strictEqual(await visibleGolds(page), 0, 'corridas em verde-copa (várias na lista, nenhuma dourada)');
+    assert.deepStrictEqual(await smallTargets(page, '#feed-entregas button'), [], 'botões das corridas com 44px');
+
+    db.admin = true;
+    await page.goto(BASE + '14_admin_analytics_dashboard.html');
+    await page.waitForSelector('[data-toggle-store]');
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'admin sem emoji');
+    assert.deepStrictEqual(await smallTargets(page, '#stores-admin-table button'), [], 'botões da tabela de lojas com 44px');
+});
+
 test('admin: conta comum vê acesso restrito', { loggedIn: true }, async (page, db) => {
     await page.goto(BASE + '14_admin_analytics_dashboard.html');
     await page.waitForSelector('text=Acesso restrito');

@@ -49,7 +49,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
     - [x] **G1b2. Sacola/checkout, acompanhamento e Meus pedidos.** _(06/10/2026, PR #37)_ "Enviar pedido no
       WhatsApp" como o único dourado; campos de 48px com `<label for>` e texto de 16px (sem zoom no iPhone);
       +/− e lixeira de 44px; status do pedido com ícone SVG; mensagem do WhatsApp sem emoji.
-  - [ ] **G1c. Painéis** (lojista, cardápio, orçamentos, entregador, admin) — pranchas MerchantPanel,
+  - [x] **G1c. Painéis** (lojista, cardápio, orçamentos, entregador, admin) — pranchas MerchantPanel,
     MerchantOnboarding, MerchantOrcamento, CourierApp e AdminDashboard.
     - [x] **G1c1. Painel do lojista e tela de login.** _(06/10/2026, PR #38)_ Sem emoji (inclusive no aviso ao
       cliente pelo WhatsApp), botões e campos de 44–48px com rótulo, "Pausar" em contorno e "Reabrir loja"
@@ -57,7 +57,9 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
     - [x] **G1c2. Cardápio e orçamentos do lojista.** _(06/10/2026, PR #39)_ Sem emoji, campos com `<label for>`
       e texto de 16px, botões de 44px; nos orçamentos, "Pausar" em contorno e "Reabrir loja" dourado
       (o JS pintava "Pausar" de dourado, igual ao painel).
-    - [ ] **G1c3. Entregador e admin.**
+    - [x] **G1c3. Entregador e admin.** _(06/10/2026, PR #40)_ Sem emoji, campos do cadastro com rótulo,
+      "Aceitar corrida" em verde-copa (várias corridas na tela; o dourado fica só no cadastro), botões das
+      tabelas do admin com 44px, sem a fonte Inter antiga.
   - [ ] **G1d. Demais telas** (mural, orçamento do cliente, privacidade, 404, QR do balcão, telas) —
     pranchas Mural, OrcamentoRequest e OrcamentoTracking.
 - [ ] **G2. Pesquisa (sem contatar ninguém):** confirmar o canal oficial ativo da Associação de Moradores
