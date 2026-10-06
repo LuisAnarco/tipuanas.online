@@ -29,7 +29,7 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
 
 ## Prioridade — pedidos do Glorioso (30/09/2026)
 
-- [ ] **G1. Design → código: identidade canopy+bloom no site atual.** Aplicar ao código ATUAL a identidade
+- [x] **G1. Design → código: identidade canopy+bloom no site atual.** Aplicar ao código ATUAL a identidade
   do canvas https://claude.ai/artifact/5CeEkXL2XpmdcZho6NtHaz (o site ainda usa emerald/amber). Tokens de
   texto sobre fundo claro: mel-texto #8A5A17, tijolo-texto #9A4726, ink-soft #5B6154 (legendas), ink-mute
   #6E7166 (placeholder). Fonte mínima 12px (rótulo em caixa alta 11px), alvo de toque ≥ 44px, preços com
@@ -60,8 +60,13 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
     - [x] **G1c3. Entregador e admin.** _(06/10/2026, PR #40)_ Sem emoji, campos do cadastro com rótulo,
       "Aceitar corrida" em verde-copa (várias corridas na tela; o dourado fica só no cadastro), botões das
       tabelas do admin com 44px, sem a fonte Inter antiga.
-  - [ ] **G1d. Demais telas** (mural, orçamento do cliente, privacidade, 404, QR do balcão, telas) —
+  - [x] **G1d. Demais telas** (mural, orçamento do cliente, privacidade, 404, QR do balcão, telas) —
     pranchas Mural, OrcamentoRequest e OrcamentoTracking.
+    _(06/10/2026, PR #41)_ Sem emoji e sem a fonte Inter em nenhum arquivo do site (teste confere todos), campos
+    com `<label for>`, alvos de 44px, um só dourado por tela (publicar anúncio, pedir orçamento, aceitar proposta,
+    404). Pendente fora do site: o título do push da edge function `notify-new-order` ainda tem emoji (exige
+    reimplantar a função).
+
 - [ ] **G2. Pesquisa (sem contatar ninguém):** confirmar o canal oficial ativo da Associação de Moradores
   do Bairro São Sebastião (Facebook "Bairro São Sebastião - Palhoça -SC" × Instagram
   @assmoradoressaosebastiao × @associacao_saosebast) e registrar em `docs/`.

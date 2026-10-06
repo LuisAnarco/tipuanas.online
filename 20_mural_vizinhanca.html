@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#26402C">
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,25 +19,23 @@
     <script src="theme.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
 
     <!-- Header -->
-    <header class="bg-emerald-600 text-white sticky top-0 z-30 shadow-md">
-        <div class="max-w-md mx-auto px-4 py-3.5 flex items-center justify-between">
-            <a href="index.html" class="text-emerald-100 text-sm font-bold">← Início</a>
+    <header class="bg-emerald-700 text-slate-50 sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-2 py-1 flex items-center justify-between">
+            <a href="index.html" class="min-h-[44px] px-2 flex items-center gap-1 text-slate-50 text-sm font-bold"><span data-icon="voltar" class="w-5 h-5"></span>Início</a>
             <div class="text-center">
                 <h1 class="font-extrabold text-base leading-tight">Mural da Vizinhança</h1>
-                <p class="text-[11px] text-emerald-100">Desapego e "Procuro Por"</p>
+                <p class="text-xs text-slate-100">Desapego e procuro por</p>
             </div>
-            <span class="w-10"></span>
+            <span class="w-16"></span>
         </div>
         <!-- Abas -->
-        <div class="max-w-md mx-auto px-4 pb-2 flex gap-2 text-xs font-bold">
-            <button id="tab-ver" onclick="mostrarAba('ver')" class="flex-1 py-1.5 rounded-lg bg-white text-emerald-700">Ver Mural</button>
-            <button id="tab-postar" onclick="mostrarAba('postar')" class="flex-1 py-1.5 rounded-lg bg-emerald-700/60 text-white">Postar</button>
+        <div class="max-w-md mx-auto px-4 pb-2 flex gap-2 text-sm font-bold">
+            <button type="button" id="tab-ver" onclick="mostrarAba('ver')" class="flex-1 min-h-[44px] rounded-lg bg-white text-emerald-800">Ver mural</button>
+            <button type="button" id="tab-postar" onclick="mostrarAba('postar')" class="flex-1 min-h-[44px] rounded-lg bg-emerald-800 text-slate-50">Postar</button>
         </div>
     </header>
 
@@ -45,55 +43,55 @@
 
         <!-- ABA: Ver Mural -->
         <section id="ver-section" class="space-y-4">
-            <div class="flex gap-2 text-xs font-bold">
-                <button id="filter-desapego" onclick="filtrarPosts('desapego')" class="flex-1 py-2 rounded-lg border border-emerald-600 bg-emerald-600 text-white">🎁 Desapego</button>
-                <button id="filter-procuro" onclick="filtrarPosts('procuro')" class="flex-1 py-2 rounded-lg border border-slate-300 bg-white text-slate-600">🔎 Procuro Por</button>
+            <div class="flex gap-2 text-sm font-bold">
+                <button type="button" id="filter-desapego" onclick="filtrarPosts('desapego')" class="flex-1 min-h-[44px] rounded-lg border border-emerald-700 bg-emerald-700 text-slate-50">Desapego</button>
+                <button type="button" id="filter-procuro" onclick="filtrarPosts('procuro')" class="flex-1 min-h-[44px] rounded-lg border border-slate-300 bg-white text-slate-700">Procuro por</button>
             </div>
             <div id="posts-list" class="space-y-3">
-                <p class="text-center text-xs text-slate-400 py-8">Carregando publicações...</p>
+                <p class="text-center text-sm text-slate-500 py-8">Carregando publicações...</p>
             </div>
         </section>
 
         <!-- ABA: Postar -->
-        <section id="postar-section" class="hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+        <section id="postar-section" class="hidden bg-white rounded-2xl p-5 border border-slate-200 space-y-3">
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">O que você quer postar?</label>
+                <p class="block text-sm font-bold text-slate-900 mb-1">O que você quer postar?</p>
                 <div class="flex gap-2">
-                    <label class="flex-1 flex items-center gap-2 text-xs p-2.5 rounded-lg border border-slate-300 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
-                        <input type="radio" name="mp-type" value="desapego" checked class="accent-emerald-600">
-                        🎁 Desapego (doar/vender)
+                    <label class="flex-1 min-h-[48px] flex items-center gap-2 text-sm px-3 rounded-lg border border-slate-300 cursor-pointer has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                        <input type="radio" name="mp-type" value="desapego" checked class="accent-emerald-700 w-4 h-4">
+                        Desapego (doar/vender)
                     </label>
-                    <label class="flex-1 flex items-center gap-2 text-xs p-2.5 rounded-lg border border-slate-300 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
-                        <input type="radio" name="mp-type" value="procuro" class="accent-emerald-600">
-                        🔎 Procuro Por
+                    <label class="flex-1 min-h-[48px] flex items-center gap-2 text-sm px-3 rounded-lg border border-slate-300 cursor-pointer has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                        <input type="radio" name="mp-type" value="procuro" class="accent-emerald-700 w-4 h-4">
+                        Procuro por
                     </label>
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Título</label>
-                <input id="mp-title" type="text" placeholder="Ex: Sofá 3 lugares / Procuro bicicleta infantil" class="w-full text-sm p-2.5 rounded-lg border border-slate-300">
+                <label for="mp-title" class="block text-sm font-bold text-slate-900 mb-1">Título</label>
+                <input id="mp-title" type="text" placeholder="Ex: Sofá 3 lugares / Procuro bicicleta infantil" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-slate-300">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Descrição</label>
-                <textarea id="mp-description" rows="3" placeholder="Detalhe o item ou o que você está procurando" class="w-full text-sm p-2.5 rounded-lg border border-slate-300"></textarea>
+                <label for="mp-description" class="block text-sm font-bold text-slate-900 mb-1">Descrição</label>
+                <textarea id="mp-description" rows="3" placeholder="Detalhe o item ou o que você está procurando" class="w-full text-base p-3 rounded-lg border border-slate-300"></textarea>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Preço (opcional — deixe em branco se for de graça ou a combinar)</label>
-                <input id="mp-price" type="number" min="0" step="0.01" placeholder="Ex: 50.00" class="w-full text-sm p-2.5 rounded-lg border border-slate-300">
+                <label for="mp-price" class="block text-sm font-bold text-slate-900 mb-1">Preço (opcional — deixe em branco se for de graça ou a combinar)</label>
+                <input id="mp-price" type="number" min="0" step="0.01" placeholder="Ex: 50.00" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-slate-300">
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Seu nome</label>
-                    <input id="mp-name" type="text" placeholder="Ex: Maria Silva" class="w-full text-sm p-2.5 rounded-lg border border-slate-300">
+                    <label for="mp-name" class="block text-sm font-bold text-slate-900 mb-1">Seu nome</label>
+                    <input id="mp-name" type="text" placeholder="Ex: Maria Silva" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-slate-300">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Seu WhatsApp (com DDD)</label>
-                    <input id="mp-whatsapp" type="text" placeholder="Ex: 48999998888" class="w-full text-sm p-2.5 rounded-lg border border-slate-300">
+                    <label for="mp-whatsapp" class="block text-sm font-bold text-slate-900 mb-1">Seu WhatsApp (com DDD)</label>
+                    <input id="mp-whatsapp" type="text" placeholder="Ex: 48999998888" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-slate-300">
                 </div>
             </div>
-            <p class="text-[11px] text-slate-400">O anúncio fica no mural por 30 dias. Neste aparelho aparece o botão para você mesmo remover antes, se quiser. Seu nome e WhatsApp ficam visíveis no anúncio — veja a <a href="privacidade.html" class="underline">política de privacidade</a>.</p>
-            <button onclick="publicarPost()" id="mp-submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition active:scale-95">
-                Publicar no Mural
+            <p class="text-xs text-slate-500">O anúncio fica no mural por 30 dias. Neste aparelho aparece o botão para você mesmo remover antes, se quiser. Seu nome e WhatsApp ficam visíveis no anúncio — veja a <a href="privacidade.html" class="underline">política de privacidade</a>.</p>
+            <button type="button" onclick="publicarPost()" id="mp-submit" class="w-full min-h-[48px] bg-amber-500 hover:bg-amber-600 text-emerald-900 font-extrabold px-4 rounded-lg text-base transition active:scale-95">
+                Publicar no mural
             </button>
             <p id="mp-error" class="hidden text-xs text-red-600"></p>
         </section>
@@ -115,21 +113,21 @@
             document.getElementById('ver-section').classList.toggle('hidden', aba !== 'ver');
             document.getElementById('postar-section').classList.toggle('hidden', aba !== 'postar');
             document.getElementById('tab-ver').className = aba === 'ver'
-                ? 'flex-1 py-1.5 rounded-lg bg-white text-emerald-700'
-                : 'flex-1 py-1.5 rounded-lg bg-emerald-700/60 text-white';
+                ? 'flex-1 min-h-[44px] rounded-lg bg-white text-emerald-800'
+                : 'flex-1 min-h-[44px] rounded-lg bg-emerald-800 text-slate-50';
             document.getElementById('tab-postar').className = aba === 'postar'
-                ? 'flex-1 py-1.5 rounded-lg bg-white text-emerald-700'
-                : 'flex-1 py-1.5 rounded-lg bg-emerald-700/60 text-white';
+                ? 'flex-1 min-h-[44px] rounded-lg bg-white text-emerald-800'
+                : 'flex-1 min-h-[44px] rounded-lg bg-emerald-800 text-slate-50';
         }
 
         function filtrarPosts(tipo) {
             currentFilter = tipo;
             document.getElementById('filter-desapego').className = tipo === 'desapego'
-                ? 'flex-1 py-2 rounded-lg border border-emerald-600 bg-emerald-600 text-white'
-                : 'flex-1 py-2 rounded-lg border border-slate-300 bg-white text-slate-600';
+                ? 'flex-1 min-h-[44px] rounded-lg border border-emerald-700 bg-emerald-700 text-slate-50'
+                : 'flex-1 min-h-[44px] rounded-lg border border-slate-300 bg-white text-slate-700';
             document.getElementById('filter-procuro').className = tipo === 'procuro'
-                ? 'flex-1 py-2 rounded-lg border border-emerald-600 bg-emerald-600 text-white'
-                : 'flex-1 py-2 rounded-lg border border-slate-300 bg-white text-slate-600';
+                ? 'flex-1 min-h-[44px] rounded-lg border border-emerald-700 bg-emerald-700 text-slate-50'
+                : 'flex-1 min-h-[44px] rounded-lg border border-slate-300 bg-white text-slate-700';
             carregarPosts();
         }
 
@@ -160,7 +158,7 @@
 
         async function carregarPosts() {
             const listEl = document.getElementById('posts-list');
-            listEl.innerHTML = `<p class="text-center text-xs text-slate-400 py-8">Carregando publicações...</p>`;
+            listEl.innerHTML = `<p class="text-center text-sm text-slate-500 py-8">Carregando publicações...</p>`;
 
             const { data: posts, error } = await sb
                 .from('community_posts')
@@ -171,30 +169,30 @@
 
             if (error) {
                 console.error('Erro ao buscar publicações:', error);
-                listEl.innerHTML = `<p class="text-center text-xs text-slate-400 py-8">Não foi possível carregar o mural agora.</p>`;
+                listEl.innerHTML = `<p class="text-center text-sm text-slate-500 py-8">Não foi possível carregar o mural agora.</p>`;
                 return;
             }
 
             if (!posts || posts.length === 0) {
-                listEl.innerHTML = `<p class="text-center text-xs text-slate-400 py-8">Nenhuma publicação por aqui ainda.</p>`;
+                listEl.innerHTML = `<p class="text-center text-sm text-slate-500 py-8">Nenhuma publicação por aqui ainda.</p>`;
                 return;
             }
 
             const mine = readMyPosts();
             listEl.innerHTML = posts.map(post => `
-                <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 space-y-2">
                     <div class="flex items-center justify-between">
-                        <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(post.title)}</h3>
-                        ${post.price ? `<span class="text-xs font-extrabold text-emerald-600">${formatBRL(post.price)}</span>` : `<span class="text-[10px] text-slate-400">${post.post_type === 'desapego' ? 'De graça / a combinar' : 'A combinar'}</span>`}
+                        <h3 class="font-extrabold text-emerald-800 text-base">${escapeHtml(post.title)}</h3>
+                        ${post.price ? `<span class="text-sm font-extrabold text-emerald-800 tabular-nums">${formatBRL(post.price)}</span>` : `<span class="text-xs text-slate-500">${post.post_type === 'desapego' ? 'De graça / a combinar' : 'A combinar'}</span>`}
                     </div>
-                    <p class="text-xs text-slate-600">${escapeHtml(post.description)}</p>
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-50">
-                        <span class="text-[11px] text-slate-400">${escapeHtml(post.author_name)} · vence em ${daysLeft(post.expires_at)} dia(s)</span>
-                        <a href="https://wa.me/${toWhatsappNumber(post.author_whatsapp)}?text=${encodeURIComponent(`Olá! Vi seu anúncio "${post.title}" no Mural da Vizinhança do Tipuanas.online.`)}" target="_blank" rel="noopener" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg">
+                    <p class="text-sm text-slate-600">${escapeHtml(post.description)}</p>
+                    <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                        <span class="text-xs text-slate-500">${escapeHtml(post.author_name)} · vence em ${daysLeft(post.expires_at)} dia(s)</span>
+                        <a href="https://wa.me/${toWhatsappNumber(post.author_whatsapp)}?text=${encodeURIComponent(`Olá! Vi seu anúncio "${post.title}" no Mural da Vizinhança do Tipuanas.online.`)}" target="_blank" rel="noopener" class="shrink-0 inline-flex min-h-[44px] items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-slate-50 text-sm font-bold px-3 rounded-lg">${icon('conversa', 'w-4 h-4')}
                             Chamar no WhatsApp
                         </a>
                     </div>
-                    ${mine[post.id] ? `<button data-remove-post="${escapeHtml(post.id)}" class="w-full text-[11px] font-semibold text-red-600 border border-red-200 rounded-lg py-1.5 hover:bg-red-50">Remover meu anúncio</button>` : ''}
+                    ${mine[post.id] ? `<button type="button" data-remove-post="${escapeHtml(post.id)}" class="w-full min-h-[44px] text-sm font-semibold text-red-600 border border-red-200 rounded-lg hover:bg-red-50">Remover meu anúncio</button>` : ''}
                 </div>
             `).join('');
         }

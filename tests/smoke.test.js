@@ -730,7 +730,7 @@ test('push: service worker mostra o aviso e abre o painel ao tocar', {}, async (
     };
     vm.runInNewContext(require('fs').readFileSync(require('path').join(__dirname, '..', 'sw.js'), 'utf8'), { self, caches: {}, fetch: () => {}, URL });
     const waits = [];
-    const payload = { title: '🛎️ Novo pedido — Loja', body: 'Ana • R$ 12,90 • Entrega', url: '04_merchant_portal.html?store=' + S1, tag: 'o1' };
+    const payload = { title: 'Novo pedido — Loja', body: 'Ana • R$ 12,90 • Entrega', url: '04_merchant_portal.html?store=' + S1, tag: 'o1' };
     handlers.push({ data: { json: () => payload }, waitUntil: p => waits.push(p) });
     await Promise.all(waits);
     assert.strictEqual(shown[0].title, payload.title);
@@ -1035,6 +1035,34 @@ test('identidade no entregador e no admin: sem emoji, botões de 44px e nenhuma 
     await page.waitForSelector('[data-toggle-store]');
     assert.ok(!EMOJI.test(await page.textContent('body')), 'admin sem emoji');
     assert.deepStrictEqual(await smallTargets(page, '#stores-admin-table button'), [], 'botões da tabela de lojas com 44px');
+});
+
+test('identidade em todo o site: nenhum emoji nem a fonte Inter antiga nos arquivos das telas', {}, async () => {
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..');
+    const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2604}\u{2606}-\u{27BF}\u{FE0F}]/u;
+    const files = fs.readdirSync(root).filter(f => /\.(html|js)$/.test(f));
+    const withEmoji = files.filter(f => EMOJI.test(fs.readFileSync(path.join(root, f), 'utf8')));
+    assert.deepStrictEqual(withEmoji, [], 'arquivos com emoji');
+    const withInter = files.filter(f => /family=Inter/.test(fs.readFileSync(path.join(root, f), 'utf8')));
+    assert.deepStrictEqual(withInter, [], 'arquivos com a fonte Inter');
+});
+
+test('identidade no mural, orçamento do cliente e 404: um só dourado e campos com rótulo', {}, async (page, db) => {
+    await page.goto(BASE + '20_mural_vizinhanca.html');
+    await page.waitForSelector('#posts-list');
+    assert.strictEqual(await visibleGolds(page), 0, 'ver mural: nenhum dourado (WhatsApp em verde-copa)');
+    await page.click('#tab-postar');
+    assert.strictEqual(await visibleGolds(page), 1, 'postar: "Publicar no mural" é o dourado');
+    const unlabeled = await page.$$eval('#postar-section input[id], #postar-section textarea',
+        els => els.filter(e => !document.querySelector(`label[for="${e.id}"]`)).map(e => e.id));
+    assert.deepStrictEqual(unlabeled, [], 'campos do anúncio com <label for>');
+    assert.deepStrictEqual(await smallTargets(page, 'header button, #ver-section button'), [], 'abas e filtros com 44px');
+
+    await page.goto(BASE + '404.html');
+    await page.waitForSelector('h1');
+    assert.strictEqual(await visibleGolds(page), 1, '404: "Ver as lojas da avenida" é o dourado');
 });
 
 test('admin: conta comum vê acesso restrito', { loggedIn: true }, async (page, db) => {
