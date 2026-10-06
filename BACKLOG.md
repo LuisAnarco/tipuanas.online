@@ -54,7 +54,9 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
     - [x] **G1c1. Painel do lojista e tela de login.** _(06/10/2026, PR #38)_ Sem emoji (inclusive no aviso ao
       cliente pelo WhatsApp), botões e campos de 44–48px com rótulo, "Pausar" em contorno e "Reabrir loja"
       como o dourado quando a loja está pausada; login com o dourado "Enviar link de acesso".
-    - [ ] **G1c2. Cardápio e orçamentos do lojista.**
+    - [x] **G1c2. Cardápio e orçamentos do lojista.** _(06/10/2026, PR #39)_ Sem emoji, campos com `<label for>`
+      e texto de 16px, botões de 44px; nos orçamentos, "Pausar" em contorno e "Reabrir loja" dourado
+      (o JS pintava "Pausar" de dourado, igual ao painel).
     - [ ] **G1c3. Entregador e admin.**
   - [ ] **G1d. Demais telas** (mural, orçamento do cliente, privacidade, 404, QR do balcão, telas) —
     pranchas Mural, OrcamentoRequest e OrcamentoTracking.

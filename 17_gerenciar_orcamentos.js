@@ -101,17 +101,17 @@ function updatePauseUI(isPaused) {
     if (isPaused) {
         dot.classList.remove('bg-emerald-500');
         dot.classList.add('bg-amber-500');
-        text.textContent = 'Loja Pausada';
-        btn.textContent = 'Reabrir Loja';
-        btn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+        text.textContent = 'Loja pausada';
+        btn.textContent = 'Reabrir loja';
+        btn.classList.remove('bg-white', 'border', 'border-emerald-600', 'text-emerald-800', 'hover:bg-emerald-50');
+        btn.classList.add('bg-amber-500', 'hover:bg-amber-600', 'text-emerald-900');
     } else {
         dot.classList.remove('bg-amber-500');
         dot.classList.add('bg-emerald-500');
-        text.textContent = 'Loja Aberta';
+        text.textContent = 'Loja aberta';
         btn.textContent = 'Pausar';
-        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
-        btn.classList.add('bg-amber-500', 'hover:bg-amber-600');
+        btn.classList.remove('bg-amber-500', 'hover:bg-amber-600', 'text-emerald-900');
+        btn.classList.add('bg-white', 'border', 'border-emerald-600', 'text-emerald-800', 'hover:bg-emerald-50');
     }
 }
 
@@ -139,7 +139,7 @@ async function fetchRequests() {
 function renderRequests(requests) {
     const listContainer = document.getElementById('requests-list');
     if (requests.length === 0) {
-        listContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">Aguardando novas solicitações...</p>`;
+        listContainer.innerHTML = `<p class="text-sm text-gray-500 text-center py-8">Aguardando novas solicitações...</p>`;
         return;
     }
 
@@ -150,10 +150,10 @@ function renderRequests(requests) {
                     <span class="font-bold text-gray-900">${escapeHtml(req.client_name)}</span>
                     <span class="text-xs text-gray-500">• ${escapeHtml(formatWhatsapp(req.client_whatsapp))}</span>
                 </div>
-                <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${STATUS_LABELS[req.status] || req.status}</span>
+                <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">${STATUS_LABELS[req.status] || req.status}</span>
             </div>
-            <p class="text-xs text-gray-700">📝 ${escapeHtml(req.necessity_description)}</p>
-            <a href="https://wa.me/${toWhatsappNumber(req.client_whatsapp)}" target="_blank" rel="noopener" class="inline-block text-[11px] text-emerald-600 hover:underline">Chamar no WhatsApp →</a>
+            <p class="text-sm text-gray-900">${escapeHtml(req.necessity_description)}</p>
+            <a href="https://wa.me/${toWhatsappNumber(req.client_whatsapp)}" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-bold text-emerald-700 underline">${icon('conversa', 'w-4 h-4')}Chamar no WhatsApp</a>
 
             ${renderActionArea(req)}
         </div>
@@ -164,16 +164,16 @@ function renderActionArea(req) {
     if (req.status === 'solicitado') {
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <p class="text-xs font-bold text-gray-600">Agendar visita técnica</p>
+                <p class="text-sm font-bold text-gray-900">Agendar visita técnica</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <input id="visit-dt-${req.id}" type="datetime-local" class="text-xs p-2 rounded border border-gray-300">
-                    <select id="visit-mode-${req.id}" class="text-xs p-2 rounded border border-gray-300">
+                    <input id="visit-dt-${req.id}" type="datetime-local" aria-label="Data e hora da visita" class="text-base min-h-[44px] px-3 rounded-lg border border-gray-300">
+                    <select id="visit-mode-${req.id}" aria-label="Onde será a visita" class="text-base min-h-[44px] px-2 rounded-lg border border-gray-300 bg-white">
                         <option value="prestador_vai_ate_cliente">Eu vou até o cliente</option>
                         <option value="cliente_leva_ao_prestador">Cliente vem até mim</option>
                     </select>
                 </div>
-                <button onclick="agendarVisita('${req.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">
-                    Agendar Visita
+                <button type="button" onclick="agendarVisita('${req.id}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-sm font-bold px-3 min-h-[44px] rounded-lg">
+                    Agendar visita
                 </button>
             </div>
         `;
@@ -183,13 +183,13 @@ function renderActionArea(req) {
         const modeLabel = req.visit_mode === 'cliente_leva_ao_prestador' ? 'Cliente vem até você' : 'Você vai até o cliente';
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <p class="text-xs text-gray-600">📅 Visita: <strong>${new Date(req.visit_scheduled_for).toLocaleString('pt-BR')}</strong> — ${modeLabel}</p>
-                <p class="text-xs font-bold text-gray-600">Enviar proposta</p>
+                <p class="text-sm text-gray-600">Visita: <strong>${new Date(req.visit_scheduled_for).toLocaleString('pt-BR')}</strong> — ${modeLabel}</p>
+                <p class="text-sm font-bold text-gray-900">Enviar proposta</p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <input id="proposal-amount-${req.id}" type="number" min="0" step="0.01" placeholder="Valor (R$)" class="text-xs p-2 rounded border border-gray-300 md:col-span-1">
-                    <input id="proposal-desc-${req.id}" type="text" placeholder="O que será feito, prazo etc." class="text-xs p-2 rounded border border-gray-300 md:col-span-2">
+                    <input id="proposal-amount-${req.id}" aria-label="Valor da proposta" type="number" min="0" step="0.01" placeholder="Valor (R$)" class="text-base min-h-[44px] px-3 rounded-lg border border-gray-300 md:col-span-1">
+                    <input id="proposal-desc-${req.id}" aria-label="O que será feito" type="text" placeholder="O que será feito, prazo etc." class="text-base min-h-[44px] px-3 rounded-lg border border-gray-300 md:col-span-2">
                 </div>
-                <button onclick="enviarProposta('${req.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">
+                <button type="button" onclick="enviarProposta('${req.id}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-sm font-bold px-3 min-h-[44px] rounded-lg">
                     Enviar Proposta
                 </button>
             </div>
@@ -197,14 +197,14 @@ function renderActionArea(req) {
     }
 
     if (req.status === 'proposta_enviada') {
-        return `<p class="text-xs text-amber-600">💰 Proposta de ${formatBRL(req.proposal_amount)} enviada. Aguardando resposta do cliente.</p>`;
+        return `<p class="text-sm text-amber-700 tabular-nums">Proposta de ${formatBRL(req.proposal_amount)} enviada. Aguardando resposta do cliente.</p>`;
     }
 
     if (req.status === 'aceito') {
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <p class="text-xs text-gray-600">✅ Cliente aceitou a proposta de ${formatBRL(req.proposal_amount)}. Combine o pagamento e confirme abaixo.</p>
-                <button onclick="confirmarPagamento('${req.id}', ${req.proposal_amount})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">
+                <p class="text-sm text-gray-600">Cliente aceitou a proposta de ${formatBRL(req.proposal_amount)}. Combine o pagamento e confirme abaixo.</p>
+                <button type="button" onclick="confirmarPagamento('${req.id}', ${req.proposal_amount})" class="w-full bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-sm font-bold px-3 min-h-[44px] rounded-lg">
                     Confirmar Pagamento Recebido
                 </button>
             </div>
@@ -212,29 +212,29 @@ function renderActionArea(req) {
     }
 
     if (req.status === 'rejeitado') {
-        return `<p class="text-xs text-red-600">❌ O cliente rejeitou esta proposta.</p>`;
+        return `<p class="text-sm text-red-600">O cliente rejeitou esta proposta.</p>`;
     }
 
     if (req.status === 'pago' || req.status === 'em_andamento') {
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <p class="text-xs text-gray-600">💳 Pago em ${new Date(req.paid_at).toLocaleString('pt-BR')}. Comissão da plataforma: ${formatBRL(req.platform_commission)}.</p>
+                <p class="text-sm text-gray-600">Pago em ${new Date(req.paid_at).toLocaleString('pt-BR')}. Comissão da plataforma: ${formatBRL(req.platform_commission)}.</p>
                 <div class="flex gap-2">
-                    <input id="update-note-${req.id}" type="text" placeholder="Ex: Peça encomendada, chega em 2 dias" class="flex-1 text-xs p-2 rounded border border-gray-300">
-                    <button onclick="adicionarEtapa('${req.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold px-3 py-2 rounded-lg">
+                    <input id="update-note-${req.id}" aria-label="Nova etapa do serviço" type="text" placeholder="Ex: Peça encomendada, chega em 2 dias" class="flex-1 text-base min-h-[44px] px-3 rounded-lg border border-gray-300">
+                    <button type="button" onclick="adicionarEtapa('${req.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-bold px-3 min-h-[44px] rounded-lg">
                         Adicionar Etapa
                     </button>
                 </div>
                 ${req.status === 'pago'
-                    ? `<button onclick="atualizarStatus('${req.id}', 'em_andamento')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">Iniciar Serviço</button>`
-                    : `<button onclick="atualizarStatus('${req.id}', 'concluido')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">Concluir Serviço</button>`
+                    ? `<button type="button" onclick="atualizarStatus('${req.id}', 'em_andamento')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-sm font-bold px-3 min-h-[44px] rounded-lg">Iniciar Serviço</button>`
+                    : `<button type="button" onclick="atualizarStatus('${req.id}', 'concluido')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-sm font-bold px-3 min-h-[44px] rounded-lg">Concluir Serviço</button>`
                 }
             </div>
         `;
     }
 
     if (req.status === 'concluido') {
-        return `<p class="text-xs text-emerald-600">🎉 Serviço concluído.</p>`;
+        return `<p class="flex items-center gap-1.5 text-sm font-bold text-emerald-600">${icon('confirmado', 'w-4 h-4')}Serviço concluído.</p>`;
     }
 
     return '';
