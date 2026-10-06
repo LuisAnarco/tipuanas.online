@@ -87,7 +87,7 @@ class MerchantNotificationService {
 
         // Dispara notificação nativa se permitido
         if (this.hasPermission) {
-            const title = `🚨 Novo Pedido #${order.id.slice(0, 6)}!`;
+            const title = `Novo pedido #${order.id.slice(0, 6)}`;
             const addr = order.delivery_address || {};
             const options = {
                 body: `Cliente: ${addr.client_name || 'Cliente'}\nTotal: ${formatBRL(order.total_amount)}\nEndereço: ${order.is_takeout ? 'Retirada no local' : (addr.address || 'não informado')}`,
