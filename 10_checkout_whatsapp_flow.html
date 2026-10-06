@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#26402C">
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -13,16 +13,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="config.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
 
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div class="max-w-md mx-auto px-4 py-3.5 flex items-center gap-3">
-            <a href="index.html" class="text-slate-500 text-sm font-bold">← Voltar</a>
-            <h1 class="font-extrabold text-base text-slate-900">Finalizar Pedido</h1>
+        <div class="max-w-md mx-auto px-2 py-1 flex items-center gap-1">
+            <a href="index.html" aria-label="Voltar para a vitrine" class="w-11 h-11 flex items-center justify-center text-slate-600"><span data-icon="voltar" class="w-5 h-5"></span></a>
+            <h1 class="font-extrabold text-lg text-emerald-800">Finalizar pedido</h1>
         </div>
     </header>
 
@@ -32,104 +30,105 @@
         <!-- Sacola: itens agrupados por loja -->
         <div class="space-y-3">
             <div class="flex items-baseline justify-between">
-                <h2 class="text-lg font-extrabold text-slate-900">Sua sacola</h2>
-                <a href="index.html" class="text-xs font-bold text-emerald-700">+ Adicionar itens</a>
+                <h2 class="text-lg font-extrabold text-emerald-800">Sua sacola</h2>
+                <a href="index.html" class="min-h-[44px] flex items-center gap-1 text-sm font-bold text-emerald-700"><span data-icon="mais" class="w-4 h-4"></span>Adicionar itens</a>
             </div>
-            <div id="checkout-items" class="space-y-3 text-xs">
+            <div id="checkout-items" class="space-y-3 text-sm">
                 <!-- Preenchido via JS, agrupado por loja -->
             </div>
-            <p id="multi-store-note" class="hidden text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-2.5">
+            <p id="multi-store-note" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
                 Sua sacola tem itens de mais de uma loja. Vamos criar um pedido separado para cada uma — você confirma o envio no WhatsApp de cada loja em seguida.
             </p>
-            <div id="checkout-summary" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-1.5 text-xs">
+            <div id="checkout-summary" class="bg-white rounded-2xl p-4 border border-slate-200 space-y-1.5 text-sm tabular-nums">
                 <div class="flex justify-between text-slate-500"><span>Itens</span><span id="summary-items">R$ 0,00</span></div>
-                <div id="summary-discount-row" class="hidden flex justify-between text-emerald-700 font-semibold"><span>Descontos</span><span id="summary-discount">-R$ 0,00</span></div>
+                <div id="summary-discount-row" class="hidden flex justify-between text-emerald-600 font-semibold"><span>Descontos</span><span id="summary-discount">-R$ 0,00</span></div>
                 <div id="summary-fee-row" class="flex justify-between text-slate-500"><span>Entrega</span><span id="summary-fee">Grátis</span></div>
-                <div class="border-t border-slate-100 pt-2 flex justify-between font-extrabold text-sm text-slate-900">
+                <div class="border-t border-slate-200 pt-2 flex justify-between font-display font-extrabold text-base text-emerald-800">
                     <span>Total</span>
-                    <span id="checkout-total-price" class="text-emerald-600">R$ 0,00</span>
+                    <span id="checkout-total-price">R$ 0,00</span>
                 </div>
             </div>
         </div>
 
         <!-- Dados de Entrega -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
-            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Seus Dados</h2>
+        <section class="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
+            <h2 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Seus dados</h2>
 
             <div class="space-y-3">
-                <div class="flex gap-2 text-xs font-semibold">
-                    <label class="flex-1 flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
-                        <input type="radio" name="fulfillment" value="delivery" checked onchange="onFulfillmentChange()" class="accent-emerald-600"> 🛵 Entrega
+                <fieldset class="flex gap-2 text-sm font-bold">
+                    <legend class="sr-only">Como receber o pedido</legend>
+                    <label class="flex-1 min-h-[48px] flex items-center gap-2 px-3 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                        <input type="radio" name="fulfillment" value="delivery" checked onchange="onFulfillmentChange()" class="accent-emerald-700 w-4 h-4"><span data-icon="entrega" class="w-5 h-5 text-emerald-700"></span>Entrega
                     </label>
-                    <label class="flex-1 flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
-                        <input type="radio" name="fulfillment" value="takeout" onchange="onFulfillmentChange()" class="accent-emerald-600"> 🏪 Retirar na loja
+                    <label class="flex-1 min-h-[48px] flex items-center gap-2 px-3 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                        <input type="radio" name="fulfillment" value="takeout" onchange="onFulfillmentChange()" class="accent-emerald-700 w-4 h-4"><span data-icon="loja" class="w-5 h-5 text-emerald-700"></span>Retirar na loja
                     </label>
+                </fieldset>
+
+                <div>
+                    <label for="client-name" class="block text-sm font-bold text-slate-900 mb-1">Seu nome</label>
+                    <input type="text" id="client-name" autocomplete="name" placeholder="Ex: Maria Silva" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Seu Nome</label>
-                    <input type="text" id="client-name" autocomplete="name" placeholder="Ex: Maria Silva" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Seu WhatsApp (com DDD)</label>
-                    <input type="tel" id="client-phone" autocomplete="tel" inputmode="tel" placeholder="Ex: 48999998888" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
-                    <p class="text-[10px] text-slate-400 mt-1">Usado pela loja pra falar com você e pra você achar seus pedidos depois.</p>
+                    <label for="client-phone" class="block text-sm font-bold text-slate-900 mb-1">Seu WhatsApp (com DDD)</label>
+                    <input type="tel" id="client-phone" autocomplete="tel" inputmode="tel" placeholder="Ex: 48999998888" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600">
+                    <p class="text-xs text-slate-500 mt-1">Usado pela loja pra falar com você e pra você achar seus pedidos depois.</p>
                 </div>
 
                 <div id="address-wrap">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Endereço na Av. das Tipuanas / N°</label>
-                    <input type="text" id="client-address" autocomplete="street-address" placeholder="Ex: Av. das Tipuanas, 150 - Apt 202" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
-                    <button type="button" id="use-location" class="mt-2 w-full text-xs font-bold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-xl py-2">📍 Usar minha localização (taxa exata)</button>
-                    <p id="location-status" class="text-[10px] text-slate-400 mt-1">A taxa de entrega depende da distância até a loja.</p>
+                    <label for="client-address" class="block text-sm font-bold text-slate-900 mb-1">Endereço na Av. das Tipuanas / nº</label>
+                    <input type="text" id="client-address" autocomplete="street-address" placeholder="Ex: Av. das Tipuanas, 150 - Apt 202" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600">
+                    <button type="button" id="use-location" class="mt-2 w-full min-h-[44px] flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-xl"><span data-icon="local" class="w-4 h-4"></span>Usar minha localização (taxa exata)</button>
+                    <p id="location-status" class="text-xs text-slate-500 mt-1">A taxa de entrega depende da distância até a loja.</p>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Forma de Pagamento</label>
-                    <select id="payment-method" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500 bg-white">
+                    <label for="payment-method" class="block text-sm font-bold text-slate-900 mb-1">Forma de pagamento</label>
+                    <select id="payment-method" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 bg-white">
                         <option value="Pix">Pix</option>
                         <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito (na entrega)</option>
                         <option value="Dinheiro">Dinheiro</option>
                     </select>
-                    <p id="pix-hint" class="text-[10px] text-slate-400 mt-1">Depois de enviar, mostramos o Pix copia-e-cola da loja com o valor exato.</p>
+                    <p id="pix-hint" class="text-xs text-slate-500 mt-1">Depois de enviar, mostramos o Pix copia-e-cola da loja com o valor exato.</p>
                     <div id="change-wrap" class="hidden mt-2">
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Troco para quanto? (opcional)</label>
-                        <input type="number" id="change-for" min="0" step="1" inputmode="decimal" placeholder="Ex: 50" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                        <label for="change-for" class="block text-sm font-bold text-slate-900 mb-1">Troco para quanto? (opcional)</label>
+                        <input type="number" id="change-for" min="0" step="1" inputmode="decimal" placeholder="Ex: 50" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Observações (opcional)</label>
-                    <input type="text" id="client-notes" placeholder="Ex: interfone 202, deixar na portaria" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+                    <label for="client-notes" class="block text-sm font-bold text-slate-900 mb-1">Observações (opcional)</label>
+                    <input type="text" id="client-notes" placeholder="Ex: interfone 202, deixar na portaria" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Cupom de desconto (opcional)</label>
+                    <label for="coupon-code" class="block text-sm font-bold text-slate-900 mb-1">Cupom de desconto (opcional)</label>
                     <div class="flex gap-2">
-                        <input type="text" id="coupon-code" maxlength="20" placeholder="Ex: BEMVINDO" class="flex-1 text-xs p-2.5 rounded-xl border border-slate-200 uppercase focus:outline-none focus:border-emerald-500">
-                        <button type="button" id="coupon-apply" class="text-xs font-bold px-3 rounded-xl border border-emerald-300 text-emerald-700">Aplicar</button>
+                        <input type="text" id="coupon-code" maxlength="20" placeholder="Ex: BEMVINDO" class="flex-1 min-w-0 text-base min-h-[48px] px-3 rounded-xl border border-slate-200 uppercase focus:outline-none focus:border-emerald-600">
+                        <button type="button" id="coupon-apply" class="min-h-[48px] text-sm font-bold px-4 rounded-xl border border-emerald-600 text-emerald-700">Aplicar</button>
                     </div>
-                    <p id="coupon-status" class="hidden text-[11px] mt-1"></p>
+                    <p id="coupon-status" class="hidden text-xs mt-1"></p>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <p id="checkout-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2"></p>
+        <p id="checkout-error" role="alert" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3"></p>
 
-        <!-- Botão WhatsApp -->
-        <button id="submit-btn" onclick="submitOrder()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition text-sm flex items-center justify-center gap-2">
-            <span>💬 Enviar Pedido no WhatsApp</span>
+        <!-- Botão WhatsApp: o botão dourado da tela -->
+        <button type="button" id="submit-btn" onclick="submitOrder()" class="w-full min-h-[52px] bg-amber-500 hover:bg-amber-600 text-emerald-900 font-extrabold px-4 rounded-xl transition text-base flex items-center justify-center gap-2">
+            <span data-icon="conversa" class="w-5 h-5"></span><span>Enviar pedido no WhatsApp</span>
         </button>
-        <p class="text-[10px] text-slate-400 text-center">Seus dados vão só para a loja do pedido (e o entregador). <a href="privacidade.html" class="underline">Privacidade e termos</a></p>
+        <p class="text-xs text-slate-500 text-center">Seus dados vão só para a loja do pedido (e o entregador). <a href="privacidade.html" class="underline">Privacidade e termos</a></p>
 
     </main>
 
     <!-- Tela de Confirmação (aparece depois de registrar o(s) pedido(s)) -->
     <main id="confirmation-view" class="hidden max-w-md mx-auto px-4 py-5 w-full flex-1 space-y-4">
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm text-center space-y-1">
-            <span class="text-3xl">✅</span>
-            <h2 class="text-base font-extrabold text-slate-900">Pedido registrado!</h2>
-            <p class="text-xs text-slate-500">Agora é só confirmar o envio no WhatsApp de cada loja abaixo. Seus pedidos também ficam em <a href="pedidos.html" class="underline text-emerald-700">Meus pedidos</a>.</p>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 text-center space-y-1.5">
+            <span class="mx-auto w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center"><span data-icon="confirmado" class="w-6 h-6"></span></span>
+            <h2 class="text-lg font-extrabold text-emerald-800">Pedido registrado</h2>
+            <p class="text-sm text-slate-500">Agora é só confirmar o envio no WhatsApp de cada loja abaixo. Seus pedidos também ficam em <a href="pedidos.html" class="underline text-emerald-700">Meus pedidos</a>.</p>
         </div>
         <div id="confirmation-cards" class="space-y-3"></div>
     </main>
@@ -161,7 +160,7 @@
                 const code = document.querySelector(`[data-pix-code="${btn.dataset.copyPix}"]`).value;
                 (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject())
                     .catch(() => { const el = document.querySelector(`[data-pix-code="${btn.dataset.copyPix}"]`); el.select(); document.execCommand('copy'); })
-                    .finally(() => { btn.textContent = '✓ Código copiado'; });
+                    .finally(() => { btn.textContent = 'Código copiado'; });
             });
             // Endereço digitado (sem GPS): procura no mapa quando o cliente sai do campo
             document.getElementById('client-address').addEventListener('change', () => {
@@ -239,8 +238,8 @@
             if (!c || c.store_id !== storeId) return '';
             const d = couponPreview(storeId, subtotal);
             return d > 0
-                ? `<div class="flex justify-between text-[11px] font-bold text-emerald-700 mt-0.5"><span>Cupom ${escapeHtml(c.code)}</span><span>-${formatBRL(d)}</span></div>`
-                : `<p class="text-[10px] text-amber-700 mt-0.5">Cupom ${escapeHtml(c.code)}: pedido mínimo de ${formatBRL(c.min_order_value)} nesta loja.</p>`;
+                ? `<div class="flex justify-between text-xs font-bold text-emerald-600 mt-0.5"><span>Cupom ${escapeHtml(c.code)}</span><span>-${formatBRL(d)}</span></div>`
+                : `<p class="text-xs text-amber-700 mt-0.5">Cupom ${escapeHtml(c.code)}: pedido mínimo de ${formatBRL(c.min_order_value)} nesta loja.</p>`;
         }
 
         async function applyCoupon() {
@@ -249,7 +248,7 @@
             const code = input.value.trim().toUpperCase();
             const show = (msg, ok) => {
                 statusEl.textContent = msg;
-                statusEl.className = `text-[11px] mt-1 ${ok ? 'text-emerald-700' : 'text-red-600'}`;
+                statusEl.className = `text-xs font-semibold mt-1 ${ok ? 'text-emerald-600' : 'text-red-600'}`;
             };
             if (!code) {
                 appliedCoupon = null;
@@ -267,7 +266,7 @@
             } else {
                 appliedCoupon = data;
                 const label = data.discount_type === 'percentage' ? `${Number(data.discount_value)}% de desconto` : `${formatBRL(data.discount_value)} de desconto`;
-                show(`✓ ${label} em ${data.store_name}`, true);
+                show(`Cupom aplicado: ${label} em ${data.store_name}`, true);
             }
             renderCheckout();
         }
@@ -294,7 +293,7 @@
         function setLocationStatus(msg, ok) {
             const el = document.getElementById('location-status');
             el.textContent = msg;
-            el.className = `text-[10px] mt-1 ${ok ? 'text-emerald-700' : 'text-slate-400'}`;
+            el.className = `text-xs mt-1 ${ok ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`;
         }
 
         function rememberPos() {
@@ -310,7 +309,7 @@
             if (!pos) return setLocationStatus('Não deu para pegar a localização. Libere a permissão do navegador ou confira o endereço.', false);
             customerPos = { ...pos, source: 'gps' };
             rememberPos();
-            setLocationStatus('✓ Localização do aparelho usada para calcular a entrega.', true);
+            setLocationStatus('Localização do aparelho usada para calcular a entrega.', true);
             refreshQuotes();
         }
 
@@ -321,7 +320,7 @@
             const pos = await geocodeAddress(address, near);
             customerPos = pos ? { ...pos, source: 'address' } : null;
             rememberPos();
-            setLocationStatus(pos ? '✓ Endereço encontrado no mapa. Para mais precisão, use sua localização.' : 'Não achamos o endereço no mapa: a taxa pode ser a máxima da loja. Use sua localização.', !!pos);
+            setLocationStatus(pos ? 'Endereço encontrado no mapa. Para mais precisão, use sua localização.' : 'Não achamos o endereço no mapa: a taxa pode ser a máxima da loja. Use sua localização.', !!pos);
             refreshQuotes();
         }
 
@@ -337,15 +336,15 @@
         function feeLine(storeId, fee, items) {
             if (isTakeout()) return '';
             const q = quotes[storeId];
-            const km = q && q.distance_km !== null ? ` <span class="text-slate-400">(${String(q.distance_km).replace('.', ',')} km)</span>` : '';
+            const km = q && q.distance_km !== null ? ` <span class="text-slate-500">(${String(q.distance_km).replace('.', ',')} km)</span>` : '';
             if (q && q.out_of_range) {
-                return `<p data-role="out-of-range" class="text-[11px] text-red-600 font-semibold mt-1">Fora da área de entrega desta loja (até ${String(q.radius_km).replace('.', ',')} km). Escolha "Retirar na loja" ou outra loja.</p>`;
+                return `<p data-role="out-of-range" class="text-xs text-red-600 font-semibold mt-1">Fora da área de entrega desta loja (até ${String(q.radius_km).replace('.', ',')} km). Escolha "Retirar na loja" ou outra loja.</p>`;
             }
             if (q && q.estimated) {
-                return `<div class="flex justify-between text-[11px] text-slate-500"><span>Entrega (até)</span><span>${formatBRL(fee)}</span></div><p class="text-[10px] text-amber-700">Use sua localização para calcular a taxa exata.</p>`;
+                return `<div class="flex justify-between text-xs text-slate-500"><span>Entrega (até)</span><span>${formatBRL(fee)}</span></div><p class="text-xs text-amber-700">Use sua localização para calcular a taxa exata.</p>`;
             }
-            if (fee > 0) return `<div data-role="fee-line" class="flex justify-between text-[11px] text-slate-500"><span>Entrega${km}</span><span>${formatBRL(fee)}</span></div>`;
-            return q || items.some(i => typeof i.deliveryFee === 'number') ? `<div class="flex justify-between text-[11px] text-emerald-700 font-semibold"><span>Entrega${km}</span><span>Grátis</span></div>` : '';
+            if (fee > 0) return `<div data-role="fee-line" class="flex justify-between text-xs text-slate-500"><span>Entrega${km}</span><span>${formatBRL(fee)}</span></div>`;
+            return q || items.some(i => typeof i.deliveryFee === 'number') ? `<div class="flex justify-between text-xs text-emerald-600 font-semibold"><span>Entrega${km}</span><span>Grátis</span></div>` : '';
         }
 
         function renderCheckout() {
@@ -354,11 +353,11 @@
             const submitBtn = document.getElementById('submit-btn');
 
             if (cart.length === 0) {
-                container.innerHTML = `<div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm text-center space-y-2">
-                    <p class="text-4xl">🛍️</p>
-                    <p class="text-sm font-bold text-slate-800">Sua sacola está vazia</p>
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 border border-slate-200 text-center space-y-2">
+                    <span class="mx-auto w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">${icon('loja', 'w-6 h-6')}</span>
+                    <p class="text-base font-bold text-slate-900">Sua sacola está vazia</p>
                     <p class="text-slate-500">Que tal dar uma olhada nas ofertas do dia?</p>
-                    <a href="index.html" class="inline-block mt-1 bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl">Ver lojas</a>
+                    <a href="index.html" class="inline-flex min-h-[44px] items-center mt-1 bg-emerald-700 text-slate-50 font-bold px-5 rounded-xl">Ver lojas da avenida</a>
                 </div>`;
                 totalEl.textContent = formatBRL(0);
                 document.getElementById('checkout-summary').classList.add('hidden');
@@ -385,28 +384,28 @@
                 feeTotal += fee;
                 const slug = items[0].storeSlug;
                 return `
-                    <div class="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm">
-                        <div class="flex justify-between items-center mb-1">
-                            <p class="text-sm font-extrabold text-slate-900">${escapeHtml(items[0].storeName)}</p>
-                            ${slug ? `<a href="loja.html?slug=${encodeURIComponent(slug)}" class="text-[11px] font-bold text-emerald-700">Adicionar mais</a>` : ''}
+                    <div class="bg-white rounded-2xl p-3.5 border border-slate-200">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-base font-extrabold text-emerald-800">${escapeHtml(items[0].storeName)}</h3>
+                            ${slug ? `<a href="loja.html?slug=${encodeURIComponent(slug)}" class="min-h-[44px] flex items-center text-xs font-bold text-emerald-700">Adicionar mais</a>` : ''}
                         </div>
                         ${items.map(item => `
-                            <div class="flex items-center gap-2.5 py-2 border-b border-slate-50 last:border-none">
+                            <div class="flex items-center gap-2.5 py-2 border-b border-slate-100 last:border-none">
                                 ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-11 h-11 rounded-lg object-cover bg-slate-100 shrink-0">` : ''}
                                 <div class="min-w-0 flex-1">
-                                    <p class="font-semibold text-slate-800 truncate">${escapeHtml(item.name)}</p>
-                                    ${item.optionsLabel ? `<p data-role="item-options" class="text-[11px] text-slate-500 leading-tight">${escapeHtml(item.optionsLabel)}</p>` : ''}
-                                    ${item.note ? `<p class="text-[11px] text-slate-400 italic leading-tight">“${escapeHtml(item.note)}”</p>` : ''}
-                                    <p class="text-slate-500">${formatBRL(item.price * item.quantity)}</p>
+                                    <p class="font-semibold text-slate-900 truncate">${escapeHtml(item.name)}</p>
+                                    ${item.optionsLabel ? `<p data-role="item-options" class="text-xs text-slate-500 leading-tight">${escapeHtml(item.optionsLabel)}</p>` : ''}
+                                    ${item.note ? `<p class="text-xs text-slate-500 italic leading-tight">“${escapeHtml(item.note)}”</p>` : ''}
+                                    <p class="text-slate-600 tabular-nums">${formatBRL(item.price * item.quantity)}</p>
                                 </div>
-                                <div class="flex items-center border border-slate-200 rounded-full shrink-0">
-                                    <button data-id="${escapeHtml(lineKey(item))}" data-qty="-1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="${item.quantity === 1 ? 'Remover' : 'Diminuir'}">${item.quantity === 1 ? '🗑' : '−'}</button>
-                                    <span class="px-1 font-extrabold text-slate-800">${item.quantity}</span>
-                                    <button data-id="${escapeHtml(lineKey(item))}" data-qty="1" class="w-7 h-7 font-bold text-emerald-700 text-base" aria-label="Aumentar">+</button>
+                                <div class="flex items-center gap-1 border border-slate-200 rounded-full shrink-0">
+                                    <button type="button" data-id="${escapeHtml(lineKey(item))}" data-qty="-1" class="hit44 w-9 h-9 flex items-center justify-center text-emerald-700" aria-label="${item.quantity === 1 ? `Remover ${escapeHtml(item.name)}` : `Diminuir ${escapeHtml(item.name)}`}">${icon(item.quantity === 1 ? 'lixeira' : 'menos', 'w-4 h-4')}</button>
+                                    <span class="px-0.5 font-extrabold text-slate-900 tabular-nums">${item.quantity}</span>
+                                    <button type="button" data-id="${escapeHtml(lineKey(item))}" data-qty="1" class="hit44 w-9 h-9 flex items-center justify-center text-emerald-700" aria-label="Aumentar ${escapeHtml(item.name)}">${icon('mais', 'w-4 h-4')}</button>
                                 </div>
                             </div>
                         `).join('')}
-                        <div class="flex justify-between text-[11px] text-slate-500 mt-1.5">
+                        <div class="flex justify-between text-xs text-slate-500 mt-1.5 tabular-nums">
                             <span>Subtotal</span>
                             <span>${formatBRL(subtotal)}</span>
                         </div>
@@ -434,7 +433,7 @@
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = false;
             submitBtn.classList.remove('opacity-60');
-            submitBtn.innerHTML = '<span>💬 Enviar Pedido no WhatsApp</span>';
+            submitBtn.innerHTML = `${icon('conversa', 'w-5 h-5')}<span>Enviar pedido no WhatsApp</span>`;
         }
 
         async function submitOrder() {
@@ -514,12 +513,12 @@
 
                 let message = `*NOVO PEDIDO - TIPUANAS.ONLINE*\n`;
                 message += `Pedido #${orderId.slice(0, 8)}\n\n`;
-                message += `👤 *Cliente:* ${name}\n`;
-                message += `📱 *WhatsApp:* ${phone}\n`;
-                message += takeout ? `🏪 *Retirada na loja*\n` : `📍 *Endereço:* ${address}\n`;
-                message += `💳 *Pagamento:* ${payment}\n`;
-                if (result.change_for) message += `💵 *Troco para:* ${formatBRL(result.change_for)} (levar ${formatBRL(Number(result.change_for) - total)})\n`;
-                if (notes) message += `📝 *Obs:* ${notes}\n`;
+                message += `*Cliente:* ${name}\n`;
+                message += `*WhatsApp:* ${phone}\n`;
+                message += takeout ? `*Retirada na loja*\n` : `*Endereço:* ${address}\n`;
+                message += `*Pagamento:* ${payment}\n`;
+                if (result.change_for) message += `*Troco para:* ${formatBRL(result.change_for)} (levar ${formatBRL(Number(result.change_for) - total)})\n`;
+                if (notes) message += `*Obs:* ${notes}\n`;
                 message += `\n*ITENS:*\n`;
                 result.items.forEach(item => {
                     message += `• ${item.quantity}x ${item.name} (${formatBRL(item.unit_price * item.quantity)})\n`;
@@ -527,20 +526,20 @@
                     if (item.note) message += `   Obs: ${item.note}\n`;
                 });
                 if (Number(result.discount) > 0) {
-                    message += `\n🏷️ *Cupom ${result.coupon_code}:* -${formatBRL(result.discount)}`;
+                    message += `\n*Cupom ${result.coupon_code}:* -${formatBRL(result.discount)}`;
                 }
                 if (deliveryFee > 0) {
-                    message += `\n🛵 *Taxa de entrega:* ${formatBRL(deliveryFee)}`;
+                    message += `\n*Taxa de entrega:* ${formatBRL(deliveryFee)}`;
                 }
-                message += `\n💰 *Total:* ${formatBRL(total)}`;
-                message += `\n\n🔎 Acompanhamento: ${trackUrl}`;
+                message += `\n*Total:* ${formatBRL(total)}`;
+                message += `\n\nAcompanhamento: ${trackUrl}`;
 
                 const whatsappNumber = toWhatsappNumber(result.store && result.store.whatsapp_number);
                 const store = result.store || {};
                 const pix = payment === 'Pix' && store.pix_key
                     ? pixPayload({ key: store.pix_key, name: store.name || storeName, city: store.pix_city, amount: total, txid: `TP${orderId.replace(/-/g, '').slice(0, 20)}` })
                     : null;
-                if (pix) message += `\n\n💠 Pix copia-e-cola (${formatBRL(total)}):\n${pix}`;
+                if (pix) message += `\n\nPix copia-e-cola (${formatBRL(total)}):\n${pix}`;
 
                 confirmations.push({
                     storeName: (result.store && result.store.name) || storeName,
@@ -583,29 +582,30 @@
             window.scrollTo(0, 0);
 
             const skippedHtml = skipped.length > 0
-                ? `<p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Não enviado: ${escapeHtml(skipped.join('; '))}. Esses itens continuam no seu carrinho.</p>`
+                ? `<p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">Não enviado: ${escapeHtml(skipped.join('; '))}. Esses itens continuam no seu carrinho.</p>`
                 : '';
 
             document.getElementById('confirmation-cards').innerHTML = skippedHtml + confirmations.map(c => `
-                <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2.5">
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 space-y-2.5">
                     <div class="flex justify-between items-center">
-                        <h3 class="font-bold text-sm text-slate-900">${escapeHtml(c.storeName)}</h3>
-                        <span class="font-extrabold text-emerald-600 text-sm">${formatBRL(c.total)}</span>
+                        <h3 class="font-extrabold text-base text-emerald-800">${escapeHtml(c.storeName)}</h3>
+                        <span class="font-display font-extrabold text-emerald-800 text-base tabular-nums">${formatBRL(c.total)}</span>
                     </div>
-                    <p class="text-[11px] text-slate-500">PIN de entrega: <strong class="text-emerald-700 font-mono">${c.pin}</strong> — informe ao entregador.</p>
+                    <p class="text-sm text-slate-600">PIN de entrega: <strong class="text-emerald-700 font-mono text-base">${c.pin}</strong> — informe ao entregador.</p>
                     ${c.pix ? `
                     <div data-role="pix-box" class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 space-y-2">
-                        <p class="text-xs font-bold text-emerald-900">💠 Pague com Pix: ${formatBRL(c.total)}</p>
+                        <p class="text-sm font-bold text-emerald-800 tabular-nums">Pague com Pix: ${formatBRL(c.total)}</p>
                         <div data-pix-qr="${escapeHtml(c.orderId)}" class="hidden flex justify-center bg-white rounded-lg p-2"></div>
-                        <textarea data-pix-code="${escapeHtml(c.orderId)}" readonly rows="3" class="w-full text-[10px] font-mono p-2 rounded-lg border border-emerald-200 bg-white">${escapeHtml(c.pix)}</textarea>
-                        <button data-copy-pix="${escapeHtml(c.orderId)}" class="w-full bg-emerald-700 text-white font-bold py-2 rounded-lg text-xs">📋 Copiar código Pix</button>
-                        <p class="text-[10px] text-emerald-800">Cole no app do seu banco (Pix → Copia e Cola). O dinheiro vai direto para a loja. Mande o comprovante no WhatsApp.</p>
+                        <label class="sr-only" for="pix-${escapeHtml(c.orderId)}">Código Pix copia-e-cola</label>
+                        <textarea id="pix-${escapeHtml(c.orderId)}" data-pix-code="${escapeHtml(c.orderId)}" readonly rows="3" class="w-full text-xs font-mono p-2 rounded-lg border border-emerald-200 bg-white">${escapeHtml(c.pix)}</textarea>
+                        <button type="button" data-copy-pix="${escapeHtml(c.orderId)}" class="w-full min-h-[44px] bg-emerald-700 text-slate-50 font-bold rounded-xl text-sm">Copiar código Pix</button>
+                        <p class="text-xs text-emerald-800">Cole no app do seu banco (Pix → Copia e Cola). O dinheiro vai direto para a loja. Mande o comprovante no WhatsApp.</p>
                     </div>` : ''}
-                    ${c.changeFor ? `<p class="text-[11px] text-slate-600">💵 Troco para ${formatBRL(c.changeFor)} — o entregador leva ${formatBRL(c.changeFor - c.total)}.</p>` : ''}
+                    ${c.changeFor ? `<p class="text-sm text-slate-600 tabular-nums">Troco para ${formatBRL(c.changeFor)} — o entregador leva ${formatBRL(c.changeFor - c.total)}.</p>` : ''}
                     ${c.waLink
-                        ? `<a href="${c.waLink}" target="_blank" rel="noopener" class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">💬 Enviar para esta loja no WhatsApp</a>`
-                        : `<p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Esta loja ainda não tem WhatsApp cadastrado. Seu pedido já chegou no painel dela — é só acompanhar abaixo.</p>`}
-                    <a href="${c.trackLink}" class="block w-full text-center border border-slate-200 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-50">Acompanhar este pedido</a>
+                        ? `<a href="${c.waLink}" target="_blank" rel="noopener" class="flex w-full min-h-[48px] items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-slate-50 font-bold rounded-xl text-sm transition">${icon('conversa', 'w-5 h-5')}Enviar para esta loja no WhatsApp</a>`
+                        : `<p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">Esta loja ainda não tem WhatsApp cadastrado. Seu pedido já chegou no painel dela — é só acompanhar abaixo.</p>`}
+                    <a href="${c.trackLink}" class="flex w-full min-h-[44px] items-center justify-center border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50">Acompanhar este pedido</a>
                 </div>
             `).join('');
 

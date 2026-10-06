@@ -490,6 +490,41 @@ test('acompanhamento: sem botão de cancelar depois que a loja aceita', {}, asyn
     assert.ok(!(await isShown(page, '#cancel-order-btn')));
 });
 
+test('identidade nas telas do cliente: sacola, acompanhamento e meus pedidos sem emoji', {}, async (page, db) => {
+    const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2604}\u{2606}-\u{27BF}]/u;
+    const visibleGolds = () => page.$$eval('.bg-amber-500', els => els.filter(e => e.offsetParent !== null).length);
+    await page.goto(BASE + 'index.html');
+    await page.evaluate(s1 => localStorage.setItem('tipuanas_cart', JSON.stringify([
+        { id: 'p1', name: 'Pão', price: 1.5, storeId: s1, storeName: 'Padaria', quantity: 1 }])), S1);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForSelector('#checkout-items [data-qty]');
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'sacola sem emoji');
+    assert.strictEqual(await visibleGolds(), 1, 'um só botão dourado (enviar pedido)');
+    const unlabeled = await page.$$eval('#checkout-view input:not([type=radio]):not([type=hidden]), #checkout-view select',
+        els => els.filter(e => !document.querySelector(`label[for="${e.id}"]`)).map(e => e.id));
+    assert.deepStrictEqual(unlabeled, [], 'todo campo tem <label for>');
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Av 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#confirmation-view:not(.hidden)');
+    const wa = await page.$eval('#confirmation-cards a[href*="wa.me"]', a => decodeURIComponent(a.href));
+    assert.ok(wa.includes('*Cliente:* Maria') && wa.includes('*Total:*'), 'mensagem com os dados');
+    assert.ok(!EMOJI.test(wa), 'mensagem do WhatsApp sem emoji');
+    assert.ok(!EMOJI.test(await page.textContent('#confirmation-view')), 'confirmação sem emoji');
+
+    db.orderStatus = 'em_rota';
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#order-details:not(.hidden)');
+    assert.ok(await page.$('#status-icon svg'), 'ícone do status em SVG');
+    assert.strictEqual(await page.textContent('#status-title'), 'A caminho');
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'acompanhamento sem emoji');
+
+    await page.goto(BASE + 'pedidos.html');
+    await page.waitForSelector('#phone-input');
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'meus pedidos sem emoji');
+});
+
 test('meus pedidos: histórico do aparelho e busca por WhatsApp', {}, async (page, db) => {
     await page.addInitScript(id => localStorage.setItem('tipuanas_my_orders', JSON.stringify([id, 'lixo'])), O1);
     await page.goto(BASE + 'pedidos.html');
