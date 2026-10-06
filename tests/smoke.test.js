@@ -936,6 +936,27 @@ test('lojista: painel de orçamentos carrega com login', { loggedIn: true }, asy
     await page.waitForSelector('#requests-section:not(.hidden)');
 });
 
+test('identidade no cardápio e nos orçamentos: sem emoji, botões de 44px e pausa em contorno', { loggedIn: true }, async (page, db) => {
+    const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2604}\u{2606}-\u{27BF}]/u;
+    await page.goto(BASE + '15_gerenciar_cardapio.html?store=' + S1);
+    await page.waitForSelector('#products-list button');
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'cardápio sem emoji');
+    assert.deepStrictEqual(await smallTargets(page, '#products-list button'), [], 'botões dos produtos com 44px');
+    const unlabeled = await page.$$eval('#new-product-section input:not([type=checkbox])',
+        els => els.filter(e => !document.querySelector(`label[for="${e.id}"]`)).map(e => e.id));
+    assert.deepStrictEqual(unlabeled, [], 'campos do produto novo com <label for>');
+    assert.strictEqual(await visibleGolds(page), 0, 'cardápio sem dourado');
+
+    await page.goto(BASE + '17_gerenciar_orcamentos.html?store=' + S3);
+    await page.waitForSelector('#requests-section:not(.hidden)');
+    await page.waitForSelector('#store-status.flex');
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'orçamentos sem emoji');
+    assert.strictEqual(await visibleGolds(page), 0, 'loja aberta: "Pausar" em contorno');
+    await page.click('#toggle-pause-btn');
+    await page.waitForFunction(() => document.getElementById('toggle-pause-btn').textContent.includes('Reabrir'));
+    assert.strictEqual(await visibleGolds(page), 1, 'loja pausada: "Reabrir loja" é o dourado');
+});
+
 // ---------------------------------------------------------------- Entregador
 test('entregador: cadastro, corrida sem dados do cliente, aceite, desistência e PIN', { loggedIn: true }, async (page, db) => {
     const O3 = 'aaaaaaaa-0000-0000-0000-000000000003';

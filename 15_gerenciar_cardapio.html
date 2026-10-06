@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#26402C">
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,73 +19,73 @@
         <!-- Header -->
         <header class="flex flex-wrap justify-between items-center gap-3 py-4 border-b border-gray-200 bg-white px-6 rounded-lg shadow-sm mb-6">
             <div>
-                <h1 id="store-title" class="text-xl font-bold text-emerald-600">Carregando loja...</h1>
-                <p class="text-xs text-gray-500">Gestão de Cardápio</p>
+                <h1 id="store-title" class="text-xl font-extrabold text-emerald-800">Carregando loja...</h1>
+                <p class="text-xs text-gray-500">Cardápio da loja · Direto da avenida</p>
             </div>
-            <a href="index.html" class="text-xs text-gray-500 hover:text-emerald-600 underline">Ir para Vitrine</a>
+            <a href="index.html" class="min-h-[44px] flex items-center text-sm text-gray-500 hover:text-emerald-700 underline">Ir para a vitrine</a>
         </header>
 
         <!-- Navegação -->
-        <nav id="merchant-nav" class="hidden flex gap-2 mb-6 text-sm font-medium">
-            <a id="nav-pedidos" href="#" class="bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">Pedidos</a>
-            <span class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Gerenciar Cardápio</span>
+        <nav id="merchant-nav" class="hidden flex flex-wrap gap-2 mb-6 text-sm font-medium">
+            <a id="nav-pedidos" href="#" class="bg-white border border-gray-200 px-4 min-h-[44px] inline-flex items-center rounded-lg hover:bg-gray-50">Pedidos</a>
+            <span aria-current="page" class="min-h-[44px] inline-flex items-center bg-emerald-700 text-gray-50 font-bold px-4 rounded-lg">Cardápio</span>
         </nav>
 
         <!-- Aviso quando não há loja identificada -->
         <section id="no-store-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 text-center">
             <p class="text-sm text-gray-600">Nenhuma loja identificada neste link.</p>
-            <a href="04_merchant_portal.html" class="inline-block mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-lg">
+            <a href="04_merchant_portal.html" class="inline-block mt-3 bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-sm font-bold px-4 min-h-[44px] inline-flex items-center rounded-lg">
                 Cadastrar ou acessar minha loja
             </a>
         </section>
 
         <!-- Formulário de novo produto -->
         <section id="new-product-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">Adicionar Produto</h2>
+            <h2 class="text-lg font-extrabold text-emerald-800 mb-4">Adicionar produto</h2>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Nome do produto</label>
-                    <input id="np-name" type="text" placeholder="Ex: Pão Francês (500g)" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="np-name" class="block text-sm font-bold text-gray-900 mb-1">Nome do produto</label>
+                    <input id="np-name" type="text" placeholder="Ex: Pão Francês (500g)" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Preço (R$)</label>
-                    <input id="np-price" type="number" min="0" step="0.01" placeholder="Ex: 12.90" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="np-price" class="block text-sm font-bold text-gray-900 mb-1">Preço (R$)</label>
+                    <input id="np-price" type="number" min="0" step="0.01" placeholder="Ex: 12.90" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div class="flex items-end">
-                    <button onclick="adicionarProduto()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm">
+                    <button type="button" onclick="adicionarProduto()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-gray-50 font-bold px-4 min-h-[48px] rounded-lg text-sm">
                         Adicionar
                     </button>
                 </div>
                 <div class="md:col-span-3">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Descrição (opcional)</label>
-                    <input id="np-description" type="text" placeholder="Ex: Assado fresco todos os dias" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="np-description" class="block text-sm font-bold text-gray-900 mb-1">Descrição (opcional)</label>
+                    <input id="np-description" type="text" placeholder="Ex: Assado fresco todos os dias" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Foto (opcional)</label>
-                    <input id="np-photo" type="file" accept="image/*" class="w-full text-xs">
+                    <label for="np-photo" class="block text-sm font-bold text-gray-900 mb-1">Foto (opcional)</label>
+                    <input id="np-photo" type="file" accept="image/*" class="w-full text-sm min-h-[44px]">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Seção do cardápio (opcional)</label>
-                    <input id="np-section" type="text" list="section-options" maxlength="40" placeholder="Ex: Lanches, Bebidas, Doces" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="np-section" class="block text-sm font-bold text-gray-900 mb-1">Seção do cardápio (opcional)</label>
+                    <input id="np-section" type="text" list="section-options" maxlength="40" placeholder="Ex: Lanches, Bebidas, Doces" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                     <datalist id="section-options"></datalist>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Preço promocional (opcional)</label>
-                    <input id="np-promo" type="number" min="0" step="0.01" placeholder="Menor que o preço" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="np-promo" class="block text-sm font-bold text-gray-900 mb-1">Preço promocional (opcional)</label>
+                    <input id="np-promo" type="number" min="0" step="0.01" placeholder="Menor que o preço" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
-                <label class="flex items-end gap-2 text-xs font-semibold text-gray-600 pb-3">
-                    <input id="np-featured" type="checkbox"> ⭐ Destaque na vitrine
+                <label class="flex items-center gap-2 min-h-[44px] text-sm font-bold text-gray-900 self-end">
+                    <input id="np-featured" type="checkbox" class="accent-emerald-700 w-5 h-5 shrink-0"> Destaque na vitrine
                 </label>
             </div>
-            <p class="text-[11px] text-gray-400 mt-2">Produtos com preço promocional aparecem em "Ofertas do dia" na vitrine; os marcados como destaque aparecem em "Destaques".</p>
+            <p class="text-xs text-gray-500 mt-2">Produtos com preço promocional aparecem em "Ofertas do dia" na vitrine; os marcados como destaque aparecem em "Destaques".</p>
             <p id="np-error" class="hidden text-xs text-red-600 mt-2"></p>
         </section>
 
         <!-- Lista de produtos -->
         <main id="products-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">Meus Produtos</h2>
+            <h2 class="text-lg font-extrabold text-emerald-800 mb-4">Meus produtos</h2>
             <div id="products-list" class="space-y-3">
-                <p class="text-sm text-gray-400 text-center py-8">Carregando produtos...</p>
+                <p class="text-sm text-gray-500 text-center py-8">Carregando produtos...</p>
             </div>
         </main>
     </div>

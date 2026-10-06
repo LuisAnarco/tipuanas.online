@@ -83,7 +83,7 @@ function renderProducts(products) {
     const container = document.getElementById('products-list');
 
     if (products.length === 0) {
-        container.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">Nenhum produto cadastrado ainda. Adicione o primeiro acima.</p>`;
+        container.innerHTML = `<p class="text-sm text-gray-500 text-center py-8">Nenhum produto cadastrado ainda. Adicione o primeiro acima.</p>`;
         return;
     }
 
@@ -92,23 +92,23 @@ function renderProducts(products) {
             return `
                 <div class="border border-emerald-200 rounded-lg p-4 bg-emerald-50 space-y-2">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-                        <input id="edit-name-${p.id}" type="text" value="${escapeHtml(p.name)}" class="md:col-span-2 text-sm p-2 rounded border border-gray-300">
-                        <input id="edit-price-${p.id}" type="number" min="0" step="0.01" value="${Number(p.price)}" class="text-sm p-2 rounded border border-gray-300">
+                        <input id="edit-name-${p.id}" type="text" value="${escapeHtml(p.name)}" class="md:col-span-2 text-base min-h-[44px] px-3 rounded-lg border border-gray-300">
+                        <input id="edit-price-${p.id}" type="number" min="0" step="0.01" value="${Number(p.price)}" class="text-base min-h-[44px] px-3 rounded-lg border border-gray-300">
                         <div class="flex gap-2">
-                            <button onclick="salvarEdicao('${p.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded px-2">Salvar</button>
-                            <button onclick="cancelarEdicao()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-xs font-bold rounded px-2">Cancelar</button>
+                            <button onclick="salvarEdicao('${p.id}')" class="flex-1 min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-sm font-bold rounded-lg px-2">Salvar</button>
+                            <button onclick="cancelarEdicao()" class="flex-1 min-h-[44px] bg-gray-200 hover:bg-gray-300 text-sm font-bold rounded-lg px-2">Cancelar</button>
                         </div>
                     </div>
-                    <input id="edit-desc-${p.id}" type="text" value="${escapeHtml(p.description || '')}" placeholder="Descrição (opcional)" class="w-full text-xs p-2 rounded border border-gray-300">
+                    <input id="edit-desc-${p.id}" type="text" value="${escapeHtml(p.description || '')}" placeholder="Descrição (opcional)" class="w-full text-base min-h-[44px] px-3 rounded-lg border border-gray-300">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                        <input id="edit-${p.id}-section" type="text" list="section-options" maxlength="40" value="${escapeHtml(p.section || '')}" placeholder="Seção (ex: Lanches)" class="p-2 rounded border border-gray-300">
-                        <input id="edit-${p.id}-promo" type="number" min="0" step="0.01" value="${p.promo_price ? Number(p.promo_price) : ''}" placeholder="Preço promocional" class="p-2 rounded border border-gray-300">
-                        <label class="flex items-center gap-2"><input id="edit-${p.id}-featured" type="checkbox" ${p.is_featured ? 'checked' : ''}> ⭐ Destaque</label>
+                        <input id="edit-${p.id}-section" type="text" list="section-options" maxlength="40" value="${escapeHtml(p.section || '')}" placeholder="Seção (ex: Lanches)" class="text-base min-h-[44px] px-3 rounded-lg border border-gray-300">
+                        <input id="edit-${p.id}-promo" type="number" min="0" step="0.01" value="${p.promo_price ? Number(p.promo_price) : ''}" placeholder="Preço promocional" class="text-base min-h-[44px] px-3 rounded-lg border border-gray-300">
+                        <label class="flex items-center gap-2 min-h-[44px] text-sm"><input id="edit-${p.id}-featured" type="checkbox" ${p.is_featured ? 'checked' : ''} class="accent-emerald-700 w-5 h-5"> Destaque na vitrine</label>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 text-xs">
                         ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" class="w-12 h-12 rounded object-cover">` : ''}
-                        <label class="flex items-center gap-2">Trocar foto: <input id="edit-photo-${p.id}" type="file" accept="image/*" class="text-xs"></label>
-                        ${p.image_url ? `<label class="flex items-center gap-1"><input id="edit-remove-photo-${p.id}" type="checkbox"> Remover foto</label>` : ''}
+                        <label class="flex items-center gap-2">Trocar foto: <input id="edit-photo-${p.id}" type="file" accept="image/*" class="text-sm"></label>
+                        ${p.image_url ? `<label class="flex items-center gap-2 min-h-[44px]"><input id="edit-remove-photo-${p.id}" type="checkbox" class="accent-emerald-700 w-5 h-5"> Remover foto</label>` : ''}
                     </div>
                 </div>
             `;
@@ -117,25 +117,25 @@ function renderProducts(products) {
         return `
             <div class="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row justify-between md:items-center gap-3 ${p.is_paused ? 'bg-gray-50 opacity-60' : ''}">
                 <div class="flex items-center gap-3">
-                ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" class="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0">` : '<div class="w-14 h-14 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center text-gray-300 text-xl">📷</div>'}
+                ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" class="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0">` : `<div class="w-14 h-14 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center text-gray-400">${icon('loja', 'w-6 h-6')}</div>`}
                 <div>
                     <div class="flex items-center gap-2">
                         <p class="font-bold text-gray-900">${escapeHtml(p.name)}</p>
-                        ${p.is_paused ? '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Esgotado</span>' : ''}
-                        ${p.is_featured ? '<span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">⭐ Destaque</span>' : ''}
-                        ${p.section ? `<span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">${escapeHtml(p.section)}</span>` : ''}
+                        ${p.is_paused ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Esgotado</span>' : ''}
+                        ${p.is_featured ? '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">Destaque</span>' : ''}
+                        ${p.section ? `<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">${escapeHtml(p.section)}</span>` : ''}
                     </div>
                     ${p.description ? `<p class="text-xs text-gray-500">${escapeHtml(p.description)}</p>` : ''}
-                    <p class="text-sm font-extrabold text-emerald-600 mt-1">${p.promo_price ? `${formatBRL(p.promo_price)} <span class="text-xs text-gray-400 line-through font-normal">${formatBRL(p.price)}</span>` : formatBRL(p.price)}</p>
+                    <p class="text-sm font-extrabold text-emerald-800 mt-1 tabular-nums">${p.promo_price ? `${formatBRL(p.promo_price)} <span class="text-xs text-gray-500 line-through font-normal">${formatBRL(p.price)}</span>` : formatBRL(p.price)}</p>
                 </div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="iniciarEdicao('${p.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-3 py-1.5 rounded-lg">Editar</button>
-                    <button data-edit-options="${escapeHtml(p.id)}" class="bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold px-3 py-1.5 rounded-lg">⚙️ Opções${(p.options || []).length ? ` (${p.options.length})` : ''}</button>
-                    <button onclick="alternarDisponibilidade('${p.id}', ${p.is_paused})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg">
-                        ${p.is_paused ? '✅ Voltou' : '🚫 Esgotou'}
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="iniciarEdicao('${p.id}')" class="bg-white border border-gray-300 hover:bg-gray-50 text-sm font-bold px-3 min-h-[44px] rounded-lg">Editar</button>
+                    <button type="button" data-edit-options="${escapeHtml(p.id)}" class="bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-sm font-bold px-3 min-h-[44px] rounded-lg">Opções${(p.options || []).length ? ` (${p.options.length})` : ''}</button>
+                    <button type="button" onclick="alternarDisponibilidade('${p.id}', ${p.is_paused})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-bold px-3 min-h-[44px] rounded-lg">
+                        ${p.is_paused ? 'Voltou' : 'Esgotou'}
                     </button>
-                    <button onclick="removerProduto('${p.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold px-3 py-1.5 rounded-lg">Remover</button>
+                    <button type="button" onclick="removerProduto('${p.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 text-sm font-bold px-3 min-h-[44px] rounded-lg">Remover</button>
                 </div>
             </div>
         `;
@@ -378,7 +378,7 @@ function renderOptionsEditor() {
         root.className = 'fixed inset-0 z-50 bg-black/40 flex items-end md:items-center justify-center';
         document.body.appendChild(root);
     }
-    const inputCls = 'text-sm p-2 rounded border border-gray-300';
+    const inputCls = 'text-base min-h-[44px] px-3 rounded-lg border border-gray-300';
     root.innerHTML = `
         <div class="bg-white w-full max-w-lg rounded-t-2xl md:rounded-2xl max-h-[92vh] flex flex-col" role="dialog" aria-modal="true">
             <div class="p-4 border-b flex justify-between items-start gap-2">
@@ -425,7 +425,7 @@ function renderOptionsEditor() {
             </div>
             <div class="p-4 border-t flex gap-2">
                 <button data-oe="close" class="flex-1 bg-gray-100 rounded-lg py-2.5 text-sm font-bold">Cancelar</button>
-                <button data-oe="save" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg py-2.5 text-sm font-bold">Salvar opções</button>
+                <button data-oe="save" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-gray-50 rounded-lg py-2.5 text-sm font-bold">Salvar opções</button>
             </div>
         </div>`;
 }
