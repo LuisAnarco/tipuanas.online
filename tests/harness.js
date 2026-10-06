@@ -326,4 +326,20 @@ async function isShown(page, selector) {
     return page.$eval(selector, el => !el.classList.contains('hidden'));
 }
 
-module.exports = { launch, openPage, freshDb, isShown, USER, S1, S2, S3, O1 };
+/**
+ * Botões dourados (bg-amber-500) visíveis. Os testes rodam sem o Tailwind do CDN, então
+ * "escondido" é ter a classe hidden no próprio elemento ou num ancestral.
+ */
+async function visibleGolds(page) {
+    return page.$$eval('button.bg-amber-500, a.bg-amber-500', els => els.filter(e => !e.closest('.hidden')).length);
+}
+
+/** Alvo de toque: botões/links com classe de 44px ou mais (min-h-[44px], min-h-[48px], h-11, hit44...) */
+async function smallTargets(page, selector) {
+    return page.$$eval(selector, els => els
+        .filter(e => !e.closest('.hidden'))
+        .filter(e => !/min-h-\[(4[4-9]|5\d)px\]|\bh-1[1-4]\b|\bhit44\b/.test(e.className))
+        .map(e => e.textContent.trim().slice(0, 40)));
+}
+
+module.exports = { launch, openPage, freshDb, isShown, visibleGolds, smallTargets, USER, S1, S2, S3, O1 };

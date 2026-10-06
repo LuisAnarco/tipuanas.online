@@ -51,6 +51,11 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
       +/− e lixeira de 44px; status do pedido com ícone SVG; mensagem do WhatsApp sem emoji.
   - [ ] **G1c. Painéis** (lojista, cardápio, orçamentos, entregador, admin) — pranchas MerchantPanel,
     MerchantOnboarding, MerchantOrcamento, CourierApp e AdminDashboard.
+    - [x] **G1c1. Painel do lojista e tela de login.** _(06/10/2026, PR #38)_ Sem emoji (inclusive no aviso ao
+      cliente pelo WhatsApp), botões e campos de 44–48px com rótulo, "Pausar" em contorno e "Reabrir loja"
+      como o dourado quando a loja está pausada; login com o dourado "Enviar link de acesso".
+    - [ ] **G1c2. Cardápio e orçamentos do lojista.**
+    - [ ] **G1c3. Entregador e admin.**
   - [ ] **G1d. Demais telas** (mural, orçamento do cliente, privacidade, 404, QR do balcão, telas) —
     pranchas Mural, OrcamentoRequest e OrcamentoTracking.
 - [ ] **G2. Pesquisa (sem contatar ninguém):** confirmar o canal oficial ativo da Associação de Moradores

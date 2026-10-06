@@ -22,26 +22,29 @@ async function requireLogin({ title = 'Entrar', subtitle = 'Informe seu e-mail p
     return new Promise(resolve => {
         const overlay = document.createElement('div');
         overlay.id = 'login-overlay';
-        overlay.className = 'fixed inset-0 z-50 bg-slate-100 flex items-center justify-center p-4';
+        overlay.className = 'fixed inset-0 z-50 bg-slate-50 flex items-center justify-center p-4';
         overlay.innerHTML = `
-            <div class="bg-white w-full max-w-sm rounded-2xl shadow-lg border border-slate-200 p-6 space-y-4">
+            <div class="bg-white w-full max-w-sm rounded-2xl border border-slate-200 p-6 space-y-4">
                 <div class="text-center space-y-1">
-                    <span class="text-3xl">🌿</span>
-                    <h1 class="text-lg font-extrabold text-slate-900">${escapeHtml(title)}</h1>
-                    <p class="text-xs text-slate-500">${escapeHtml(subtitle)}</p>
+                    <span class="mx-auto w-11 h-11 rounded-xl bg-emerald-800 flex items-center justify-center" aria-hidden="true">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="6.5" fill="#F0A93A"/><rect x="10.6" y="14.5" width="2.8" height="6.5" rx="1.2" fill="#DA9527"/></svg>
+                    </span>
+                    <h1 class="text-xl font-extrabold text-emerald-800">${escapeHtml(title)}</h1>
+                    <p class="text-sm text-slate-500">${escapeHtml(subtitle)}</p>
                 </div>
                 <form id="login-form" class="space-y-3">
-                    <input id="login-email" type="email" required autocomplete="email" placeholder="seu@email.com" class="w-full text-sm p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500">
-                    <button id="login-submit" type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm">Enviar link de acesso</button>
+                    <label for="login-email" class="block text-sm font-bold text-slate-900">Seu e-mail</label>
+                    <input id="login-email" type="email" required autocomplete="email" placeholder="seu@email.com" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600">
+                    <button id="login-submit" type="submit" class="w-full min-h-[48px] bg-amber-500 hover:bg-amber-600 text-emerald-900 font-extrabold rounded-xl text-base">Enviar link de acesso</button>
                 </form>
                 <div id="login-sent" class="hidden text-center space-y-2">
-                    <p class="text-sm font-bold text-emerald-700">📬 Link enviado!</p>
-                    <p class="text-xs text-slate-600">Abra o e-mail enviado para <strong id="login-sent-email"></strong> e toque no link. Pode fechar esta aba depois.</p>
-                    <button id="login-retry" type="button" class="text-xs text-slate-500 underline">Usar outro e-mail</button>
+                    <p class="text-base font-bold text-emerald-700">Link enviado!</p>
+                    <p class="text-sm text-slate-600">Abra o e-mail enviado para <strong id="login-sent-email"></strong> e toque no link. Pode fechar esta aba depois.</p>
+                    <button id="login-retry" type="button" class="min-h-[44px] text-sm text-slate-500 underline">Usar outro e-mail</button>
                 </div>
-                <p id="login-error" class="hidden text-xs text-red-600 text-center"></p>
-                <p class="text-[10px] text-slate-400 text-center">Sem senha: a cada acesso enviamos um link novo para o seu e-mail.</p>
-                <a href="index.html" class="block text-center text-[11px] text-slate-400 underline">Voltar para a vitrine</a>
+                <p id="login-error" role="alert" class="hidden text-sm text-red-600 text-center"></p>
+                <p class="text-xs text-slate-500 text-center">Sem senha: a cada acesso enviamos um link novo para o seu e-mail.</p>
+                <a href="index.html" class="flex min-h-[44px] items-center justify-center text-sm text-slate-500 underline">Voltar para a vitrine</a>
             </div>
         `;
         document.body.appendChild(overlay);

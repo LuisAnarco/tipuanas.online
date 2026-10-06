@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#26402C">
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -20,11 +20,11 @@
         <!-- Header -->
         <header class="flex flex-wrap justify-between items-center gap-3 py-4 border-b border-gray-200 bg-white px-6 rounded-lg shadow-sm mb-6">
             <div>
-                <h1 id="store-title" class="text-xl font-bold text-emerald-600">Tipuanas.online</h1>
-                <p class="text-xs text-gray-500">Painel de Gestão do Lojista</p>
+                <h1 id="store-title" class="text-xl font-extrabold text-emerald-800">Tipuanas.online</h1>
+                <p class="text-xs text-gray-500">Painel do lojista · Direto da avenida</p>
             </div>
             <div class="flex items-center gap-4">
-                <a href="index.html" class="text-xs text-gray-500 hover:text-emerald-600 underline">Ir para Vitrine</a>
+                <a href="index.html" class="min-h-[44px] flex items-center text-sm text-gray-500 hover:text-emerald-700 underline">Ir para a vitrine</a>
                 <div id="store-status" class="hidden items-center gap-2">
                     <span id="status-dot" class="inline-block w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
                     <span id="status-text" class="text-sm font-semibold text-gray-700">Loja Aberta</span>
@@ -34,10 +34,10 @@
 
         <!-- Navegação entre Pedidos e Cardápio (só aparece com loja identificada) -->
         <nav id="merchant-nav" class="hidden flex flex-wrap gap-2 mb-6 text-sm font-medium">
-            <span class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Pedidos</span>
-            <a id="nav-cardapio" href="#" class="bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">Gerenciar Cardápio</a>
-            <a id="nav-store-page" href="#" target="_blank" class="bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">Minha página</a>
-            <a id="nav-qr" href="#" target="_blank" class="bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">QR do balcão</a>
+            <span aria-current="page" class="min-h-[44px] flex items-center bg-emerald-700 text-gray-50 font-bold px-4 rounded-lg">Pedidos</span>
+            <a id="nav-cardapio" href="#" class="min-h-[44px] flex items-center bg-white border border-gray-200 px-4 rounded-lg hover:bg-gray-50">Cardápio</a>
+            <a id="nav-store-page" href="#" target="_blank" class="min-h-[44px] flex items-center bg-white border border-gray-200 px-4 rounded-lg hover:bg-gray-50">Minha página</a>
+            <a id="nav-qr" href="#" target="_blank" class="min-h-[44px] flex items-center bg-white border border-gray-200 px-4 rounded-lg hover:bg-gray-50">QR do balcão</a>
         </nav>
 
         <!-- Bootstrap: cadastro rápido da loja, quando ainda não há loja identificada -->
@@ -46,13 +46,13 @@
             <p class="text-xs text-gray-500 mb-4">Isso leva menos de 2 minutos. A loja fica vinculada ao seu e-mail — pra voltar ao painel depois, é só entrar com ele. Depois de criar, você monta o cardápio e a loja aparece na vitrine assim que a administração aprovar.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Como funciona o seu negócio?</label>
+                    <p class="block text-sm font-bold text-gray-900 mb-1">Como funciona o seu negócio?</p>
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <label class="flex-1 flex items-center gap-2 text-xs p-2.5 rounded-lg border border-gray-300 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                        <label class="flex-1 min-h-[48px] flex items-center gap-2 text-sm px-3 rounded-lg border border-gray-300 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
                             <input type="radio" name="bs-listing-type" value="catalogo" checked onchange="atualizarCategorias()" class="accent-emerald-600">
                             Comércio — vendo com preço fixo (cardápio)
                         </label>
-                        <label class="flex-1 flex items-center gap-2 text-xs p-2.5 rounded-lg border border-gray-300 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                        <label class="flex-1 min-h-[48px] flex items-center gap-2 text-sm px-3 rounded-lg border border-gray-300 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
                             <input type="radio" name="bs-listing-type" value="orcamento" onchange="atualizarCategorias()" class="accent-emerald-600">
                             Serviços — preciso avaliar antes de dar preço (orçamento)
                         </label>
@@ -60,35 +60,35 @@
                     <p class="text-[11px] text-gray-400 mt-1">Ex de "orçamento": mecânica, chapeação, transporte/frete, imóveis — serviços que dependem de ver o problema/necessidade antes de precificar.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Nome da loja</label>
-                    <input id="bs-name" type="text" placeholder="Ex: Padaria Tipuanas" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="bs-name" class="block text-sm font-bold text-gray-900 mb-1">Nome da loja</label>
+                    <input id="bs-name" type="text" placeholder="Ex: Padaria Tipuanas" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Categoria</label>
-                    <select id="bs-category" onchange="alternarCategoriaOutro()" class="w-full text-sm p-2.5 rounded-lg border border-gray-300"></select>
+                    <label for="bs-category" class="block text-sm font-bold text-gray-900 mb-1">Categoria</label>
+                    <select id="bs-category" onchange="alternarCategoriaOutro()" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300"></select>
                 </div>
                 <div id="bs-category-other-wrap" class="hidden md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Qual categoria?</label>
-                    <input id="bs-category-other" type="text" placeholder="Especifique a categoria do seu negócio" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="bs-category-other" class="block text-sm font-bold text-gray-900 mb-1">Qual categoria?</label>
+                    <input id="bs-category-other" type="text" placeholder="Especifique a categoria do seu negócio" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">WhatsApp (com DDD)</label>
-                    <input id="bs-whatsapp" type="text" placeholder="Ex: 48999998888" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="bs-whatsapp" class="block text-sm font-bold text-gray-900 mb-1">WhatsApp (com DDD)</label>
+                    <input id="bs-whatsapp" type="text" placeholder="Ex: 48999998888" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Endereço na avenida</label>
-                    <input id="bs-address" type="text" placeholder="Ex: Av. das Tipuanas, nº 140" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="bs-address" class="block text-sm font-bold text-gray-900 mb-1">Endereço na avenida</label>
+                    <input id="bs-address" type="text" placeholder="Ex: Av. das Tipuanas, nº 140" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div id="bs-fee-wrap">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Taxa de entrega (R$)</label>
-                    <input id="bs-fee" type="number" min="0" step="0.5" placeholder="Ex: 5.00" class="w-full text-sm p-2.5 rounded-lg border border-gray-300">
+                    <label for="bs-fee" class="block text-sm font-bold text-gray-900 mb-1">Taxa de entrega (R$)</label>
+                    <input id="bs-fee" type="number" min="0" step="0.5" placeholder="Ex: 5.00" class="w-full text-base min-h-[48px] px-3 rounded-lg border border-gray-300">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Descrição curta do negócio</label>
-                    <textarea id="bs-description" rows="2" placeholder="Ex: Mecânica geral, elétrica e revisão. Atendemos carros e motos." class="w-full text-sm p-2.5 rounded-lg border border-gray-300"></textarea>
+                    <label for="bs-description" class="block text-sm font-bold text-gray-900 mb-1">Descrição curta do negócio</label>
+                    <textarea id="bs-description" rows="2" placeholder="Ex: Mecânica geral, elétrica e revisão. Atendemos carros e motos." class="w-full text-base p-3 rounded-lg border border-gray-300"></textarea>
                 </div>
             </div>
-            <button onclick="criarLoja()" id="bs-submit" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm">
+            <button type="button" onclick="criarLoja()" id="bs-submit" class="mt-4 min-h-[48px] bg-amber-500 hover:bg-amber-600 text-emerald-900 font-extrabold px-5 rounded-lg text-base">
                 Criar minha loja
             </button>
             <p id="bs-error" class="hidden text-xs text-red-600 mt-2"></p>
@@ -106,19 +106,19 @@
         <!-- Aba de Ações Rápidas -->
         <div id="quick-actions" class="hidden grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6">
             <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <p class="text-xs text-gray-500">Pedidos Hoje</p>
-                <p id="total-orders-today" class="text-2xl font-bold text-gray-800">0</p>
+                <p class="text-xs text-gray-500">Pedidos hoje</p>
+                <p id="total-orders-today" class="font-display text-2xl font-extrabold text-gray-900 tabular-nums">0</p>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <p class="text-xs text-gray-500">Faturamento Hoje</p>
-                <p id="total-revenue-today" class="text-2xl font-bold text-emerald-600">R$ 0,00</p>
+                <p class="text-xs text-gray-500">Faturamento hoje</p>
+                <p id="total-revenue-today" class="font-display text-2xl font-extrabold text-emerald-800 tabular-nums">R$ 0,00</p>
             </div>
             <div class="col-span-2 md:col-span-1 bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between">
                 <div>
-                    <p class="text-xs text-gray-500">Pausa Rápida</p>
-                    <p class="text-xs text-gray-400">Pausar novos pedidos</p>
+                    <p class="text-sm font-bold text-gray-900">Pausa rápida</p>
+                    <p class="text-xs text-gray-500">Pausar novos pedidos</p>
                 </div>
-                <button id="toggle-pause-btn" onclick="togglePause()" class="bg-white border border-emerald-600 text-emerald-800 hover:bg-emerald-50 px-3 min-h-[44px] rounded-lg text-sm font-bold transition">
+                <button type="button" id="toggle-pause-btn" onclick="togglePause()" class="bg-white border border-emerald-600 text-emerald-800 hover:bg-emerald-50 px-3 min-h-[44px] rounded-lg text-sm font-bold transition">
                     Pausar
                 </button>
             </div>
@@ -126,22 +126,22 @@
 
         <!-- Seção Principal: Pedidos em Tempo Real -->
         <main id="orders-section" class="hidden bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-gray-800">Pedidos</h2>
-                <div class="flex items-center gap-2">
-                    <button id="alerts-btn" onclick="ativarAlertas()" class="bg-white border border-gray-300 hover:bg-gray-50 text-xs font-bold px-2.5 py-1 rounded-full">🔔 Ativar alertas</button>
-                    <span id="pending-badge" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 pendentes</span>
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <h2 class="text-lg font-extrabold text-emerald-800">Pedidos</h2>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" id="alerts-btn" onclick="ativarAlertas()" class="min-h-[44px] inline-flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-300 hover:bg-gray-50 text-sm font-bold px-3 rounded-full"><span data-icon="alerta" class="w-4 h-4"></span><span data-role="alerts-label">Ativar alertas</span></button>
+                    <span id="pending-badge" class="whitespace-nowrap bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 pendentes</span>
                 </div>
             </div>
             <p id="push-hint" class="hidden -mt-2 mb-3 text-[11px] text-gray-500"></p>
-            <label class="flex items-center gap-2 mb-3 text-xs text-gray-600">
-                <input id="notify-on-tap" type="checkbox" class="accent-emerald-600 w-4 h-4">
+            <label class="flex items-center gap-2 mb-3 min-h-[44px] text-sm text-gray-600">
+                <input id="notify-on-tap" type="checkbox" class="accent-emerald-700 w-5 h-5 shrink-0">
                 Ao tocar em Aceitar / Pronto / Saiu / Entregue, já abrir o WhatsApp do cliente com o aviso
             </label>
 
             <!-- Lista de Pedidos -->
             <div id="orders-list" class="space-y-4">
-                <p class="text-sm text-gray-400 text-center py-8">Aguardando novos pedidos...</p>
+                <p class="text-sm text-gray-500 text-center py-8">Aguardando novos pedidos...</p>
             </div>
         </main>
 
@@ -151,40 +151,41 @@
         <!-- Meu Repasse: quanto a loja já recebeu / vai receber, descontada a comissão da plataforma -->
         <section id="repasse-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                <h2 class="text-sm font-bold text-gray-800">📊 Extrato do mês</h2>
+                <h2 class="flex items-center gap-2 text-base font-extrabold text-emerald-800"><span data-icon="grafico" class="w-5 h-5"></span>Extrato do mês</h2>
                 <div class="flex items-center gap-2">
-                    <select id="extrato-month" class="text-xs p-1.5 rounded-lg border border-gray-300 bg-white"></select>
-                    <button id="extrato-csv" class="text-xs font-bold border border-gray-300 hover:bg-gray-50 rounded-lg px-2.5 py-1.5">⬇️ CSV</button>
+                    <label for="extrato-month" class="sr-only">Mês do extrato</label>
+                    <select id="extrato-month" class="text-sm min-h-[44px] px-2 rounded-lg border border-gray-300 bg-white"></select>
+                    <button type="button" id="extrato-csv" class="min-h-[44px] inline-flex items-center gap-1.5 text-sm font-bold border border-gray-300 hover:bg-gray-50 rounded-lg px-3"><span data-icon="baixar" class="w-4 h-4"></span>Planilha (CSV)</button>
                 </div>
             </div>
             <p class="text-xs text-gray-500 mb-4">Comissão da plataforma: 8% sobre o total dos pedidos entregues no mês.</p>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                     <p class="text-xs text-gray-500">Pedidos entregues</p>
-                    <p id="repasse-orders-count" class="text-xl font-bold text-gray-800">0</p>
-                    <p id="extrato-cancelled" class="text-[11px] text-gray-400">0 cancelados</p>
+                    <p id="repasse-orders-count" class="text-xl font-extrabold text-gray-900 tabular-nums">0</p>
+                    <p id="extrato-cancelled" class="text-xs text-gray-500">0 cancelados</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-500">Total dos pedidos entregues</p>
-                    <p id="repasse-gross" class="text-xl font-bold text-gray-800">R$ 0,00</p>
-                    <p id="extrato-ticket" class="text-[11px] text-gray-400">ticket médio R$ 0,00</p>
+                    <p id="repasse-gross" class="text-xl font-extrabold text-gray-900 tabular-nums">R$ 0,00</p>
+                    <p id="extrato-ticket" class="text-xs text-gray-500">ticket médio R$ 0,00</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-500">Comissão (8%)</p>
-                    <p id="repasse-commission" class="text-xl font-bold text-amber-600">R$ 0,00</p>
+                    <p id="repasse-commission" class="text-xl font-extrabold text-amber-700 tabular-nums">R$ 0,00</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-500">Taxas de entrega</p>
-                    <p id="extrato-fees" class="text-base font-bold text-gray-700">R$ 0,00</p>
+                    <p id="extrato-fees" class="text-base font-bold text-gray-700 tabular-nums">R$ 0,00</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-500">Descontos de cupom</p>
-                    <p id="extrato-discounts" class="text-base font-bold text-gray-700">R$ 0,00</p>
+                    <p id="extrato-discounts" class="text-base font-bold text-gray-700 tabular-nums">R$ 0,00</p>
                 </div>
             </div>
             <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                 <p class="text-sm font-bold text-gray-700">Valor líquido a receber</p>
-                <p id="repasse-net" class="text-2xl font-black text-emerald-600">R$ 0,00</p>
+                <p id="repasse-net" class="font-display text-2xl font-extrabold text-emerald-800 tabular-nums">R$ 0,00</p>
             </div>
             <div id="extrato-top" class="mt-3 text-xs text-gray-600"></div>
         </section>
@@ -192,29 +193,30 @@
         <!-- Disponibilidade rápida: marcar produto esgotado com um toque -->
         <section id="stock-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
             <div class="flex items-center justify-between mb-1">
-                <h2 class="text-sm font-bold text-gray-800">⚡ Disponibilidade rápida</h2>
-                <span id="stock-summary" class="text-[11px] text-gray-400"></span>
+                <h2 class="text-base font-extrabold text-emerald-800">Disponibilidade rápida</h2>
+                <span id="stock-summary" class="text-xs text-gray-500"></span>
             </div>
             <p class="text-xs text-gray-500 mb-3">Acabou algum item? Toque para marcar como <b>esgotado</b> — ele continua na vitrine, mas o cliente não consegue pedir.</p>
-            <input id="stock-filter" type="search" placeholder="Filtrar produto..." class="w-full text-xs p-2 rounded-lg border border-gray-300 mb-2">
+            <label for="stock-filter" class="sr-only">Filtrar produto</label>
+            <input id="stock-filter" type="search" placeholder="Filtrar produto..." class="w-full text-base min-h-[44px] px-3 rounded-lg border border-gray-300 mb-2">
             <div id="stock-list" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs"></div>
         </section>
 
         <!-- Cupons de desconto -->
         <section id="coupons-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
-            <h2 class="text-sm font-bold text-gray-800 mb-1">🏷️ Cupons de desconto</h2>
+            <h2 class="flex items-center gap-2 text-base font-extrabold text-emerald-800 mb-1"><span data-icon="cupom" class="w-5 h-5"></span>Cupons de desconto</h2>
             <p class="text-xs text-gray-500 mb-3">O cliente digita o código no checkout. O desconto vale só para produtos da sua loja.</p>
             <form id="coupon-form" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-                <input name="code" required maxlength="20" placeholder="Código (ex: BEMVINDO)" class="col-span-2 md:col-span-1 p-2 rounded-lg border border-gray-300 uppercase">
-                <select name="discount_type" class="p-2 rounded-lg border border-gray-300 bg-white">
+                <input name="code" required maxlength="20" placeholder="Código (ex: BEMVINDO)" aria-label="Código do cupom" class="col-span-2 md:col-span-1 min-h-[44px] px-3 text-base rounded-lg border border-gray-300 uppercase">
+                <select name="discount_type" aria-label="Tipo de desconto" class="min-h-[44px] px-2 rounded-lg border border-gray-300 bg-white">
                     <option value="percentage">% do pedido</option>
                     <option value="fixed">R$ fixo</option>
                 </select>
-                <input name="discount_value" type="number" min="0.5" step="0.5" required placeholder="Valor" class="p-2 rounded-lg border border-gray-300">
-                <input name="min_order_value" type="number" min="0" step="0.5" placeholder="Pedido mínimo (R$)" class="p-2 rounded-lg border border-gray-300">
-                <button class="col-span-2 md:col-span-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg px-3 py-2">Criar cupom</button>
-                <label class="col-span-2 md:col-span-5 flex items-center gap-2 text-xs text-gray-600">
-                    <input name="is_public" type="checkbox" checked> 📣 Mostrar este cupom nos banners da vitrine (senão, só quem souber o código usa)
+                <input name="discount_value" type="number" min="0.5" step="0.5" required placeholder="Valor" aria-label="Valor do desconto" class="min-h-[44px] px-3 text-base rounded-lg border border-gray-300">
+                <input name="min_order_value" type="number" min="0" step="0.5" placeholder="Pedido mínimo (R$)" aria-label="Pedido mínimo" class="min-h-[44px] px-3 text-base rounded-lg border border-gray-300">
+                <button class="col-span-2 md:col-span-1 min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-gray-50 font-bold rounded-lg px-3">Criar cupom</button>
+                <label class="col-span-2 md:col-span-5 flex items-center gap-2 min-h-[44px] text-sm text-gray-600">
+                    <input name="is_public" type="checkbox" checked class="accent-emerald-700 w-5 h-5 shrink-0"> Mostrar este cupom nos banners da vitrine (senão, só quem souber o código usa)
                 </label>
             </form>
             <p id="coupon-error" class="hidden text-xs text-red-600 mt-2"></p>
@@ -224,8 +226,8 @@
         <!-- Avaliações dos clientes -->
         <section id="reviews-section" class="hidden bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-sm font-bold text-gray-800">Avaliações dos Clientes</h2>
-                <span id="reviews-average" class="text-sm font-bold text-amber-600"></span>
+                <h2 class="text-base font-extrabold text-emerald-800">Avaliações dos clientes</h2>
+                <span id="reviews-average" class="text-sm font-bold text-amber-700 tabular-nums"></span>
             </div>
             <div id="reviews-list" class="space-y-2 text-xs text-gray-700"></div>
         </section>
