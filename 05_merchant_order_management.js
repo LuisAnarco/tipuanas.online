@@ -173,35 +173,35 @@ async function renderOnboarding(store) {
     const approvalText = `Olá! Cadastrei a loja "${store.name}" no Tipuanas.online e gostaria da aprovação. Painel: ${window.location.href}`;
     const approvalBox = {
         pendente: `<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-2">
-                <p><b>⏳ Sua loja está em análise.</b> Enquanto isso ela não aparece na vitrine nem recebe pedidos, mas você já pode montar o cardápio.</p>
-                <a data-ask-approval href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(approvalText)}" target="_blank" rel="noopener" class="inline-block font-bold bg-amber-500 hover:bg-amber-600 text-emerald-900 rounded-lg px-3 py-2">💬 Pedir aprovação pelo WhatsApp</a>
+                <p class="flex items-start gap-1.5">${icon('relogio', 'w-4 h-4 mt-0.5')}<span><b>Sua loja está em análise.</b> Enquanto isso ela não aparece na vitrine nem recebe pedidos, mas você já pode montar o cardápio.</span></p>
+                <a data-ask-approval href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(approvalText)}" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center gap-2 font-extrabold bg-amber-500 hover:bg-amber-600 text-emerald-900 rounded-lg px-4 text-sm">${icon('conversa', 'w-4 h-4')}Pedir aprovação pelo WhatsApp</a>
             </div>`,
         recusada: `<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800 space-y-2">
                 <p><b>A loja não foi aprovada.</b> Fale com a administração para entender o que ajustar.</p>
-                <a href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(`Olá! Sobre a loja "${store.name}" no Tipuanas.online, que não foi aprovada...`)}" target="_blank" rel="noopener" class="inline-block font-bold bg-red-600 text-white rounded-lg px-3 py-2">💬 Falar com a administração</a>
+                <a href="https://wa.me/${toWhatsappNumber(PLATFORM_CONTACT_WHATSAPP)}?text=${encodeURIComponent(`Olá! Sobre a loja "${store.name}" no Tipuanas.online, que não foi aprovada...`)}" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center gap-2 font-bold bg-red-600 text-white rounded-lg px-4 text-sm">${icon('conversa', 'w-4 h-4')}Falar com a administração</a>
             </div>`,
-        aprovada: `<p class="text-xs text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg p-2">✅ Loja aprovada e visível na vitrine.</p>`
+        aprovada: `<p class="flex items-center gap-1.5 text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg p-3">${icon('verificada', 'w-4 h-4')}Loja aprovada e visível na vitrine.</p>`
     }[status] || '';
 
     el.innerHTML = `
         <div class="flex items-start justify-between gap-2 mb-3">
             <div>
-                <h2 class="text-sm font-bold text-gray-800">🚀 Primeiros passos</h2>
-                <p class="text-[11px] text-gray-500">${doneCount} de ${steps.length} concluídos</p>
+                <h2 class="text-base font-extrabold text-emerald-800">Primeiros passos</h2>
+                <p class="text-xs text-gray-500">${doneCount} de ${steps.length} concluídos</p>
             </div>
-            ${status === 'aprovada' ? '<button data-hide-onboarding class="text-[11px] text-gray-400 hover:text-gray-600 underline">Fechar</button>' : ''}
+            ${status === 'aprovada' ? '<button type="button" data-hide-onboarding class="min-h-[44px] px-2 text-sm text-gray-500 hover:text-gray-700 underline">Fechar</button>' : ''}
         </div>
         <div class="h-2 bg-gray-100 rounded-full overflow-hidden mb-3"><div class="h-full bg-emerald-500" style="width:${Math.round(doneCount / steps.length * 100)}%"></div></div>
         ${approvalBox}
         <ul class="mt-3 divide-y divide-gray-100">
             ${steps.map(s => `
                 <li class="flex items-center gap-3 py-2" data-step-done="${s.done}">
-                    <span class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${s.done ? 'bg-emerald-500 text-white' : 'border-2 border-gray-300 text-gray-300'}">${s.done ? '✓' : ''}</span>
+                    <span class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center ${s.done ? 'bg-emerald-600 text-white' : 'border-2 border-gray-300'}">${s.done ? icon('confirmado', 'w-4 h-4') : ''}</span>
                     <div class="min-w-0 flex-1">
                         <p class="text-sm ${s.done ? 'text-gray-400 line-through' : 'font-semibold text-gray-800'}">${escapeHtml(s.label)}</p>
-                        <p class="text-[11px] text-gray-500">${escapeHtml(s.hint)}</p>
+                        <p class="text-xs text-gray-500">${escapeHtml(s.hint)}</p>
                     </div>
-                    ${!s.done && s.href ? `<a href="${s.href}" ${s.qr ? 'data-qr-step target="_blank" rel="noopener"' : ''} class="shrink-0 text-xs font-bold text-emerald-700 border border-emerald-200 rounded-lg px-2.5 py-1.5">Fazer</a>` : ''}
+                    ${!s.done && s.href ? `<a href="${s.href}" ${s.qr ? 'data-qr-step target="_blank" rel="noopener"' : ''} class="shrink-0 min-h-[44px] flex items-center text-sm font-bold text-emerald-700 border border-emerald-200 rounded-lg px-3">Fazer</a>` : ''}
                 </li>`).join('')}
         </ul>`;
     el.classList.remove('hidden');
@@ -327,17 +327,17 @@ function updatePauseUI(isPaused) {
     if (isPaused) {
         dot.classList.remove('bg-emerald-500');
         dot.classList.add('bg-amber-500');
-        text.textContent = 'Loja Pausada';
-        btn.textContent = 'Reabrir Loja';
-        btn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+        text.textContent = 'Loja pausada';
+        btn.textContent = 'Reabrir loja';
+        btn.classList.remove('bg-white', 'border', 'border-emerald-600', 'text-emerald-800', 'hover:bg-emerald-50');
+        btn.classList.add('bg-amber-500', 'hover:bg-amber-600', 'text-emerald-900');
     } else {
         dot.classList.remove('bg-amber-500');
         dot.classList.add('bg-emerald-500');
-        text.textContent = 'Loja Aberta';
+        text.textContent = 'Loja aberta';
         btn.textContent = 'Pausar';
-        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
-        btn.classList.add('bg-amber-500', 'hover:bg-amber-600');
+        btn.classList.remove('bg-amber-500', 'hover:bg-amber-600', 'text-emerald-900');
+        btn.classList.add('bg-white', 'border', 'border-emerald-600', 'text-emerald-800', 'hover:bg-emerald-50');
     }
 }
 
@@ -376,10 +376,10 @@ function courierLine(order) {
     const c = orderCouriers[order.id];
     if (c) {
         const wa = toWhatsappNumber(c.phone);
-        return `<p class="text-xs text-gray-700 mt-0.5" data-courier="${escapeHtml(order.id)}">🛵 Entregador: <b>${escapeHtml(c.name)}</b>${c.vehicle ? ` (${escapeHtml(c.vehicle)})` : ''}${wa ? ` · <a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">💬 falar</a>` : ''}</p>`;
+        return `<p class="flex flex-wrap items-center gap-1 text-sm text-gray-700 mt-0.5" data-courier="${escapeHtml(order.id)}">${icon('entrega', 'w-4 h-4 text-emerald-700')}Entregador: <b>${escapeHtml(c.name)}</b>${c.vehicle ? ` (${escapeHtml(c.vehicle)})` : ''}${wa ? ` · <a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center text-emerald-700 underline">falar no WhatsApp</a>` : ''}</p>`;
     }
     if (order.status === 'pronto' && !order.is_takeout && !ownDelivery()) {
-        return `<p class="text-xs text-amber-700 mt-0.5">⏳ Aguardando um entregador aceitar a corrida</p>`;
+        return `<p class="flex items-center gap-1.5 text-sm text-amber-700 mt-0.5">${icon('relogio', 'w-4 h-4')}Aguardando um entregador aceitar a corrida</p>`;
     }
     return '';
 }
@@ -391,20 +391,20 @@ function courierLine(order) {
 function nextActions(order) {
     switch (order.status) {
         case 'novo':
-            return [{ status: 'em_preparacao', label: '✅ Aceitar pedido', kind: 'primary' }, { status: 'cancelado', label: 'Recusar', kind: 'danger' }];
+            return [{ status: 'em_preparacao', label: 'Aceitar pedido', kind: 'primary' }, { status: 'cancelado', label: 'Recusar', kind: 'danger' }];
         case 'em_preparacao':
-            if (order.is_takeout) return [{ status: 'pronto', label: '🛍️ Pronto para o cliente retirar', kind: 'primary' }];
+            if (order.is_takeout) return [{ status: 'pronto', label: 'Pronto para o cliente retirar', kind: 'primary' }];
             // Loja com entrega própria não chama entregador da plataforma
             return ownDelivery()
-                ? [{ status: 'pronto', label: '📦 Pronto', kind: 'secondary' }, { status: 'em_rota', label: '🛵 Saiu para entrega', kind: 'primary' }]
-                : [{ status: 'pronto', label: '📦 Pronto — chamar entregador', kind: 'primary' }];
+                ? [{ status: 'pronto', label: 'Pronto', kind: 'secondary' }, { status: 'em_rota', label: 'Saiu para entrega', kind: 'primary' }]
+                : [{ status: 'pronto', label: 'Pronto — chamar entregador', kind: 'primary' }];
         case 'pronto':
-            if (order.is_takeout) return [{ status: 'entregue', label: '✅ Cliente retirou', kind: 'primary' }];
+            if (order.is_takeout) return [{ status: 'entregue', label: 'Cliente retirou', kind: 'primary' }];
             return ownDelivery()
-                ? [{ status: 'em_rota', label: '🛵 Saiu para entrega', kind: 'primary' }]
-                : [{ status: 'em_rota', label: '🛵 Saiu com entrega própria', kind: 'secondary' }];
+                ? [{ status: 'em_rota', label: 'Saiu para entrega', kind: 'primary' }]
+                : [{ status: 'em_rota', label: 'Saiu com entrega própria', kind: 'secondary' }];
         case 'em_rota':
-            return order.courier_ref ? [] : [{ status: 'entregue', label: '✅ Entregue', kind: 'primary' }];
+            return order.courier_ref ? [] : [{ status: 'entregue', label: 'Entregue', kind: 'primary' }];
         default:
             return [];
     }
@@ -416,9 +416,9 @@ function ownDelivery() {
 }
 
 const ACTION_STYLES = {
-    primary: 'flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3 rounded-xl',
-    secondary: 'flex-1 bg-white border-2 border-emerald-600 text-emerald-700 text-sm font-bold py-3 rounded-xl',
-    danger: 'bg-white border border-red-200 text-red-600 text-sm font-bold px-4 py-3 rounded-xl'
+    primary: 'flex-1 min-h-[48px] bg-emerald-700 hover:bg-emerald-800 text-gray-50 text-base font-bold rounded-xl',
+    secondary: 'flex-1 min-h-[48px] bg-white border-2 border-emerald-600 text-emerald-700 text-base font-bold rounded-xl',
+    danger: 'min-h-[48px] bg-white border border-red-200 text-red-600 text-base font-bold px-4 rounded-xl'
 };
 
 // Ordem na lista: o que precisa de ação primeiro
@@ -440,7 +440,7 @@ function renderOrders(orders) {
     const listContainer = document.getElementById('orders-list');
     ordersById = Object.fromEntries((orders || []).map(o => [o.id, o]));
     if (!orders || orders.length === 0) {
-        listContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">Aguardando novos pedidos...</p>`;
+        listContainer.innerHTML = `<p class="text-sm text-gray-500 text-center py-8">Aguardando novos pedidos...</p>`;
         return;
     }
 
@@ -450,8 +450,8 @@ function renderOrders(orders) {
     const done = orders.filter(isDone).slice(0, 30);
 
     listContainer.innerHTML = [
-        active.length ? active.map(orderCard).join('') : '<p class="text-sm text-gray-400 text-center py-4">Nenhum pedido em andamento.</p>',
-        done.length ? `<h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 pt-2">Finalizados</h3>${done.map(orderCard).join('')}` : ''
+        active.length ? active.map(orderCard).join('') : '<p class="text-sm text-gray-500 text-center py-4">Nenhum pedido em andamento.</p>',
+        done.length ? `<h3 class="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 pt-2">Finalizados</h3>${done.map(orderCard).join('')}` : ''
     ].join('');
 }
 
@@ -481,29 +481,29 @@ function orderCard(order) {
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="font-bold text-gray-900">#${order.id.slice(0, 8)}</span>
-                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">${STATUS_LABELS[order.status] || escapeHtml(order.status)}</span>
-                    <span class="text-[11px] text-gray-400">${escapeHtml(timeAgo(order.created_at))}</span>
+                    <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">${STATUS_LABELS[order.status] || escapeHtml(order.status)}</span>
+                    <span class="text-xs text-gray-500">${escapeHtml(timeAgo(order.created_at))}</span>
                 </div>
-                <p class="text-sm font-semibold text-gray-800 mt-0.5">${escapeHtml(addr.client_name || 'Cliente')} ${order.is_takeout ? '<span class="text-[11px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">RETIRADA</span>' : ''}</p>
+                <p class="text-sm font-semibold text-gray-800 mt-0.5">${escapeHtml(addr.client_name || 'Cliente')} ${order.is_takeout ? '<span class="text-[11px] font-extrabold tracking-wide text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">RETIRADA</span>' : ''}</p>
             </div>
-            <span class="font-extrabold text-gray-900 shrink-0">${formatBRL(order.total_amount)}</span>
+            <span class="font-display font-extrabold text-lg text-gray-900 shrink-0 tabular-nums">${formatBRL(order.total_amount)}</span>
         </div>
-        ${itemsList ? `<p class="text-sm text-gray-700">🛒 ${escapeHtml(itemsList)}</p>` : ''}
-        ${order.is_takeout ? '' : `<p class="text-xs text-gray-600">📍 ${escapeHtml(addr.address || 'Endereço não informado')}${addr.distance_km != null ? ` <span data-role="distance" class="text-gray-400">· ${escapeHtml(String(addr.distance_km).replace('.', ','))} km</span>` : ''}${addr.lat != null ? ` · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addr.lat},${addr.lng}`)}" target="_blank" rel="noopener" class="text-emerald-700 underline">mapa</a>` : ''}</p>`}
-        ${addr.notes ? `<p class="text-xs text-gray-600">📝 ${escapeHtml(addr.notes)}</p>` : ''}
+        ${itemsList ? `<p class="text-base text-gray-900">${escapeHtml(itemsList)}</p>` : ''}
+        ${order.is_takeout ? '' : `<p class="flex flex-wrap items-center gap-1 text-sm text-gray-600">${icon('local', 'w-4 h-4')}${escapeHtml(addr.address || 'Endereço não informado')}${addr.distance_km != null ? ` <span data-role="distance" class="text-gray-500">· ${escapeHtml(String(addr.distance_km).replace('.', ','))} km</span>` : ''}${addr.lat != null ? ` · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addr.lat},${addr.lng}`)}" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center text-emerald-700 underline">mapa</a>` : ''}</p>`}
+        ${addr.notes ? `<p class="text-sm text-gray-600"><b>Obs:</b> ${escapeHtml(addr.notes)}</p>` : ''}
         ${courierLine(order)}
-        <p class="text-xs text-gray-500">💳 ${escapeHtml(addr.payment_method || '—')} | PIN: <strong class="text-emerald-600">${escapeHtml(order.delivery_pin || '----')}</strong></p>
-        ${addr.change_for ? `<p data-role="change" class="text-xs font-semibold text-amber-800">💵 Troco para ${formatBRL(addr.change_for)} — levar ${formatBRL(Number(addr.change_for) - Number(order.total_amount))}</p>` : ''}
-        ${order.status === 'em_rota' && order.courier_ref ? '<p class="text-[11px] text-gray-500">O entregador conclui com o PIN do cliente.</p>' : ''}
-        ${actions.length ? `<div class="flex gap-2 pt-1">${actions.map(a => `<button data-order-action="${id}" data-status="${a.status}" class="${ACTION_STYLES[a.kind]}">${a.label}</button>`).join('')}</div>` : ''}
+        <p class="flex flex-wrap items-center gap-1 text-sm text-gray-500">${icon('cartao', 'w-4 h-4')}${escapeHtml(addr.payment_method || '—')} · PIN: <strong class="text-emerald-700 font-mono">${escapeHtml(order.delivery_pin || '----')}</strong></p>
+        ${addr.change_for ? `<p data-role="change" class="text-sm font-semibold text-amber-800 tabular-nums">Troco para ${formatBRL(addr.change_for)} — levar ${formatBRL(Number(addr.change_for) - Number(order.total_amount))}</p>` : ''}
+        ${order.status === 'em_rota' && order.courier_ref ? '<p class="text-xs text-gray-500">O entregador conclui com o PIN do cliente.</p>' : ''}
+        ${actions.length ? `<div class="flex gap-2 pt-1">${actions.map(a => `<button type="button" data-order-action="${id}" data-status="${a.status}" class="${ACTION_STYLES[a.kind]}">${a.label}</button>`).join('')}</div>` : ''}
         <div class="flex flex-wrap items-center gap-2">
             ${clientWhatsapp ? `
                 <a data-notify-client="${id}" href="https://wa.me/${clientWhatsapp}?text=${encodeURIComponent(customerStatusMessage(order))}" target="_blank" rel="noopener"
-                   class="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-2.5 py-1.5 ${order.id === lastStatusChange ? 'ring-4 ring-emerald-200 animate-pulse' : ''}">📲 Avisar cliente: ${STATUS_LABELS[order.status] || escapeHtml(order.status)}</a>
-                <a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="text-[11px] text-emerald-700 hover:underline">💬 Conversar (${escapeHtml(addr.client_phone)})</a>` : ''}
-            <details class="ml-auto text-[11px] text-gray-500">
-                <summary class="cursor-pointer select-none">Mais opções</summary>
-                <select data-status-select="${id}" onchange="updateOrderStatus('${order.id}', this.value)" class="mt-1 text-xs border border-gray-300 rounded p-1.5 bg-white">
+                   class="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-lg px-3 ${order.id === lastStatusChange ? 'ring-4 ring-emerald-200 animate-pulse' : ''}">${icon('conversa', 'w-4 h-4')}Avisar cliente: ${STATUS_LABELS[order.status] || escapeHtml(order.status)}</a>
+                <a href="https://wa.me/${clientWhatsapp}" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center text-sm text-emerald-700 underline">Conversar (${escapeHtml(addr.client_phone)})</a>` : ''}
+            <details class="ml-auto text-sm text-gray-500">
+                <summary class="cursor-pointer select-none min-h-[44px] flex items-center">Mais opções</summary>
+                <select data-status-select="${id}" aria-label="Mudar status do pedido" onchange="updateOrderStatus('${order.id}', this.value)" class="mt-1 text-sm min-h-[44px] border border-gray-300 rounded-lg px-2 bg-white">
                     <option value="novo" ${order.status === 'novo' ? 'selected' : ''}>Pendente</option>
                     <option value="em_preparacao" ${order.status === 'em_preparacao' ? 'selected' : ''}>Em Preparação</option>
                     <option value="pronto" ${order.status === 'pronto' ? 'selected' : ''}>${order.is_takeout ? 'Pronto p/ Cliente Retirar' : 'Pronto p/ Retirada (entregador)'}</option>
@@ -574,13 +574,13 @@ function customerStatusMessage(order) {
     const code = `#${order.id.slice(0, 8)}`;
     const hi = `Olá${name ? `, ${name}` : ''}! Aqui é da ${store}.`;
     const texts = {
-        novo: `Recebemos seu pedido ${code} e já vamos confirmar. 🙌`,
-        em_preparacao: `Seu pedido ${code} foi aceito e já está sendo preparado! 👩‍🍳`,
+        novo: `Recebemos seu pedido ${code} e já vamos confirmar.`,
+        em_preparacao: `Seu pedido ${code} foi aceito e já está sendo preparado!`,
         pronto: order.is_takeout
-            ? `Seu pedido ${code} está pronto para retirada! 🏪 Na hora, informe o PIN ${order.delivery_pin || ''}.`
-            : `Seu pedido ${code} está pronto e aguardando o entregador. 📦`,
-        em_rota: `Seu pedido ${code} saiu para entrega! 🛵 Tenha em mãos o PIN ${order.delivery_pin || ''} para confirmar o recebimento.`,
-        entregue: `Pedido ${code} entregue. Obrigado pela preferência! ⭐ Se puder, avalie a gente pelo link abaixo.`,
+            ? `Seu pedido ${code} está pronto para retirada! Na hora, informe o PIN ${order.delivery_pin || ''}.`
+            : `Seu pedido ${code} está pronto e aguardando o entregador.`,
+        em_rota: `Seu pedido ${code} saiu para entrega! Tenha em mãos o PIN ${order.delivery_pin || ''} para confirmar o recebimento.`,
+        entregue: `Pedido ${code} entregue. Obrigado pela preferência! Se puder, avalie a gente pelo link abaixo.`,
         cancelado: `Infelizmente seu pedido ${code} precisou ser cancelado. Qualquer dúvida, é só responder esta mensagem.`
     };
     return `${hi} ${texts[order.status] || `Seu pedido ${code} foi atualizado.`}\n\nAcompanhe aqui: ${trackingUrl(order)}`;
@@ -707,11 +707,11 @@ async function loadCoupons() {
                 <span class="font-mono font-bold text-gray-900">${escapeHtml(c.code)}</span>
                 <span class="text-gray-600"> • ${c.discount_type === 'percentage' ? `${Number(c.discount_value)}% de desconto` : `${formatBRL(c.discount_value)} de desconto`}</span>
                 ${Number(c.min_order_value) > 0 ? `<span class="text-gray-400"> • mínimo ${formatBRL(c.min_order_value)}</span>` : ''}
-                ${c.is_public ? '<span class="text-emerald-700 font-bold"> • 📣 na vitrine</span>' : ''}
+                ${c.is_public ? '<span class="text-emerald-700 font-bold"> • na vitrine</span>' : ''}
             </div>
             <div class="flex gap-1.5">
-            <button data-toggle-public="${escapeHtml(c.id)}" data-public="${Boolean(c.is_public)}" class="border border-gray-300 rounded px-2 py-0.5 hover:bg-gray-50">${c.is_public ? 'Tirar da vitrine' : 'Mostrar na vitrine'}</button>
-            <button data-toggle-coupon="${escapeHtml(c.id)}" data-active="${c.is_active}" class="border border-gray-300 rounded px-2 py-0.5 hover:bg-gray-50">${c.is_active ? 'Desativar' : 'Ativar'}</button>
+            <button data-toggle-public="${escapeHtml(c.id)}" data-public="${Boolean(c.is_public)}" class="min-h-[44px] border border-gray-300 rounded-lg px-3 hover:bg-gray-50">${c.is_public ? 'Tirar da vitrine' : 'Mostrar na vitrine'}</button>
+            <button data-toggle-coupon="${escapeHtml(c.id)}" data-active="${c.is_active}" class="min-h-[44px] border border-gray-300 rounded-lg px-3 hover:bg-gray-50">${c.is_active ? 'Desativar' : 'Ativar'}</button>
             </div>
         </div>
     `).join('');
@@ -889,7 +889,7 @@ function updateRepasse(orders) {
     document.getElementById('extrato-discounts').textContent = formatBRL(r.discounts);
     document.getElementById('repasse-net').textContent = formatBRL(r.net);
     document.getElementById('extrato-top').innerHTML = r.top.length
-        ? `🏆 Mais vendidos: ${r.top.map(([name, qty]) => `${escapeHtml(name)} (${qty})`).join(' · ')}`
+        ? `<b>Mais vendidos:</b> ${r.top.map(([name, qty]) => `${escapeHtml(name)} (${qty})`).join(' · ')}`
         : '';
 }
 
@@ -936,7 +936,8 @@ async function ativarAlertas() {
     await notifier.enable();
     notifier.playNotificationSound();
     const btn = document.getElementById('alerts-btn');
-    btn.textContent = notifier.hasPermission ? '🔔 Alertas ativos' : '🔔 Som ativo';
+    const label = btn.querySelector('[data-role="alerts-label"]') || btn;
+    label.textContent = notifier.hasPermission ? 'Alertas ativos' : 'Som ativo';
     btn.disabled = true;
     btn.classList.add('opacity-70');
 
@@ -944,7 +945,7 @@ async function ativarAlertas() {
     const hint = document.getElementById('push-hint');
     const result = currentStore ? await notifier.subscribePush(currentStore.id) : 'error';
     if (result === 'ok') {
-        btn.textContent = '🔔 Alertas ativos no aparelho';
+        label.textContent = 'Alertas ativos no aparelho';
         hint.textContent = 'Pronto: os pedidos novos chegam como notificação, mesmo com o painel fechado.';
     } else if (result === 'unsupported') {
         hint.textContent = /iPhone|iPad/.test(navigator.userAgent)

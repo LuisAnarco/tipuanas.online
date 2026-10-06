@@ -3,7 +3,7 @@
  * Cada teste abre as páginas reais com o Supabase simulado (ver harness.js).
  */
 const assert = require('assert');
-const { launch, openPage, freshDb, isShown, USER, S1, S2, S3, O1 } = require('./harness');
+const { launch, openPage, freshDb, isShown, visibleGolds, smallTargets, USER, S1, S2, S3, O1 } = require('./harness');
 
 const BASE = 'http://local/';
 const tests = [];
@@ -38,8 +38,7 @@ test('vitrine: banners, categorias, ofertas, lojas, busca e carrinho', {}, async
     // Carrinho usa o preço promocional
     await page.click('#offers-row [data-add-product="p2"]');
     assert.strictEqual(await page.textContent('#cart-item-count'), '1 item');
-    const golds = await page.$$eval('.bg-amber-500', els => els.filter(e => e.offsetParent !== null).length);
-    assert.strictEqual(golds, 1, 'um só botão dourado na tela (Ver sacola)');
+    assert.strictEqual(await visibleGolds(page), 1, 'um só botão dourado na tela (Ver sacola)');
     assert.strictEqual(await page.textContent('#cart-total-price'), 'R$ 4,50');
 
     // Busca por produto mostra o produto com botão de adicionar (descrição escapada)
@@ -492,14 +491,13 @@ test('acompanhamento: sem botão de cancelar depois que a loja aceita', {}, asyn
 
 test('identidade nas telas do cliente: sacola, acompanhamento e meus pedidos sem emoji', {}, async (page, db) => {
     const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2604}\u{2606}-\u{27BF}]/u;
-    const visibleGolds = () => page.$$eval('.bg-amber-500', els => els.filter(e => e.offsetParent !== null).length);
     await page.goto(BASE + 'index.html');
     await page.evaluate(s1 => localStorage.setItem('tipuanas_cart', JSON.stringify([
         { id: 'p1', name: 'Pão', price: 1.5, storeId: s1, storeName: 'Padaria', quantity: 1 }])), S1);
     await page.goto(BASE + '10_checkout_whatsapp_flow.html');
     await page.waitForSelector('#checkout-items [data-qty]');
     assert.ok(!EMOJI.test(await page.textContent('body')), 'sacola sem emoji');
-    assert.strictEqual(await visibleGolds(), 1, 'um só botão dourado (enviar pedido)');
+    assert.strictEqual(await visibleGolds(page), 1, 'um só botão dourado (enviar pedido)');
     const unlabeled = await page.$$eval('#checkout-view input:not([type=radio]):not([type=hidden]), #checkout-view select',
         els => els.filter(e => !document.querySelector(`label[for="${e.id}"]`)).map(e => e.id));
     assert.deepStrictEqual(unlabeled, [], 'todo campo tem <label for>');
@@ -626,6 +624,26 @@ test('lojista: vincula loja sem dono e vê pedidos escapados', { loggedIn: true 
     assert.ok((await page.textContent('#user-bar')).includes(USER.email));
     await page.waitForSelector('#reviews-section:not(.hidden)');
     assert.ok(!(await page.$('#reviews-list b')), 'comentário escapado');
+});
+
+test('identidade no painel do lojista: sem emoji, botões de 44px e "Reabrir loja" como o único dourado', { loggedIn: true }, async (page, db) => {
+    const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2604}\u{2606}-\u{27BF}]/u;
+    db.orders.find(o => o.id === O1).status = 'novo';
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#orders-list [data-order]');
+    await page.waitForSelector('#store-status.flex');
+    assert.ok(!EMOJI.test(await page.textContent('body')), 'painel sem emoji');
+    assert.ok(await page.$('#alerts-btn svg'), 'alertas com ícone SVG');
+    assert.strictEqual(await visibleGolds(page), 0, 'loja aberta: nenhum dourado ("Pausar" em contorno)');
+    assert.deepStrictEqual(await smallTargets(page, '#orders-list button, #orders-list a'), [], 'botões e links dos pedidos com 44px');
+    const wa = decodeURIComponent(await page.getAttribute(`[data-notify-client="${O1}"]`, 'href'));
+    assert.ok(!EMOJI.test(wa), 'aviso ao cliente sem emoji');
+
+    await page.click('#toggle-pause-btn');
+    await page.waitForFunction(() => document.getElementById('toggle-pause-btn').textContent.includes('Reabrir'));
+    assert.ok(db.writes.some(w => w.table === 'stores' && w.method === 'PATCH' && w.body.is_paused === true), 'pausa gravada');
+    assert.strictEqual(await visibleGolds(page), 1, 'loja pausada: "Reabrir loja" é o dourado');
+    assert.strictEqual(await page.textContent('#status-text'), 'Loja pausada');
 });
 
 test('esgotado: lojista marca com um toque e a vitrine mostra "Esgotado" sem botão', { loggedIn: true }, async (page, db) => {
