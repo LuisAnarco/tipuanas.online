@@ -40,13 +40,15 @@ Contexto: `README.md` (telas, banco, login) e `Claude outputs/roadmap-av-tipuana
     que o código usa apontam para a marca (emerald→copa, amber→floração, red→tijolo, slate/gray→ink/papel),
     Bricolage Grotesque + Karla, texto mínimo 12px, algarismos tabulares, foco visível; gradientes da
     vitrine viraram cores sólidas; botão dourado com texto escuro.
-  - [ ] **G1b. Telas do cliente**: emoji → ícones SVG, alvos ≥ 44px, um só botão dourado por tela, voz
+  - [x] **G1b. Telas do cliente**: emoji → ícones SVG, alvos ≥ 44px, um só botão dourado por tela, voz
     "Direto da avenida", selos "Loja verificada" e "Recomendada por N vizinhos" (visuais),
     `<button>`/`<a>`/`<label>` reais — seguindo as pranchas Home, Store, Checkout e OrderTracking do canvas.
     - [x] **G1b1. Vitrine e página da loja.** _(30/09/2026, PR #35)_ Ícones SVG (`icon()` no `config.js`),
       chamada "Direto da avenida", categorias em pílulas com `aria-pressed`, selos de confiança (loja
       aprovada; vizinhos que deram 4–5 estrelas), barra da sacola com o único botão dourado, alvos de 44px.
-    - [ ] **G1b2. Sacola/checkout, acompanhamento e Meus pedidos** (inclui a mensagem do WhatsApp sem emoji).
+    - [x] **G1b2. Sacola/checkout, acompanhamento e Meus pedidos.** _(06/10/2026, PR #37)_ "Enviar pedido no
+      WhatsApp" como o único dourado; campos de 48px com `<label for>` e texto de 16px (sem zoom no iPhone);
+      +/− e lixeira de 44px; status do pedido com ícone SVG; mensagem do WhatsApp sem emoji.
   - [ ] **G1c. Painéis** (lojista, cardápio, orçamentos, entregador, admin) — pranchas MerchantPanel,
     MerchantOnboarding, MerchantOrcamento, CourierApp e AdminDashboard.
   - [ ] **G1d. Demais telas** (mural, orçamento do cliente, privacidade, 404, QR do balcão, telas) —

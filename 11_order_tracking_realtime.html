@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#26402C">
     <link rel="manifest" href="07_client_pwa_manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -12,96 +12,95 @@
     <script src="theme.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
 
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div class="max-w-md mx-auto px-4 py-3.5 flex items-center justify-between">
-            <a href="pedidos.html" class="text-slate-500 text-sm font-bold">← Meus pedidos</a>
-            <h1 class="font-extrabold text-base text-slate-900">Status do Pedido</h1>
+        <div class="max-w-md mx-auto px-2 py-1 flex items-center justify-between">
+            <a href="pedidos.html" class="min-h-[44px] px-2 flex items-center gap-1 text-slate-600 text-sm font-bold"><span data-icon="voltar" class="w-5 h-5"></span>Meus pedidos</a>
+            <h1 class="font-extrabold text-lg text-emerald-800 px-2">Seu pedido</h1>
         </div>
     </header>
 
     <main class="max-w-md mx-auto px-4 py-6 w-full flex-1 space-y-5">
         
         <!-- Card de Status do Pedido -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm text-center space-y-3">
-            <span class="text-3xl" id="status-icon">⏳</span>
+        <section class="bg-white rounded-2xl p-5 border border-slate-200 text-center space-y-3" aria-live="polite">
+            <span class="mx-auto w-14 h-14 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center" id="status-icon"><span data-icon="relogio" class="w-7 h-7"></span></span>
             <div>
-                <h2 class="text-lg font-bold text-slate-900" id="status-title">Buscando pedido...</h2>
-                <p class="text-xs text-slate-500 mt-1" id="status-desc">Aguarde enquanto carregamos as informações.</p>
+                <h2 class="text-xl font-extrabold text-emerald-800" id="status-title">Buscando pedido...</h2>
+                <p class="text-sm text-slate-500 mt-1" id="status-desc">Aguarde enquanto carregamos as informações.</p>
             </div>
             
             <!-- PIN do Cliente -->
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 inline-block w-full mt-2">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Seu PIN de Confirmação</p>
-                <p class="text-2xl font-extrabold text-emerald-600 font-mono tracking-widest mt-0.5" id="delivery-pin">----</p>
-                <p id="pin-hint" class="text-[10px] text-slate-400 mt-1">Informe este código ao entregador no momento da entrega.</p>
+                <p class="text-[11px] text-slate-500 font-extrabold uppercase tracking-wider">Seu PIN de confirmação</p>
+                <p class="text-3xl font-extrabold text-emerald-700 font-mono tracking-widest mt-0.5" id="delivery-pin">----</p>
+                <p id="pin-hint" class="text-xs text-slate-500 mt-1">Informe este código ao entregador no momento da entrega.</p>
             </div>
 
             <!-- Cancelamento: só enquanto a loja ainda não aceitou (status "novo") -->
-            <button id="cancel-order-btn" class="hidden w-full text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 rounded-xl py-2">Cancelar pedido</button>
-        </div>
+            <button type="button" id="cancel-order-btn" class="hidden w-full min-h-[44px] text-sm font-bold text-red-600 border border-red-200 hover:bg-red-50 rounded-xl">Cancelar pedido</button>
+        </section>
 
         <!-- Detalhes do Pedido -->
-        <div id="order-details" class="hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+        <section id="order-details" class="hidden bg-white rounded-2xl p-5 border border-slate-200 space-y-3">
             <div class="flex justify-between items-center gap-2">
-                <h3 id="order-store" class="font-bold text-sm text-slate-900"></h3>
-                <span id="order-code" class="text-[10px] text-slate-400 font-mono"></span>
+                <h2 id="order-store" class="font-extrabold text-base text-emerald-800"></h2>
+                <span id="order-code" class="text-xs text-slate-500 font-mono"></span>
             </div>
-            <div id="order-items" class="space-y-1 text-xs text-slate-700"></div>
-            <div class="border-t border-slate-100 pt-2 flex justify-between font-extrabold text-sm">
+            <div id="order-items" class="space-y-1 text-sm text-slate-700 tabular-nums"></div>
+            <div class="border-t border-slate-200 pt-2 flex justify-between font-display font-extrabold text-base text-emerald-800 tabular-nums">
                 <span>Total</span>
-                <span id="order-total" class="text-emerald-600"></span>
+                <span id="order-total"></span>
             </div>
-            <p id="order-mode" class="text-[11px] text-slate-500"></p>
-            <a id="order-whatsapp" href="#" target="_blank" rel="noopener" class="hidden block text-center border border-emerald-200 text-emerald-700 font-semibold py-2 rounded-xl text-xs hover:bg-emerald-50">💬 Falar com a loja</a>
-        </div>
+            <p id="order-mode" class="text-sm text-slate-500 flex items-start gap-1.5"></p>
+            <a id="order-whatsapp" href="#" target="_blank" rel="noopener" class="hidden flex min-h-[44px] items-center justify-center gap-2 border border-slate-200 text-emerald-700 font-bold rounded-xl text-sm hover:bg-emerald-50"><span data-icon="conversa" class="w-4 h-4"></span>Falar com a loja</a>
+        </section>
 
         <!-- Linha do Tempo -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Etapas da Entrega</h3>
-            
-            <div class="space-y-4 text-xs font-medium">
-                <div class="flex items-center gap-3 text-slate-400" id="step-pending">
-                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
-                    <p>Pedido Recebido pelo Lojista</p>
-                </div>
-                <div class="flex items-center gap-3 text-slate-400" id="step-preparing">
-                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
-                    <p>Em Preparação</p>
-                </div>
-                <div class="flex items-center gap-3 text-slate-400" id="step-transit">
-                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
-                    <p>Saiu para Entrega</p>
-                </div>
-                <div class="flex items-center gap-3 text-slate-400" id="step-completed">
-                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
-                    <p>Pedido Concluído</p>
-                </div>
-            </div>
-        </div>
+        <section class="bg-white rounded-2xl p-5 border border-slate-200 space-y-4">
+            <h2 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Etapas da entrega</h2>
+
+            <ol class="space-y-4 text-sm font-medium">
+                <li class="flex items-center gap-3 text-slate-500" id="step-pending">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300" aria-hidden="true"></span>
+                    <p>Pedido recebido pela loja</p>
+                </li>
+                <li class="flex items-center gap-3 text-slate-500" id="step-preparing">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300" aria-hidden="true"></span>
+                    <p>Em preparação</p>
+                </li>
+                <li class="flex items-center gap-3 text-slate-500" id="step-transit">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300" aria-hidden="true"></span>
+                    <p>Saiu para entrega</p>
+                </li>
+                <li class="flex items-center gap-3 text-slate-500" id="step-completed">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300" aria-hidden="true"></span>
+                    <p>Pedido concluído</p>
+                </li>
+            </ol>
+        </section>
 
         <!-- Avaliação (aparece quando o pedido é entregue) -->
-        <div id="review-card" class="hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Avalie a loja</h3>
+        <section id="review-card" class="hidden bg-white rounded-2xl p-5 border border-slate-200 space-y-3">
+            <h2 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Avalie a loja</h2>
             <div id="review-form" class="space-y-3">
                 <div id="review-stars" class="flex gap-1 text-3xl" role="radiogroup" aria-label="Nota de 1 a 5">
-                    <button data-rating="1" class="text-slate-300" aria-label="1 estrela">★</button>
-                    <button data-rating="2" class="text-slate-300" aria-label="2 estrelas">★</button>
-                    <button data-rating="3" class="text-slate-300" aria-label="3 estrelas">★</button>
-                    <button data-rating="4" class="text-slate-300" aria-label="4 estrelas">★</button>
-                    <button data-rating="5" class="text-slate-300" aria-label="5 estrelas">★</button>
+                    <button type="button" data-rating="1" class="w-11 h-11 flex items-center justify-center text-slate-300" aria-label="1 estrela">★</button>
+                    <button type="button" data-rating="2" class="w-11 h-11 flex items-center justify-center text-slate-300" aria-label="2 estrelas">★</button>
+                    <button type="button" data-rating="3" class="w-11 h-11 flex items-center justify-center text-slate-300" aria-label="3 estrelas">★</button>
+                    <button type="button" data-rating="4" class="w-11 h-11 flex items-center justify-center text-slate-300" aria-label="4 estrelas">★</button>
+                    <button type="button" data-rating="5" class="w-11 h-11 flex items-center justify-center text-slate-300" aria-label="5 estrelas">★</button>
                 </div>
-                <textarea id="review-comment" rows="2" maxlength="500" placeholder="Conte como foi (opcional)" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
-                <button id="review-submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition disabled:opacity-50" disabled>Enviar avaliação</button>
-                <p id="review-error" class="hidden text-[11px] text-red-600"></p>
+                <label for="review-comment" class="sr-only">Comentário</label>
+                <textarea id="review-comment" rows="2" maxlength="500" placeholder="Conte como foi (opcional)" class="w-full text-base p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600"></textarea>
+                <button type="button" id="review-submit" class="w-full min-h-[48px] bg-amber-500 hover:bg-amber-600 text-emerald-900 font-extrabold rounded-xl text-sm transition disabled:opacity-50" disabled>Enviar avaliação</button>
+                <p id="review-error" class="hidden text-xs text-red-600"></p>
             </div>
-            <p id="review-done" class="hidden text-xs text-emerald-700 font-semibold">Obrigado pela avaliação! 💚</p>
-        </div>
+            <p id="review-done" class="hidden text-sm text-emerald-600 font-semibold">Obrigado pela avaliação. Ela ajuda os vizinhos a escolher.</p>
+        </section>
 
     </main>
 
@@ -119,12 +118,12 @@
         ];
 
         const STATUS_MAP = {
-            novo: { icon: '⏳', title: 'Aguardando Lojista', desc: 'O comércio recebeu seu pedido e irá confirmar em breve.' },
-            em_preparacao: { icon: '👨‍🍳', title: 'Em Preparação', desc: 'O estabelecimento aceitou e está preparando seu pedido.' },
-            pronto: { icon: '✅', title: 'Pronto!', desc: 'Seu pedido está pronto, aguardando o entregador.' },
-            em_rota: { icon: '🛵', title: 'A Caminho!', desc: 'O entregador já está a caminho do seu endereço.' },
-            entregue: { icon: '🎉', title: 'Entregue com Sucesso', desc: 'Obrigado por comprar do comércio local!' },
-            cancelado: { icon: '❌', title: 'Pedido Cancelado', desc: 'Este pedido foi cancelado. Fale com a loja pelo WhatsApp se tiver dúvidas.' }
+            novo: { icon: 'relogio', title: 'Aguardando a loja', desc: 'A loja recebeu seu pedido e vai confirmar em breve.' },
+            em_preparacao: { icon: 'preparo', title: 'Em preparação', desc: 'A loja aceitou e está preparando seu pedido.' },
+            pronto: { icon: 'confirmado', title: 'Pronto', desc: 'Seu pedido está pronto, aguardando o entregador.' },
+            em_rota: { icon: 'entrega', title: 'A caminho', desc: 'O entregador já está a caminho do seu endereço.' },
+            entregue: { icon: 'confirmado', title: 'Entregue', desc: 'Obrigado por comprar do comércio da avenida.' },
+            cancelado: { icon: 'cancelado', title: 'Pedido Cancelado', desc: 'Este pedido foi cancelado. Fale com a loja pelo WhatsApp se tiver dúvidas.' }
         };
 
         let isTakeout = false;
@@ -145,7 +144,7 @@
                 selectedRating = Number(star.dataset.rating);
                 document.querySelectorAll('#review-stars [data-rating]').forEach(el => {
                     const on = Number(el.dataset.rating) <= selectedRating;
-                    el.classList.toggle('text-amber-400', on);
+                    el.classList.toggle('text-amber-500', on);
                     el.classList.toggle('text-slate-300', !on);
                 });
                 document.getElementById('review-submit').disabled = false;
@@ -210,9 +209,18 @@
         }
 
         function showNotFound() {
-            document.getElementById('status-icon').textContent = '🔍';
-            document.getElementById('status-title').textContent = 'Pedido Não Encontrado';
+            setStatusIcon('busca', false);
+            document.getElementById('status-title').textContent = 'Pedido não encontrado';
             document.getElementById('status-desc').innerHTML = 'Confira o link recebido ou veja em <a href="pedidos.html" class="underline text-emerald-700">Meus pedidos</a>.';
+        }
+
+        function setStatusIcon(name, cancelled) {
+            const el = document.getElementById('status-icon');
+            el.innerHTML = icon(name, 'w-7 h-7');
+            el.classList.toggle('bg-red-50', !!cancelled);
+            el.classList.toggle('text-red-600', !!cancelled);
+            el.classList.toggle('bg-emerald-50', !cancelled);
+            el.classList.toggle('text-emerald-700', !cancelled);
         }
 
         // O cliente não tem login: o pedido é lido por uma função no banco que só
@@ -255,16 +263,16 @@
             document.getElementById('order-code').textContent = `Pedido #${order.id.slice(0, 8)}`;
             document.getElementById('order-items').innerHTML = items.map(it => `
                 <div class="flex justify-between">
-                    <span>${it.quantity}x ${escapeHtml(it.products ? it.products.name : 'Item')}${(it.options || []).length ? `<span class="block text-[11px] text-slate-400">${escapeHtml(it.options.map(o => o.name).join(', '))}</span>` : ''}${it.note ? `<span class="block text-[11px] text-slate-400 italic">${escapeHtml(it.note)}</span>` : ''}</span>
+                    <span>${it.quantity}x ${escapeHtml(it.products ? it.products.name : 'Item')}${(it.options || []).length ? `<span class="block text-xs text-slate-500">${escapeHtml(it.options.map(o => o.name).join(', '))}</span>` : ''}${it.note ? `<span class="block text-xs text-slate-500 italic">${escapeHtml(it.note)}</span>` : ''}</span>
                     <span class="text-slate-500">${formatBRL(it.unit_price * it.quantity)}</span>
                 </div>
             `).join('') + (Number(order.delivery_fee) > 0 ? `
                 <div class="flex justify-between text-slate-500"><span>Taxa de entrega</span><span>${formatBRL(order.delivery_fee)}</span></div>
             ` : '');
             document.getElementById('order-total').textContent = formatBRL(order.total_amount);
-            document.getElementById('order-mode').textContent = order.is_takeout
-                ? `🏪 Retirada na loja${store.address_line ? ` — ${store.address_line}` : ''}`
-                : `📍 ${(order.delivery_address && order.delivery_address.address) || ''}`;
+            document.getElementById('order-mode').innerHTML = order.is_takeout
+                ? `${icon('loja', 'w-4 h-4 mt-0.5')}<span>Retirada na loja${store.address_line ? ` — ${escapeHtml(store.address_line)}` : ''}</span>`
+                : `${icon('local', 'w-4 h-4 mt-0.5')}<span>${escapeHtml((order.delivery_address && order.delivery_address.address) || '')}</span>`;
 
             const waBtn = document.getElementById('order-whatsapp');
             if (whatsapp) {
@@ -273,7 +281,7 @@
             }
 
             if (order.is_takeout) {
-                document.querySelector('#step-transit p').textContent = 'Pronto para Retirada';
+                document.querySelector('#step-transit p').textContent = 'Pronto para retirada';
                 document.getElementById('pin-hint').textContent = 'Informe este código na loja ao retirar o pedido.';
             }
         }
@@ -285,14 +293,14 @@
 
             let current = STATUS_MAP[order.status] || STATUS_MAP.novo;
             if (isTakeout && order.status === 'pronto') {
-                current = { icon: '🏪', title: 'Pronto para Retirada', desc: 'Pode passar na loja para buscar seu pedido.' };
+                current = { icon: 'loja', title: 'Pronto para retirada', desc: 'Pode passar na loja para buscar seu pedido.' };
             }
             // Quem está levando (primeiro nome e veículo, quando um entregador aceitou)
             if (order.status === 'em_rota' && order.courier && order.courier.name) {
                 const vehicle = order.courier.vehicle ? ` (${order.courier.vehicle})` : '';
                 current = { ...current, desc: `${order.courier.name}${vehicle} está levando seu pedido. Tenha o PIN em mãos.` };
             }
-            document.getElementById('status-icon').textContent = current.icon;
+            setStatusIcon(current.icon, order.status === 'cancelado');
             document.getElementById('status-title').textContent = current.title;
             document.getElementById('status-desc').textContent = current.desc;
 
@@ -305,7 +313,7 @@
                 if (isTakeout && step.from === 'em_rota' && order.status === 'pronto') done = true;
                 const el = document.getElementById(step.id);
                 const dot = el.querySelector('span');
-                el.classList.toggle('text-slate-400', !done);
+                el.classList.toggle('text-slate-500', !done);
                 el.classList.toggle('text-emerald-700', done);
                 el.classList.toggle('font-bold', done);
                 dot.classList.toggle('bg-slate-300', !done);
