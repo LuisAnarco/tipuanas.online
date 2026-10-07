@@ -90,6 +90,7 @@ function rpc(db, fn, body) {
                 return { product_id: p.id, name: p.name, quantity: it.quantity, unit_price: (p.promo_price || p.price) + chosen.reduce((a, c) => a + c.price, 0), options: chosen, note: it.note || null };
             });
             const subtotal = items.reduce((a, i) => a + i.unit_price * i.quantity, 0);
+            if (Number(store.min_order_value) > 0 && subtotal < store.min_order_value) throw { status: 400, body: { code: 'P0001', message: 'below_min_order' } };
             const fee = body.p_is_takeout ? 0 : store.delivery_fee;
             let discount = 0;
             if (body.p_coupon) {

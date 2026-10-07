@@ -432,6 +432,7 @@ function storeCard(store) {
     const meta = [];
     if (store.category) meta.push(escapeHtml(store.category));
     if (!quote && Number(store.avg_prep_time_minutes) > 0) meta.push(`${Number(store.avg_prep_time_minutes)} min`);
+    if (!quote && Number(store.min_order_value) > 0) meta.push(`Pedido mín. ${formatBRL(store.min_order_value)}`);
     const feeText = quote ? '' : deliveryFeeLabel(store, platformDelivery);
     const fee = quote ? '' : feeText === 'Entrega grátis'
         ? `<span class="text-emerald-600 font-bold">Entrega grátis</span>`
@@ -590,6 +591,7 @@ function renderStoreHeader(store, reviews) {
                 ${hasHours ? `<span class="flex items-center gap-1.5 font-bold ${status.open ? 'text-emerald-600' : 'text-red-600'}"><span class="w-2 h-2 rounded-full ${status.open ? 'bg-emerald-500' : 'bg-red-500'}" aria-hidden="true"></span>${status.open ? 'Aberta agora' : `Fechada · ${escapeHtml(status.label)}`}</span>` : ''}
                 ${store.listing_type !== 'orcamento' ? `<span class="flex items-center gap-1 tabular-nums">${icon('entrega', 'w-4 h-4')}${escapeHtml(deliveryFeeLabel(store, platformDelivery))}</span>` : ''}
                 ${Number(store.avg_prep_time_minutes) > 0 ? `<span class="flex items-center gap-1 tabular-nums">${icon('relogio', 'w-4 h-4')}${Number(store.avg_prep_time_minutes)} min</span>` : ''}
+                ${store.listing_type !== 'orcamento' && Number(store.min_order_value) > 0 ? `<span data-role="min-order" class="flex items-center gap-1 tabular-nums">${icon('pedidos', 'w-4 h-4')}Pedido mín. ${formatBRL(store.min_order_value)}</span>` : ''}
                 ${store.address_line ? `<span class="flex items-center gap-1">${icon('local', 'w-4 h-4')}${escapeHtml(store.address_line)}</span>` : ''}
             </div>
             ${coupons.length ? `<div class="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">${coupons.map(c => `

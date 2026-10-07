@@ -54,6 +54,7 @@ function renderStoreSettings(container, store, opts = {}) {
                 ${field('Endereço na avenida', `<input name="address_line" maxlength="200" class="${inputCls}" value="${escapeHtml(store.address_line || '')}">`)}
                 ${field('Chave Pix (aparece para o cliente pagar)', `<input name="pix_key" maxlength="77" class="${inputCls}" value="${escapeHtml(store.pix_key || '')}" placeholder="E-mail, CNPJ, aleatória ou +5547999999999">`)}
                 ${field('Cidade da conta Pix', `<input name="pix_city" maxlength="15" class="${inputCls}" value="${escapeHtml(store.pix_city || '')}" placeholder="Ex: Joinville">`)}
+                ${field('Pedido mínimo (R$, opcional)', `<input name="min_order_value" type="number" min="0" step="0.01" inputmode="decimal" class="${inputCls}" value="${Number(store.min_order_value || 0) || ''}" placeholder="Sem mínimo">`)}
                 ${field('Tempo médio de preparo (min)', `<input name="avg_prep_time_minutes" type="number" min="0" max="240" step="5" class="${inputCls}" value="${Number(store.avg_prep_time_minutes || 0) || ''}" placeholder="Ex: 30">`)}
                 ${field('Tipo de negócio', `
                     <select name="listing_type" class="${inputCls} bg-white">
@@ -199,6 +200,7 @@ function renderStoreSettings(container, store, opts = {}) {
         const whatsapp = String(data.whatsapp_number || '').replace(/\D/g, '');
         const fee = Number(data.delivery_fee || 0);
         const prep = data.avg_prep_time_minutes === '' ? null : Number(data.avg_prep_time_minutes);
+        const minOrder = String(data.min_order_value ?? '').trim() === '' ? null : Number(String(data.min_order_value).replace(',', '.'));
 
         const setStatus = (msg, ok) => {
             statusEl.textContent = msg;
@@ -208,6 +210,7 @@ function renderStoreSettings(container, store, opts = {}) {
         if (!data.name.trim()) return setStatus('Informe o nome da loja.', false);
         if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) return setStatus('WhatsApp deve ter DDD + número (10 ou 11 dígitos).', false);
         if (!Number.isFinite(fee) || fee < 0) return setStatus('Taxa de entrega inválida.', false);
+        if (minOrder !== null && (!Number.isFinite(minOrder) || minOrder < 0 || minOrder > 1000)) return setStatus('Pedido mínimo inválido (de 0 a R$ 1.000).', false);
         if (prep !== null && (!Number.isInteger(prep) || prep < 0 || prep > 240)) return setStatus('Tempo de preparo inválido (0 a 240 minutos).', false);
         const lat = num('lat'), lng = num('lng');
         if ((lat === null) !== (lng === null) || (lat !== null && (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180))) {
@@ -238,6 +241,7 @@ function renderStoreSettings(container, store, opts = {}) {
             description: data.description.trim() || null,
             opening_hours: openingHours,
             avg_prep_time_minutes: prep,
+            min_order_value: minOrder || null,
             pix_key: pixKey || null,
             pix_city: String(data.pix_city || '').trim().slice(0, 15) || null,
             delivery_type: own ? 'propria' : 'plataforma',

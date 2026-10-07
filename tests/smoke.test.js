@@ -838,6 +838,58 @@ test('lojista: edita os dados da loja', { loggedIn: true }, async (page, db) => 
     assert.strictEqual(await page.textContent('#store-title'), 'Padaria Nova');
 });
 
+test('pedido mínimo: lojista define, vitrine mostra e a sacola só envia quando atinge', { loggedIn: true }, async (page, db) => {
+    db.stores.find(s => s.id === S1).owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector('#store-settings summary');
+    await page.click('#store-settings summary');
+    await page.fill('#store-settings [name="min_order_value"]', '5000');
+    await page.click('#store-settings button[type="submit"]');
+    await page.waitForSelector('text=Pedido mínimo inválido');
+    await page.fill('#store-settings [name="min_order_value"]', '20');
+    await page.click('#store-settings button[type="submit"]');
+    await page.waitForSelector('text=Dados salvos');
+    assert.strictEqual(db.writes.find(x => x.table === 'stores' && x.method === 'PATCH').body.min_order_value, 20);
+
+    // Loja muda o mínimo com a sacola já aberta: o banco recusa e a tela explica
+    db.stores.find(s => s.id === S1).min_order_value = null;
+    const cart = [{ id: 'p2', name: 'Sonho', price: 4.5, storeId: S1, storeName: 'Padaria', quantity: 2 }];
+    await page.evaluate(c => localStorage.setItem('tipuanas_cart', JSON.stringify(c)), cart);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Rua 1');
+    await page.waitForTimeout(300);
+    db.stores.find(s => s.id === S1).min_order_value = 20;
+    await page.click('#submit-btn');
+    await page.waitForSelector('#checkout-error:text("abaixo do mínimo da loja")');
+
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector('#stores-container a[href="loja.html?slug=padaria-ouro"]');
+    assert.ok((await page.textContent('#stores-container a[href="loja.html?slug=padaria-ouro"]')).includes('Pedido mín. R$ 20,00'), 'cartão da loja mostra o mínimo');
+    await page.goto(BASE + 'loja.html?slug=padaria-ouro');
+    await page.waitForSelector('[data-role="min-order"]');
+
+    // Abaixo do mínimo: 2 x 4,50 = 9 → faltam 11, nem chama o banco
+    const calls = db.calls.filter(c => c.fn === 'place_order').length;
+    await page.evaluate(c => localStorage.setItem('tipuanas_cart', JSON.stringify(c)), cart);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForSelector('#checkout-items [data-role="min-order"]:text("faltam R$ 11,00")');
+    await page.fill('#client-address', 'Rua 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#checkout-error:text("pedido mínimo de R$ 20,00")');
+    assert.strictEqual(db.calls.filter(c => c.fn === 'place_order').length, calls, 'não envia abaixo do mínimo');
+
+    // Atingiu o mínimo: 5 x 4,50 = 22,50 → envia
+    cart[0].quantity = 5;
+    await page.evaluate(c => localStorage.setItem('tipuanas_cart', JSON.stringify(c)), cart);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForSelector('#checkout-items [data-role="min-order"]:text("atingido")');
+    await page.fill('#client-address', 'Rua 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#confirmation-view:not(.hidden)');
+});
+
 test('lojista: WhatsApp inválido não é salvo', { loggedIn: true }, async (page, db) => {
     db.stores.find(s => s.id === S1).owner_id = USER.id;
     await page.goto(BASE + '04_merchant_portal.html?store=' + S1);

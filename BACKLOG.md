@@ -203,8 +203,9 @@ navegador) e testes no `npm test`.
   ponto do cliente; sem localização cobra a taxa máxima. Checkout com "Usar minha localização" e busca
   do endereço no mapa (OpenStreetMap); loja marca a localização no painel; fila dos entregadores só
   com lojas da plataforma e mostra a distância.
-- [ ] **27b. Pedido mínimo.** Lojista define pedido mínimo; sacola mostra "faltam R$ X" e
-  `place_order` valida.
+- [x] **27b. Pedido mínimo.** _(07/10/2026, PR #43)_ Lojista define pedido mínimo em "Dados da loja"
+  (opcional, até R$ 1.000); vitrine e página da loja mostram "Pedido mín."; sacola mostra "faltam R$ X"
+  e não envia; `place_order` recusa com `below_min_order` (vale sobre os itens, antes de cupom e entrega).
 
 **Cliente acompanha e volta**
 - [ ] **28. Aviso no celular do cliente e previsão de entrega.** Web Push opcional no acompanhamento

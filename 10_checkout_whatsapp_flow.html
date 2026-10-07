@@ -277,16 +277,20 @@
         let customerPos = (() => { const c = readJson(CLIENT_KEY, {}); return typeof c.lat === 'number' ? { lat: c.lat, lng: c.lng, source: c.posSource || 'gps' } : null; })();
         let quotes = {};       // store_id -> { fee, distance_km, out_of_range, estimated, radius_km }
         let storeCoords = {};  // store_id -> { lat, lng } (para buscar o endereço perto da loja)
+        let storeMins = {};    // store_id -> pedido mínimo (R$), quando a loja define
 
         async function refreshQuotes() {
             const ids = [...new Set(cart.map(i => i.storeId))];
             if (!ids.length) return;
             const [{ data }, { data: coords }] = await Promise.all([
                 sb.rpc('quote_delivery', { p_store_ids: ids, p_lat: customerPos ? customerPos.lat : null, p_lng: customerPos ? customerPos.lng : null }),
-                sb.from('stores').select('id, lat, lng').in('id', ids)
+                sb.from('stores').select('id, lat, lng, min_order_value').in('id', ids)
             ]);
             quotes = Object.fromEntries((data || []).filter(Boolean).map(q => [q.store_id, q]));
-            (coords || []).forEach(c => { if (c.lat !== null) storeCoords[c.id] = { lat: c.lat, lng: c.lng }; });
+            (coords || []).forEach(c => {
+                if (c.lat !== null) storeCoords[c.id] = { lat: c.lat, lng: c.lng };
+                if (Number(c.min_order_value) > 0) storeMins[c.id] = Number(c.min_order_value); else delete storeMins[c.id];
+            });
             renderCheckout();
         }
 
@@ -345,6 +349,25 @@
             }
             if (fee > 0) return `<div data-role="fee-line" class="flex justify-between text-xs text-slate-500"><span>Entrega${km}</span><span>${formatBRL(fee)}</span></div>`;
             return q || items.some(i => typeof i.deliveryFee === 'number') ? `<div class="flex justify-between text-xs text-emerald-600 font-semibold"><span>Entrega${km}</span><span>Grátis</span></div>` : '';
+        }
+
+        /** Lojas do carrinho abaixo do pedido mínimo: [{ name, min, missing }] */
+        function belowMinimum() {
+            const groups = groupByStore(cart);
+            return Object.keys(groups).map(storeId => {
+                const min = storeMins[storeId] || 0;
+                const subtotal = groups[storeId].reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                return { name: groups[storeId][0].storeName, min, missing: Math.round((min - subtotal) * 100) / 100 };
+            }).filter(s => s.min > 0 && s.missing > 0);
+        }
+
+        function minOrderLine(storeId, subtotal) {
+            const min = storeMins[storeId];
+            if (!min) return '';
+            const missing = Math.round((min - subtotal) * 100) / 100;
+            return missing > 0
+                ? `<p data-role="min-order" class="text-xs text-amber-700 font-semibold mt-1">Pedido mínimo ${formatBRL(min)}: faltam ${formatBRL(missing)} nesta loja.</p>`
+                : `<p data-role="min-order" class="text-xs text-slate-500 mt-1">Pedido mínimo ${formatBRL(min)} atingido.</p>`;
         }
 
         function renderCheckout() {
@@ -411,6 +434,7 @@
                         </div>
                         ${feeLine(storeId, fee, items)}
                         ${couponLine(storeId, subtotal)}
+                        ${minOrderLine(storeId, subtotal)}
                     </div>
                 `;
             }).join('');
@@ -458,6 +482,11 @@
                 showError('Seu carrinho está vazio.');
                 return;
             }
+            const below = belowMinimum();
+            if (below.length) {
+                showError(below.map(s => `${s.name}: pedido mínimo de ${formatBRL(s.min)} (faltam ${formatBRL(s.missing)}).`).join(' '));
+                return;
+            }
             showError('');
 
             localStorage.setItem(CLIENT_KEY, JSON.stringify({ ...readJson(CLIENT_KEY, {}), name, phone, address: address || readJson(CLIENT_KEY, {}).address || '' }));
@@ -481,6 +510,7 @@
                 invalid_customer: 'dados de entrega incompletos',
                 invalid_coupon: 'cupom inválido',
                 coupon_min_order: 'pedido abaixo do mínimo do cupom',
+                below_min_order: 'pedido abaixo do mínimo da loja',
                 too_many_orders: 'muitos pedidos seguidos deste WhatsApp; aguarde alguns minutos'
             };
 
