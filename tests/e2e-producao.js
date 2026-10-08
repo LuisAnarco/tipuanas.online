@@ -108,7 +108,12 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.waitForSelector('#phone-input', { timeout: 30000 });
     await page.fill('#phone-input', '47999706651');
     await page.fill('#pin-input', pin || '0000');
-    await page.click('#search-btn');
+    // Espera a resposta da busca: a lista do aparelho já aparece antes dela, e sair da tela com a
+    // busca no ar corta a requisição ("Failed to fetch" no passo seguinte)
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('/rpc/get_orders_by_phone'), { timeout: 30000 }),
+      page.click('#search-btn')
+    ]);
     await page.waitForSelector('#orders-list a', { timeout: 15000 });
     console.log('     pedidos encontrados:', await page.$$eval('#orders-list a', e => e.length));
   });
