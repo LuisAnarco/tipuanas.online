@@ -8,7 +8,7 @@ via CDN) em cima do Supabase, publicado na Vercel.
 
 | Quem | Arquivo | O que faz |
 |---|---|---|
-| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine estilo app de delivery: Suas favoritas (coração nas lojas, guardado no aparelho), banners de cupons, categorias com ícones, Ofertas do dia, Destaques, Mais bem avaliadas, lista de lojas, busca de lojas e produtos, barra inferior e carrinho multi-loja |
+| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine estilo app de delivery: Suas favoritas (coração nas lojas, guardado no aparelho), banners de cupons, categorias com ícones, Ofertas do dia, Destaques, Mais bem avaliadas, lista de lojas com filtros (aberto agora, entrega grátis, com cupom, mais bem avaliadas, mais rápidas) e ordenação, busca de lojas e produtos que ignora acento e aceita erro de digitação, barra inferior e carrinho multi-loja |
 | Cliente | `loja.html?slug=` | Página própria da loja: capa e logo, cupons, abas por seção do cardápio, destaques, preço promocional, produto com opções (tamanho, borda, adicionais com mínimo/máximo e observação, preço conferido no `place_order`), avaliações e compartilhar (link do QR do balcão) |
 | Cliente | `privacidade.html` | Privacidade e termos (LGPD): dados guardados, uso, compartilhamento, prazo, direitos, contato e botão para apagar os dados do aparelho |
 | Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto, taxa por distância com "Usar minha localização" ou endereço no mapa, aviso de fora da área, Pix copia-e-cola com QR e valor exato, troco no dinheiro), cria um pedido por loja e abre o WhatsApp de cada uma |

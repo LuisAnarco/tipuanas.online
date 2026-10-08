@@ -22,6 +22,8 @@ let ratingsByStore = {};
 let publicCoupons = [];
 let activeCategory = null;
 let searchTerm = '';
+let activeFilters = new Set(); // aberto, gratis, cupom, avaliadas, rapidas
+let storeSort = 'recomendadas';
 
 // Na página da loja (<body data-page="loja">) a vitrine mostra só a loja do ?slug=
 const STORE_SLUG = document.body && document.body.dataset.page === 'loja'
@@ -77,6 +79,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (title && activeCategory) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
             return;
         }
+        const filter = event.target.closest('[data-filter]');
+        if (filter) {
+            const id = filter.dataset.filter;
+            if (activeFilters.has(id)) activeFilters.delete(id); else activeFilters.add(id);
+            renderStoreFilters();
+            renderStores();
+            return;
+        }
+        if (event.target.closest('[data-clear-filters]')) {
+            activeFilters.clear();
+            renderStoreFilters();
+            renderStores();
+            return;
+        }
         const fav = event.target.closest('[data-fav-store]');
         if (fav) {
             event.preventDefault();
@@ -93,6 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tab) {
             const target = document.getElementById(tab.dataset.sectionTab);
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    document.addEventListener('change', event => {
+        if (event.target.id === 'store-sort') {
+            storeSort = STORE_SORTS[event.target.value] ? event.target.value : 'recomendadas';
+            renderStores();
         }
     });
 
@@ -230,6 +253,7 @@ async function loadStoresAndProducts() {
         heroCount.textContent = `${allStores.length} ${allStores.length === 1 ? 'loja' : 'lojas'} da Av. das Tipuanas. Você pede aqui e combina direto com a loja pelo WhatsApp.`;
     }
     renderCategoryChips();
+    renderStoreFilters();
     renderHome();
 }
 
@@ -534,9 +558,92 @@ function productRow(product, { showStore = false } = {}) {
         </div>`;
 }
 
+// ============================================================== FILTROS E ORDENAÇÃO
+const STORE_FILTERS = [
+    { id: 'aberto', label: 'Aberto agora', test: s => s.listing_type !== 'orcamento' && storeOpenStatus(s.opening_hours).open },
+    { id: 'gratis', label: 'Entrega grátis', test: s => s.listing_type !== 'orcamento' && deliveryFeeLabel(s, platformDelivery) === 'Entrega grátis' },
+    { id: 'cupom', label: 'Com cupom', test: s => publicCoupons.some(c => c.store_id === s.id) },
+    { id: 'avaliadas', label: 'Mais bem avaliadas', test: s => storeRating(s.id) >= 4 },
+    { id: 'rapidas', label: 'Mais rápidas', test: s => Number(s.avg_prep_time_minutes) > 0 && Number(s.avg_prep_time_minutes) <= 30 }
+];
+
+const STORE_SORTS = {
+    recomendadas: 'Recomendadas',
+    avaliacao: 'Melhor avaliação',
+    tempo: 'Menor tempo de preparo',
+    taxa: 'Menor taxa de entrega',
+    nome: 'Nome (A a Z)'
+};
+
+function setStoreCount(n) {
+    const el = document.getElementById('store-count');
+    if (el) el.textContent = `${n} ${n === 1 ? 'loja' : 'lojas'}`;
+}
+
+function passesFilters(store) {
+    return STORE_FILTERS.every(f => !activeFilters.has(f.id) || f.test(store));
+}
+
+function renderStoreFilters() {
+    const el = document.getElementById('store-filters');
+    if (!el) return;
+    el.innerHTML = `
+        <div role="group" aria-label="Filtrar lojas" class="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 scrollbar-none">
+            ${STORE_FILTERS.map(f => {
+                const on = activeFilters.has(f.id);
+                return `<button type="button" data-filter="${f.id}" aria-pressed="${on}" class="shrink-0 min-h-[44px] px-3.5 rounded-full text-[13px] font-bold border whitespace-nowrap ${on ? 'bg-emerald-700 border-emerald-700 text-slate-50' : 'bg-white border-slate-200 text-slate-900'}">${f.label}</button>`;
+            }).join('')}
+        </div>
+        <div class="flex items-center justify-between gap-3">
+            <p id="store-count" class="text-xs text-slate-500 tabular-nums"></p>
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-600">Ordenar
+                <select id="store-sort" class="min-h-[44px] text-sm font-semibold bg-white border border-slate-200 rounded-xl px-2">
+                    ${Object.entries(STORE_SORTS).map(([v, l]) => `<option value="${v}" ${v === storeSort ? 'selected' : ''}>${l}</option>`).join('')}
+                </select>
+            </label>
+        </div>`;
+}
+
 function sortStores(stores) {
     const rank = s => s.listing_type === 'orcamento' ? 1 : (storeOpenStatus(s.opening_hours).open ? 0 : 2);
-    return [...stores].sort((a, b) => rank(a) - rank(b) || storeRating(b.id) - storeRating(a.id) || a.name.localeCompare(b.name));
+    const prep = s => Number(s.avg_prep_time_minutes) > 0 ? Number(s.avg_prep_time_minutes) : Infinity;
+    const fee = s => s.listing_type === 'orcamento' ? Infinity : deliveryRules(s, platformDelivery).base;
+    const byName = (a, b) => a.name.localeCompare(b.name);
+    const cmp = {
+        recomendadas: (a, b) => rank(a) - rank(b) || storeRating(b.id) - storeRating(a.id) || byName(a, b),
+        avaliacao: (a, b) => storeRating(b.id) - storeRating(a.id) || rank(a) - rank(b) || byName(a, b),
+        tempo: (a, b) => prep(a) - prep(b) || rank(a) - rank(b) || byName(a, b),
+        taxa: (a, b) => fee(a) - fee(b) || rank(a) - rank(b) || byName(a, b),
+        nome: byName
+    }[storeSort] || ((a, b) => rank(a) - rank(b) || byName(a, b));
+    return [...stores].sort(cmp);
+}
+
+// ============================================================== BUSCA TOLERANTE
+// Sem acento (normalize) e aceitando um erro de digitação a cada ~4 letras
+function editDistance(a, b) {
+    if (Math.abs(a.length - b.length) > 2) return 3;
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+        const cur = [i];
+        for (let j = 1; j <= b.length; j++) {
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        }
+        prev = cur;
+    }
+    return prev[b.length];
+}
+
+function fuzzyMatch(text, query) {
+    const hay = normalize(text);
+    if (hay.includes(query)) return true;
+    const words = hay.split(/[^a-z0-9]+/).filter(Boolean);
+    return query.split(/\s+/).filter(Boolean).every(q => {
+        if (hay.includes(q)) return true;
+        const tol = q.length >= 7 ? 2 : q.length >= 4 ? 1 : 0;
+        if (!tol) return false;
+        return words.some(w => editDistance(q, w) <= tol || (w.length > q.length && editDistance(q, w.slice(0, q.length)) <= tol));
+    });
 }
 
 function renderStores() {
@@ -545,8 +652,9 @@ function renderStores() {
     const title = document.getElementById('stores-title');
 
     if (searchTerm) {
-        const stores = allStores.filter(s => normalize(`${s.name} ${s.category} ${s.description}`).includes(searchTerm));
-        const products = allProducts.filter(p => normalize(`${p.name} ${p.description} ${p.section}`).includes(searchTerm) && storeOf(p));
+        const stores = allStores.filter(s => passesFilters(s) && fuzzyMatch(`${s.name} ${s.category} ${s.description}`, searchTerm));
+        const products = allProducts.filter(p => storeOf(p) && fuzzyMatch(`${p.name} ${p.description} ${p.section}`, searchTerm));
+        setStoreCount(stores.length);
         if (title) title.textContent = 'Resultados da busca';
         if (!stores.length && !products.length) {
             container.innerHTML = `<p class="text-center text-sm text-slate-500 py-8">Nada encontrado para essa busca.</p>`;
@@ -561,10 +669,13 @@ function renderStores() {
         return;
     }
 
-    const visible = sortStores(allStores.filter(inCategory));
+    const visible = sortStores(allStores.filter(s => inCategory(s) && passesFilters(s)));
     if (title) title.textContent = activeCategory ? activeCategory : 'Todas as lojas';
+    setStoreCount(visible.length);
     if (visible.length === 0) {
-        container.innerHTML = `<p class="text-center text-sm text-slate-500 py-8">${allStores.length === 0 ? 'Nenhum estabelecimento disponível no momento.' : 'Nada encontrado com esse filtro.'}</p>`;
+        container.innerHTML = allStores.length === 0
+            ? `<p class="text-center text-sm text-slate-500 py-8">Nenhum estabelecimento disponível no momento.</p>`
+            : `<div class="text-center py-8 space-y-2"><p class="text-sm text-slate-500">Nenhuma loja com esses filtros.</p>${activeFilters.size ? `<button type="button" data-clear-filters class="min-h-[44px] px-4 text-sm font-bold text-emerald-700 underline">Limpar filtros</button>` : ''}</div>`;
         return;
     }
     container.innerHTML = visible.map(storeCard).join('');
