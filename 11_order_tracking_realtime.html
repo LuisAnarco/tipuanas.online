@@ -31,6 +31,7 @@
             <div>
                 <h2 class="text-xl font-extrabold text-emerald-800" id="status-title">Buscando pedido...</h2>
                 <p class="text-sm text-slate-500 mt-1" id="status-desc">Aguarde enquanto carregamos as informações.</p>
+                <p id="eta" class="hidden mt-2 text-sm font-bold text-emerald-800 tabular-nums"></p>
             </div>
             
             <!-- PIN do Cliente -->
@@ -127,6 +128,7 @@
         };
 
         let isTakeout = false;
+        let prepMinutes = 0;
         let orderStoreId = null;
         let alreadyReviewed = false;
         let selectedRating = 0;
@@ -239,6 +241,7 @@
 
             if (!pollTimer) {
                 isTakeout = !!order.is_takeout;
+                prepMinutes = Number((order.stores || {}).avg_prep_time_minutes) || 0;
                 orderStoreId = order.store_id;
                 alreadyReviewed = !!order.has_review;
                 renderDetails(order);
@@ -286,6 +289,20 @@
             }
         }
 
+        // Previsão a partir do tempo médio de preparo da loja: entrega soma ~10 min de trajeto
+        // e a janela tem 15 min. Sem tempo de preparo cadastrado, não mostra nada.
+        const ETA_WINDOW_MIN = 15, ETA_RIDE_MIN = 10;
+        const hhmm = d => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).replace(':', 'h');
+
+        function etaText(order, now = new Date()) {
+            if (!prepMinutes || !order.created_at || ['entregue', 'cancelado'].includes(order.status)) return '';
+            if (isTakeout && order.status === 'pronto') return '';
+            const start = new Date(new Date(order.created_at).getTime() + (prepMinutes + (isTakeout ? 0 : ETA_RIDE_MIN)) * 60000);
+            const end = new Date(start.getTime() + ETA_WINDOW_MIN * 60000);
+            if (now > end) return `A previsão era até ${hhmm(end)}. Se precisar, fale com a loja pelo WhatsApp.`;
+            return `${isTakeout ? 'Pronto para retirar' : 'Chega'} entre ${hhmm(start)} e ${hhmm(end)}`;
+        }
+
         function updateUI(order) {
             document.getElementById('delivery-pin').textContent = order.delivery_pin || '----';
             toggleReviewCard(order.status);
@@ -303,6 +320,9 @@
             setStatusIcon(current.icon, order.status === 'cancelado');
             document.getElementById('status-title').textContent = current.title;
             document.getElementById('status-desc').textContent = current.desc;
+            const eta = etaText(order);
+            document.getElementById('eta').textContent = eta;
+            document.getElementById('eta').classList.toggle('hidden', !eta);
 
             // Acende as etapas já alcançadas
             const cancelled = order.status === 'cancelado';

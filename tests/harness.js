@@ -109,7 +109,7 @@ function rpc(db, fn, body) {
             const c = db.couriers.find(x => x.id === o.courier_ref);
             return { ...o, status: db.orderStatus, has_review: false, delivery_address: { address: o.delivery_address.address },
                 courier: c ? { name: c.name.split(' ')[0], vehicle: c.vehicle } : null,
-                stores: { name: "Padaria d'Ouro", whatsapp_number: '47999706651', address_line: 'Av. 10' } };
+                stores: { name: "Padaria d'Ouro", whatsapp_number: '47999706651', address_line: 'Av. 10', avg_prep_time_minutes: (db.stores.find(x => x.id === o.store_id) || {}).avg_prep_time_minutes } };
         }
         case 'get_orders_by_phone':
             if (body.p_pin !== '1234') return [];
