@@ -224,8 +224,11 @@ navegador) e testes no `npm test`.
   nos cartões de loja e na página da loja, e a faixa "Suas favoritas" no topo da vitrine. Tudo fica guardado
   no aparelho (`tipuanas_favorites`). Banco: `order_summaries` devolve também o produto, o preço pago, as
   opções e a observação de cada item.
-- [ ] **30. Filtros e ordenação na vitrine.** Chips "Aberto agora", "Entrega grátis", "Com cupom",
-  "Mais bem avaliadas", "Mais rápidas" e ordenação; busca tolerante a acento e erro de digitação.
+- [x] **30. Filtros e ordenação na vitrine.** _(08/10/2026, PR #46)_ A vitrine ganhou cinco chips que se
+  combinam: "Aberto agora", "Entrega grátis", "Com cupom", "Mais bem avaliadas" (nota 4 ou mais) e "Mais
+  rápidas" (preparo de até 30 min). Mostra a contagem de lojas e, quando nada aparece, o botão "Limpar
+  filtros". Também dá para ordenar por recomendadas, melhor avaliação, menor tempo de preparo, menor taxa ou
+  nome. A busca ignora acento e aceita erro de digitação (1 letra a cada ~4, até 2). Sem mudança no banco.
 - [ ] **31. Agendar pedido.** Loja fechada ou cliente que quer para mais tarde escolhe horário dentro
   do funcionamento; pedido fica "agendado" e aparece para a loja no horário (com aviso antecipado).
 - [ ] **32. Fidelidade por loja.** Cartão de selos por WhatsApp: a cada N pedidos entregues o cliente

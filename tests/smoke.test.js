@@ -604,6 +604,49 @@ test('pedir de novo: refaz a sacola e avisa o que esgotou, saiu do cardápio ou 
     await page.waitForSelector(`${notice}:has-text("loja está fechada")`);
 });
 
+test('vitrine: filtros, ordenação e busca tolerante a acento e erro de digitação', {}, async (page, db) => {
+    const hrefs = () => page.$$eval('#stores-container > div > a', els => els.map(a => a.getAttribute('href')));
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector('#store-filters [data-filter="cupom"]');
+    assert.strictEqual((await hrefs()).length, 3);
+    assert.strictEqual(await page.textContent('#store-count'), '3 lojas');
+    assert.deepStrictEqual(await smallTargets(page, '#store-filters button, #store-sort'), [], 'filtros com 44px');
+
+    await page.click('[data-filter="cupom"]');
+    assert.deepStrictEqual(await hrefs(), ['loja.html?slug=padaria-ouro'], 'só a loja com cupom público');
+    assert.strictEqual(await page.getAttribute('[data-filter="cupom"]', 'aria-pressed'), 'true');
+    assert.strictEqual(await page.textContent('#store-count'), '1 loja');
+    await page.click('[data-filter="cupom"]');
+
+    await page.click('[data-filter="gratis"]');
+    assert.deepStrictEqual(await hrefs(), ['loja.html?slug=baratissimo'], 'entrega grátis (orçamento fica fora)');
+    await page.click('[data-filter="avaliadas"]');
+    await page.waitForSelector('[data-clear-filters]');
+    await page.click('[data-clear-filters]');
+    assert.strictEqual((await hrefs()).length, 3, 'limpar filtros volta tudo');
+
+    await page.click('[data-filter="rapidas"]');
+    assert.deepStrictEqual(await hrefs(), ['loja.html?slug=padaria-ouro'], 'preparo até 30 min');
+    await page.click('[data-filter="rapidas"]');
+
+    await page.selectOption('#store-sort', 'nome');
+    assert.deepStrictEqual(await hrefs(), ['loja.html?slug=baratissimo', `18_solicitar_orcamento.html?store=${S3}`, 'loja.html?slug=padaria-ouro']);
+    await page.selectOption('#store-sort', 'taxa');
+    assert.strictEqual((await hrefs())[0], 'loja.html?slug=baratissimo', 'menor taxa primeiro');
+
+    // Busca: sem acento e com erro de digitação
+    await page.fill('#search-input', 'padria');
+    await page.waitForSelector('#stores-container a[href="loja.html?slug=padaria-ouro"]');
+    await page.fill('#search-input', 'baratisimo');
+    await page.waitForSelector('#stores-container a[href="loja.html?slug=baratissimo"]');
+    await page.fill('#search-input', 'pao dagua');
+    await page.waitForSelector('#stores-container [data-add-product="p1"]');
+    await page.fill('#search-input', 'sonhp');
+    await page.waitForSelector('#stores-container [data-add-product="p2"]');
+    await page.fill('#search-input', 'xyzw');
+    await page.waitForSelector('#stores-container :text("Nada encontrado")');
+});
+
 test('favoritas: coração na loja, faixa "Suas favoritas" na vitrine e guardado no aparelho', {}, async (page, db) => {
     await page.goto(BASE + 'index.html');
     await page.waitForSelector(`#stores-container [data-fav-store="${S1}"]`);
