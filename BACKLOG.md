@@ -208,10 +208,16 @@ navegador) e testes no `npm test`.
   e não envia; `place_order` recusa com `below_min_order` (vale sobre os itens, antes de cupom e entrega).
 
 **Cliente acompanha e volta**
-- [ ] **28. Aviso no celular do cliente e previsão de entrega.** Web Push opcional no acompanhamento
-  ("Me avise quando mudar") reaproveitando a infraestrutura do lojista (inscrição ligada ao pedido, sem
-  login); a cada mudança de status chega a notificação. Acompanhamento mostra previsão ("chega entre
-  19h40 e 19h55") a partir do tempo de preparo da loja.
+- [ ] **28. Aviso no celular do cliente e previsão de entrega.**
+  - [x] **28a. Previsão de entrega.** _(08/10/2026, PR #44)_ O acompanhamento mostra "Chega entre 19h40 e
+    19h55" (retirada: "Pronto para retirar entre ..."). A conta usa o tempo de preparo da loja, mais 10 min
+    de trajeto, numa janela de 15 min. Se passar do horário, avisa e sugere o WhatsApp da loja. Sem tempo de
+    preparo cadastrado, a previsão não aparece. `get_order_public` agora devolve `avg_prep_time_minutes`.
+  - [ ] **28b. Aviso no celular do cliente.** _(depende do Luis: autorizar publicar uma edge function nova)_
+    Web Push opcional no acompanhamento ("Me avise quando mudar"), reaproveitando as chaves VAPID do lojista.
+    A inscrição fica ligada ao pedido, sem login. A cada mudança de status chega a notificação. Precisa de uma
+    tabela de inscrições do pedido, de um gatilho de status e de uma função `notify-order-status` publicada
+    no Supabase.
 - [ ] **29. "Pedir de novo" e lojas favoritas.** Em Meus pedidos, botão que refaz a sacola com os
   mesmos itens (avisando o que esgotou ou mudou de preço). Coração nas lojas, faixa "Suas favoritas"
   no topo da vitrine (guardado no aparelho).

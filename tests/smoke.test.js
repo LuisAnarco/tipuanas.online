@@ -459,6 +459,34 @@ test('acompanhamento: linha do tempo e avaliação após entrega', {}, async (pa
     assert.ok(!(await isShown(page, '#review-card')), 'sem avaliação antes de entregar');
 });
 
+test('acompanhamento: previsão de entrega pelo tempo de preparo da loja', {}, async (page, db) => {
+    // Padaria: 30 min de preparo + 10 de trajeto, janela de 15 min
+    const created = new Date(Date.now() - 5 * 60000);
+    const order = db.orders.find(o => o.id === O1);
+    order.created_at = created.toISOString();
+    db.orderStatus = 'em_preparacao';
+    const hhmm = ms => new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).replace(':', 'h');
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#eta:not(.hidden)');
+    assert.strictEqual(await page.textContent('#eta'), `Chega entre ${hhmm(created.getTime() + 40 * 60000)} e ${hhmm(created.getTime() + 55 * 60000)}`);
+
+    // Passou da janela: avisa e sugere falar com a loja
+    order.created_at = new Date(Date.now() - 3 * 3600000).toISOString();
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#eta:text("A previsão era até")');
+
+    // Entregue ou loja sem tempo de preparo: sem previsão
+    db.orderStatus = 'entregue';
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#order-details:not(.hidden)');
+    assert.strictEqual((await page.textContent('#eta')).trim(), '');
+    db.orderStatus = 'em_preparacao';
+    db.stores.find(s => s.id === S1).avg_prep_time_minutes = 0;
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#order-details:not(.hidden)');
+    assert.strictEqual((await page.textContent('#eta')).trim(), '');
+});
+
 test('acompanhamento: cliente avalia pedido entregue', {}, async (page, db) => {
     db.orderStatus = 'entregue';
     await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);

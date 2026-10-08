@@ -97,6 +97,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_revisao_geral.sql` — **aplicada**. `get_orders_by_phone(telefone, PIN)` com limite de 10 erros/hora por número (`order_lookup_attempts`), fim do insert direto no mural, índices e políticas otimizadas.
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 - `20261007_pedido_minimo.sql` — **aplicada**. `stores.min_order_value` (opcional, até R$ 1.000) e `place_order` recusando pedido com itens abaixo do mínimo da loja (`below_min_order`); a sacola mostra "faltam R$ X" e não envia antes.
+- `20261007_previsao_entrega.sql` — **aplicada**. `get_order_public` devolve também o tempo médio de preparo da loja, para o acompanhamento mostrar a previsão ("Chega entre 19h40 e 19h55").
 
 Configuração no painel do Supabase (Authentication):
 - **URL Configuration**: *Site URL* = domínio do site e, em *Redirect URLs*, `https://SEU-DOMINIO/**`
