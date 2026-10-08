@@ -44,6 +44,8 @@
     <script>
         const MY_ORDERS_KEY = 'tipuanas_my_orders';
         const CLIENT_KEY = 'tipuanas_client';
+        const CART_KEY = 'tipuanas_cart';
+        let shownOrders = [];
 
         const STATUS = {
             novo: { label: 'Aguardando loja', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -64,8 +66,88 @@
             phoneInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchByPhone(); });
             document.getElementById('pin-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchByPhone(); });
 
+            document.getElementById('orders-list').addEventListener('click', event => {
+                const btn = event.target.closest('[data-reorder]');
+                if (btn) reorder(btn.dataset.reorder, btn);
+            });
+
             loadDeviceOrders();
         });
+
+        // ===================================================== PEDIR DE NOVO
+        // Refaz a sacola com os itens do pedido, usando os preços e as opções de hoje.
+        // Avisa o que esgotou, saiu do cardápio, mudou de opções ou de preço.
+        function readCart() {
+            try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (e) { return []; }
+        }
+
+        async function reorder(orderId, btn) {
+            const order = shownOrders.find(o => o.id === orderId);
+            const notice = document.querySelector(`[data-reorder-notice="${CSS.escape(orderId)}"]`);
+            if (!order || !notice) return;
+            const items = (order.order_items || []).filter(it => it.product_id);
+            btn.disabled = true;
+            const [{ data: products }, { data: stores }] = await Promise.all([
+                sb.from('products').select('*').in('id', [...new Set(items.map(it => it.product_id))]),
+                sb.from('stores').select('id, name, slug, is_active, is_paused').eq('id', order.store_id)
+            ]);
+            btn.disabled = false;
+            const store = (stores || [])[0];
+            const byId = Object.fromEntries((products || []).map(p => [p.id, p]));
+            const added = [], problems = [], changed = [];
+            const cart = readCart();
+
+            if (!store || !store.is_active || store.is_paused) {
+                problems.push('a loja está fechada no momento');
+            } else {
+                items.forEach(it => {
+                    const p = byId[it.product_id];
+                    const name = (it.products && it.products.name) || (p && p.name) || 'Item';
+                    if (!p) return problems.push(`${name} saiu do cardápio`);
+                    if (p.is_paused) return problems.push(`${name} está esgotado`);
+                    // Opções: acha de novo pelo nome do grupo e da opção
+                    const selected = [];
+                    let lost = false;
+                    (it.options || []).forEach(o => {
+                        const gi = (p.options || []).findIndex(g => g.name === o.group);
+                        const oi = gi < 0 ? -1 : (p.options[gi].options || []).findIndex(x => x.name === o.name);
+                        if (oi < 0) lost = true; else selected.push([gi, oi]);
+                    });
+                    const groupsOk = (p.options || []).every((g, gi) => {
+                        const n = selected.filter(([x]) => x === gi).length;
+                        return n >= Number(g.min || 0) && n <= Number(g.max || 99);
+                    });
+                    if (lost || !groupsOk) return problems.push(`${name}: as opções mudaram, escolha de novo na loja`);
+                    const extras = selected.reduce((acc, [g, o]) => acc + Number(p.options[g].options[o].price || 0), 0);
+                    const price = Number(p.promo_price || p.price) + extras;
+                    if (Math.abs(price - Number(it.unit_price)) >= 0.01) changed.push(`${name}: ${formatBRL(it.unit_price)} → ${formatBRL(price)}`);
+                    const note = it.note || '';
+                    const key = selected.length || note ? `${p.id}|${JSON.stringify(selected)}|${note}` : p.id;
+                    const existing = cart.find(i => (i.key || i.id) === key);
+                    if (existing) {
+                        existing.quantity += it.quantity;
+                        existing.price = price;
+                    } else {
+                        cart.push({
+                            key, id: p.id, name: p.name, price, options: selected,
+                            optionsLabel: selected.map(([g, o]) => p.options[g].options[o].name).join(', '),
+                            note, storeId: store.id, storeName: store.name, storeSlug: store.slug || null,
+                            image: p.image_url || null, quantity: it.quantity
+                        });
+                    }
+                    added.push(name);
+                });
+            }
+
+            if (added.length) localStorage.setItem(CART_KEY, JSON.stringify(cart));
+            notice.classList.remove('hidden');
+            notice.innerHTML = `
+                ${added.length ? `<p class="font-bold text-emerald-700">Na sacola: ${escapeHtml(added.join(', '))}.</p>` : `<p class="font-bold text-red-600">Nada foi para a sacola.</p>`}
+                ${changed.length ? `<p class="text-amber-700">Preço mudou: ${escapeHtml(changed.join('; '))}.</p>` : ''}
+                ${problems.length ? `<p class="text-red-600">Não entrou: ${escapeHtml(problems.join('; '))}.</p>` : ''}
+                ${added.length ? `<a href="10_checkout_whatsapp_flow.html" class="inline-flex min-h-[44px] items-center font-bold text-emerald-700 underline">Ver sacola</a>`
+                    : store && store.slug ? `<a href="loja.html?slug=${encodeURIComponent(store.slug)}" class="inline-flex min-h-[44px] items-center font-bold text-emerald-700 underline">Ver a loja</a>` : ''}`;
+        }
 
         function readIds() {
             try {
@@ -127,6 +209,7 @@
                 return;
             }
 
+            shownOrders = orders;
             list.innerHTML = orders.map(order => {
                 const st = STATUS[order.status] || STATUS.novo;
                 const items = (order.order_items || [])
@@ -134,8 +217,10 @@
                     .join(', ');
                 const date = new Date(order.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
+                const canReorder = (order.order_items || []).some(it => it.product_id) && order.store_id;
                 return `
-                    <a href="11_order_tracking_realtime.html?id=${encodeURIComponent(order.id)}" class="block bg-white rounded-2xl p-4 border border-slate-200 hover:border-emerald-400 transition space-y-1.5">
+                    <article class="bg-white rounded-2xl border border-slate-200 hover:border-emerald-400 transition">
+                    <a href="11_order_tracking_realtime.html?id=${encodeURIComponent(order.id)}" class="block p-4 space-y-1.5">
                         <div class="flex justify-between items-center gap-2">
                             <h2 class="font-extrabold text-base text-emerald-800 truncate">${escapeHtml(order.stores ? order.stores.name : 'Loja')}</h2>
                             <span class="shrink-0 text-xs font-bold px-2.5 py-0.5 rounded-full border ${st.cls}">${st.label}</span>
@@ -146,6 +231,11 @@
                             <span class="font-display font-extrabold text-sm text-emerald-800">${formatBRL(order.total_amount)}</span>
                         </div>
                     </a>
+                    ${canReorder ? `<div class="px-4 pb-3 space-y-1">
+                        <button type="button" data-reorder="${escapeHtml(order.id)}" class="w-full min-h-[44px] flex items-center justify-center gap-2 border border-emerald-700 text-emerald-700 text-sm font-bold rounded-xl hover:bg-emerald-50 disabled:opacity-60">${icon('pedidos', 'w-4 h-4')}Pedir de novo</button>
+                        <div data-reorder-notice="${escapeHtml(order.id)}" role="status" class="hidden text-sm space-y-0.5"></div>
+                    </div>` : ''}
+                    </article>
                 `;
             }).join('');
         }

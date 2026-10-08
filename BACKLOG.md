@@ -218,9 +218,12 @@ navegador) e testes no `npm test`.
     A inscrição fica ligada ao pedido, sem login. A cada mudança de status chega a notificação. Precisa de uma
     tabela de inscrições do pedido, de um gatilho de status e de uma função `notify-order-status` publicada
     no Supabase.
-- [ ] **29. "Pedir de novo" e lojas favoritas.** Em Meus pedidos, botão que refaz a sacola com os
-  mesmos itens (avisando o que esgotou ou mudou de preço). Coração nas lojas, faixa "Suas favoritas"
-  no topo da vitrine (guardado no aparelho).
+- [x] **29. "Pedir de novo" e lojas favoritas.** _(08/10/2026, PR #45)_ Em Meus pedidos, "Pedir de novo"
+  refaz a sacola com os mesmos itens, opções e observação, usando os preços de hoje. A tela avisa o que
+  esgotou, saiu do cardápio, mudou de opções ou mudou de preço, e se a loja está fechada. Tem coração (44px)
+  nos cartões de loja e na página da loja, e a faixa "Suas favoritas" no topo da vitrine. Tudo fica guardado
+  no aparelho (`tipuanas_favorites`). Banco: `order_summaries` devolve também o produto, o preço pago, as
+  opções e a observação de cada item.
 - [ ] **30. Filtros e ordenação na vitrine.** Chips "Aberto agora", "Entrega grátis", "Com cupom",
   "Mais bem avaliadas", "Mais rápidas" e ordenação; busca tolerante a acento e erro de digitação.
 - [ ] **31. Agendar pedido.** Loja fechada ou cliente que quer para mais tarde escolhe horário dentro

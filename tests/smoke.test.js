@@ -569,6 +569,62 @@ test('meus pedidos: histórico do aparelho e busca por WhatsApp', {}, async (pag
     assert.deepStrictEqual(call.body, { p_phone: '48999998888', p_pin: '1234' });
 });
 
+test('pedir de novo: refaz a sacola e avisa o que esgotou, saiu do cardápio ou mudou de preço', {}, async (page, db) => {
+    db.products.find(p => p.id === 'p1').is_paused = true;
+    db.summaries = [{ id: O1, status: 'entregue', total_amount: 40, created_at: new Date().toISOString(), is_takeout: false, store_id: S1,
+        stores: { name: 'Padaria <b>x</b>', slug: 'padaria-ouro' },
+        order_items: [
+            { quantity: 2, product_id: 'p2', unit_price: 6, options: null, note: 'bem <b>quente</b>', products: { name: 'Sonho' } },
+            { quantity: 3, product_id: 'p1', unit_price: 1.5, options: null, note: null, products: { name: "Pão d'água" } },
+            { quantity: 1, product_id: 'gone', unit_price: 10, options: null, note: null, products: { name: 'Bolo' } }
+        ] }];
+    await page.addInitScript(id => localStorage.setItem('tipuanas_my_orders', JSON.stringify([id])), O1);
+    await page.goto(BASE + 'pedidos.html');
+    await page.click(`[data-reorder="${O1}"]`);
+    const notice = `[data-reorder-notice="${O1}"]`;
+    await page.waitForSelector(`${notice}:has-text("Na sacola")`);
+    const text = await page.textContent(notice);
+    assert.ok(text.includes('Sonho: R$ 6,00 → R$ 4,50'), 'avisa a mudança de preço: ' + text);
+    assert.ok(text.includes("Pão d'água está esgotado") && text.includes('Bolo saiu do cardápio'), text);
+    assert.ok(!(await page.$(`${notice} b`)), 'nomes escapados');
+    const cart = await page.evaluate(() => JSON.parse(localStorage.getItem('tipuanas_cart')));
+    assert.strictEqual(cart.length, 1);
+    assert.deepStrictEqual([cart[0].id, cart[0].quantity, cart[0].price, cart[0].storeId, cart[0].note], ['p2', 2, 4.5, S1, 'bem <b>quente</b>']);
+
+    // Segunda vez soma na mesma linha; a sacola abre com o item
+    await page.click(`[data-reorder="${O1}"]`);
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('tipuanas_cart'))[0].quantity === 4);
+    await page.click(`${notice} a[href="10_checkout_whatsapp_flow.html"]`);
+    await page.waitForSelector('#checkout-items :text("Sonho")');
+
+    // Loja fechada: nada entra
+    db.stores.find(s => s.id === S1).is_paused = true;
+    await page.goto(BASE + 'pedidos.html');
+    await page.click(`[data-reorder="${O1}"]`);
+    await page.waitForSelector(`${notice}:has-text("loja está fechada")`);
+});
+
+test('favoritas: coração na loja, faixa "Suas favoritas" na vitrine e guardado no aparelho', {}, async (page, db) => {
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector(`#stores-container [data-fav-store="${S1}"]`);
+    assert.ok(!(await isShown(page, '#favorites-section')) || (await page.$$('#favorites-row a')).length === 0, 'sem favoritas no começo');
+    assert.ok(!(await page.$('#stores-container a [data-fav-store]')), 'coração fora do link do cartão');
+    await page.click(`#stores-container [data-fav-store="${S1}"]`);
+    await page.waitForSelector('#favorites-row a[href="loja.html?slug=padaria-ouro"]');
+    assert.strictEqual(await page.getAttribute(`#stores-container [data-fav-store="${S1}"]`, 'aria-pressed'), 'true');
+    assert.deepStrictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('tipuanas_favorites'))), [S1]);
+    assert.deepStrictEqual(await smallTargets(page, '[data-fav-store]'), [], 'coração com 44px');
+
+    // Página da loja mostra o coração ligado e desliga
+    await page.goto(BASE + 'loja.html?slug=padaria-ouro');
+    await page.waitForSelector(`[data-fav-store="${S1}"][aria-pressed="true"]`);
+    await page.click(`[data-fav-store="${S1}"]`);
+    await page.waitForSelector(`[data-fav-store="${S1}"][aria-pressed="false"]`);
+    await page.goto(BASE + 'index.html');
+    await page.waitForSelector(`#stores-container [data-fav-store="${S1}"]`);
+    assert.strictEqual((await page.$$('#favorites-row a')).length, 0, 'saiu da faixa');
+});
+
 test('orçamento: cliente solicita e aceita proposta', {}, async (page, db) => {
     await page.goto(BASE + '18_solicitar_orcamento.html?store=' + S3);
     await page.waitForSelector('#form-section:not(.hidden)');

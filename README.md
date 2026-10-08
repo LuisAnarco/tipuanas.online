@@ -8,12 +8,12 @@ via CDN) em cima do Supabase, publicado na Vercel.
 
 | Quem | Arquivo | O que faz |
 |---|---|---|
-| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine estilo app de delivery: banners de cupons, categorias com ícones, Ofertas do dia, Destaques, Mais bem avaliadas, lista de lojas, busca de lojas e produtos, barra inferior e carrinho multi-loja |
+| Cliente | `index.html` + `09_multistore_cart.js` | Vitrine estilo app de delivery: Suas favoritas (coração nas lojas, guardado no aparelho), banners de cupons, categorias com ícones, Ofertas do dia, Destaques, Mais bem avaliadas, lista de lojas, busca de lojas e produtos, barra inferior e carrinho multi-loja |
 | Cliente | `loja.html?slug=` | Página própria da loja: capa e logo, cupons, abas por seção do cardápio, destaques, preço promocional, produto com opções (tamanho, borda, adicionais com mínimo/máximo e observação, preço conferido no `place_order`), avaliações e compartilhar (link do QR do balcão) |
 | Cliente | `privacidade.html` | Privacidade e termos (LGPD): dados guardados, uso, compartilhamento, prazo, direitos, contato e botão para apagar os dados do aparelho |
 | Cliente | `10_checkout_whatsapp_flow.html` | Checkout (entrega ou retirada, cupom de desconto, taxa por distância com "Usar minha localização" ou endereço no mapa, aviso de fora da área, Pix copia-e-cola com QR e valor exato, troco no dinheiro), cria um pedido por loja e abre o WhatsApp de cada uma |
 | Cliente | `11_order_tracking_realtime.html?id=` | Acompanhamento com PIN de entrega, cancelamento enquanto o pedido é "novo" e avaliação da loja após a entrega |
-| Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp |
+| Cliente | `pedidos.html` | Meus pedidos: histórico do aparelho + busca pelo WhatsApp e "Pedir de novo" (refaz a sacola avisando o que esgotou ou mudou de preço) |
 | Cliente | `18_solicitar_orcamento.html` / `19_acompanhar_orcamento.html` | Pedido e acompanhamento de orçamento (lojas de serviço) |
 | Cliente | `20_mural_vizinhanca.html` | Mural de desapego / "procuro por": anúncios valem 30 dias; o autor remove o próprio anúncio pelo aparelho em que publicou |
 | Lojista | `04_merchant_portal.html` + `05_merchant_order_management.js` | Cadastro da loja (nasce aguardando aprovação do admin) com guia de primeiros passos, edição dos dados da loja, pedidos em tempo real, alerta sonoro e notificação push no celular (mesmo com o painel fechado), botão "Avisar cliente" (WhatsApp com mensagem do status e link de acompanhamento), pausa, disponibilidade rápida (produto esgotado com um toque), extrato do mês (entregues, taxas, descontos, comissão, líquido, mais vendidos, CSV), avaliações, cupons |
@@ -98,6 +98,7 @@ Migrações em `supabase/migrations/`:
 - `20260926_horario_de_funcionamento.sql` — **aplicada**. Coluna `stores.opening_hours`, função `store_is_open` e `place_order` recusando pedido fora do horário (`store_closed`).
 - `20261007_pedido_minimo.sql` — **aplicada**. `stores.min_order_value` (opcional, até R$ 1.000) e `place_order` recusando pedido com itens abaixo do mínimo da loja (`below_min_order`); a sacola mostra "faltam R$ X" e não envia antes.
 - `20261007_previsao_entrega.sql` — **aplicada**. `get_order_public` devolve também o tempo médio de preparo da loja, para o acompanhamento mostrar a previsão ("Chega entre 19h40 e 19h55").
+- `20261008_pedir_de_novo.sql` — **aplicada**. `order_summaries` (Meus pedidos) devolve também a loja (id/slug) e, por item, o produto, o preço pago, as opções e a observação, para o botão "Pedir de novo". Continua sem endereço, telefone ou PIN.
 
 Configuração no painel do Supabase (Authentication):
 - **URL Configuration**: *Site URL* = domínio do site e, em *Redirect URLs*, `https://SEU-DOMINIO/**`

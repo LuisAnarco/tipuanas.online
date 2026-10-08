@@ -77,6 +77,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (title && activeCategory) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
             return;
         }
+        const fav = event.target.closest('[data-fav-store]');
+        if (fav) {
+            event.preventDefault();
+            const storeId = fav.dataset.favStore;
+            toggleFavorite(storeId);
+            const store = allStores.find(s => s.id === storeId);
+            if (STORE_SLUG === null) renderHome();
+            else if (store) document.querySelectorAll('[data-fav-store]').forEach(b => { b.outerHTML = favoriteButton(store, b.dataset.extra || ''); });
+            const again = document.querySelector(`[data-fav-store="${CSS.escape(storeId)}"]`);
+            if (again) again.focus();
+            return;
+        }
         const tab = event.target.closest('[data-section-tab]');
         if (tab) {
             const target = document.getElementById(tab.dataset.sectionTab);
@@ -93,6 +105,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ============================================================== FAVORITAS
+// Lojas favoritas ficam só no aparelho (sem login)
+const FAV_KEY = 'tipuanas_favorites';
+
+function readFavorites() {
+    try {
+        const ids = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+        return Array.isArray(ids) ? ids.filter(id => typeof id === 'string') : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function isFavorite(storeId) {
+    return readFavorites().includes(storeId);
+}
+
+function toggleFavorite(storeId) {
+    const favs = readFavorites();
+    const next = favs.includes(storeId) ? favs.filter(id => id !== storeId) : [storeId, ...favs].slice(0, 50);
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(next)); } catch (e) {}
+    return next.includes(storeId);
+}
+
+/** Botão de coração (fica fora do link do cartão: botão dentro de link não é válido) */
+function favoriteButton(store, extraCls = '') {
+    const on = isFavorite(store.id);
+    return `<button type="button" data-fav-store="${escapeHtml(store.id)}" data-extra="${escapeHtml(extraCls)}" aria-pressed="${on}" aria-label="${on ? 'Tirar das favoritas' : 'Favoritar'}: ${escapeHtml(store.name)}"
+        class="w-11 h-11 flex items-center justify-center rounded-full ${on ? 'text-red-600' : 'text-slate-400'} hover:bg-slate-100 ${extraCls}">${icon('favorito', `w-5 h-5 ${on ? 'fill-current' : ''}`)}</button>`;
+}
 
 function loadCart() {
     try {
@@ -206,6 +249,7 @@ function renderHome() {
     if (home) home.classList.toggle('hidden', searching);
 
     if (!searching) {
+        renderFavorites();
         renderBanners();
         renderOffers();
         renderFeatured();
@@ -378,6 +422,16 @@ function renderFeatured() {
     renderRow('featured-section', 'featured-row', featured, productCard);
 }
 
+function renderFavorites() {
+    const favs = readFavorites();
+    const stores = favs.map(id => allStores.find(s => s.id === id)).filter(Boolean);
+    renderRow('favorites-section', 'favorites-row', stores, store => `
+        <a href="${storeHref(store)}" data-favorite-store class="snap-start shrink-0 w-24 flex flex-col items-center gap-1 text-center">
+            ${storeLogo(store, 'w-16 h-16')}
+            <span class="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">${escapeHtml(store.name)}</span>
+        </a>`);
+}
+
 function renderTopStores() {
     const top = allStores
         .filter(s => ratingsByStore[s.id] && inCategory(s))
@@ -440,7 +494,8 @@ function storeCard(store) {
     const href = quote && !store.slug ? `18_solicitar_orcamento.html?store=${encodeURIComponent(store.id)}` : storeHref(store);
 
     return `
-        <a href="${href}" class="flex items-center gap-3 bg-white rounded-2xl p-3 border border-slate-200 hover:border-emerald-400 transition ${!quote && !status.open ? 'opacity-75' : ''}">
+        <div class="relative">
+        <a href="${href}" class="flex items-center gap-3 bg-white rounded-2xl p-3 pr-14 border border-slate-200 hover:border-emerald-400 transition ${!quote && !status.open ? 'opacity-75' : ''}">
             ${storeLogo(store, 'w-16 h-16')}
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
@@ -455,8 +510,9 @@ function storeCard(store) {
                         : `<span data-role="closed-badge" class="text-slate-500 font-bold">Fechada · ${escapeHtml(status.label)}</span>`}
                 </p>
             </div>
-            <span class="text-slate-400">${icon('seguir', 'w-5 h-5')}</span>
-        </a>`;
+        </a>
+        ${favoriteButton(store, 'absolute right-1.5 top-1/2 -translate-y-1/2')}
+        </div>`;
 }
 
 /** Linha de produto (resultado de busca e página da loja) */
@@ -584,6 +640,7 @@ function renderStoreHeader(store, reviews) {
                     ${store.category ? `<p class="text-xs text-slate-500">${escapeHtml(store.category)}</p>` : ''}
                     ${trustBadges(store)}
                 </div>
+                ${favoriteButton(store, 'shrink-0 -mt-1')}
                 ${agg ? `<span class="shrink-0 text-sm font-bold text-amber-700 tabular-nums">★ ${(agg.sum / agg.count).toFixed(1).replace('.', ',')} <span class="text-xs font-normal text-slate-500">(${agg.count})</span></span>` : ''}
             </div>
             ${store.description ? `<p class="text-sm text-slate-600">${escapeHtml(store.description)}</p>` : ''}
