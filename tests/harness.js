@@ -115,7 +115,7 @@ function rpc(db, fn, body) {
             if (body.p_pin !== '1234') return [];
             // fallthrough
         case 'get_orders_public':
-            return [{ id: O1, status: 'em_rota', total_amount: 14, created_at: new Date().toISOString(), is_takeout: false, stores: { name: 'Padaria <b>x</b>' }, order_items: [{ quantity: 1, products: { name: 'Sonho' } }] }];
+            return db.summaries || [{ id: O1, status: 'em_rota', total_amount: 14, created_at: new Date().toISOString(), is_takeout: false, store_id: S1, stores: { name: 'Padaria <b>x</b>', slug: 'padaria-ouro' }, order_items: [{ quantity: 1, product_id: 'p2', unit_price: 4.5, options: null, note: null, products: { name: 'Sonho' } }] }];
         case 'cancel_order_public': {
             if (db.orderStatus !== 'novo') return false;
             db.orderStatus = 'cancelado';
