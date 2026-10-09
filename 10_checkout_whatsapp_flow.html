@@ -65,6 +65,23 @@
                     </label>
                 </fieldset>
 
+                <fieldset class="space-y-2">
+                    <legend class="block text-sm font-bold text-slate-900 mb-1">Quando?</legend>
+                    <div class="flex gap-2 text-sm font-bold">
+                        <label class="flex-1 min-h-[48px] flex items-center gap-2 px-3 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                            <input type="radio" name="when" value="now" checked class="accent-emerald-700 w-4 h-4">Agora
+                        </label>
+                        <label class="flex-1 min-h-[48px] flex items-center gap-2 px-3 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                            <input type="radio" name="when" value="later" class="accent-emerald-700 w-4 h-4"><span data-icon="calendario" class="w-5 h-5 text-emerald-700"></span>Agendar
+                        </label>
+                    </div>
+                    <p id="closed-note" role="status" class="hidden text-xs font-semibold text-amber-700"></p>
+                    <div id="schedule-wrap" class="hidden">
+                        <label for="schedule-slot" class="block text-xs font-bold text-slate-600 mb-1">Horário (dentro do funcionamento da loja)</label>
+                        <select id="schedule-slot" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 bg-white"></select>
+                    </div>
+                </fieldset>
+
                 <div>
                     <label for="client-name" class="block text-sm font-bold text-slate-900 mb-1">Seu nome</label>
                     <input type="text" id="client-name" autocomplete="name" placeholder="Ex: Maria Silva" class="w-full text-base min-h-[48px] px-3 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600">
@@ -168,6 +185,7 @@
                 customerPos = null;
                 locateByAddress();
             });
+            document.querySelectorAll('input[name="when"]').forEach(r => r.addEventListener('change', () => renderSchedule(false)));
             refreshQuotes();
 
             // Delegação para os botões de quantidade (evita onclick com texto do banco)
@@ -278,19 +296,22 @@
         let quotes = {};       // store_id -> { fee, distance_km, out_of_range, estimated, radius_km }
         let storeCoords = {};  // store_id -> { lat, lng } (para buscar o endereço perto da loja)
         let storeMins = {};    // store_id -> pedido mínimo (R$), quando a loja define
+        let storeHours = {};   // store_id -> horário de funcionamento (para agendar)
 
         async function refreshQuotes() {
             const ids = [...new Set(cart.map(i => i.storeId))];
             if (!ids.length) return;
             const [{ data }, { data: coords }] = await Promise.all([
                 sb.rpc('quote_delivery', { p_store_ids: ids, p_lat: customerPos ? customerPos.lat : null, p_lng: customerPos ? customerPos.lng : null }),
-                sb.from('stores').select('id, lat, lng, min_order_value').in('id', ids)
+                sb.from('stores').select('id, name, lat, lng, min_order_value, opening_hours').in('id', ids)
             ]);
             quotes = Object.fromEntries((data || []).filter(Boolean).map(q => [q.store_id, q]));
             (coords || []).forEach(c => {
                 if (c.lat !== null) storeCoords[c.id] = { lat: c.lat, lng: c.lng };
                 if (Number(c.min_order_value) > 0) storeMins[c.id] = Number(c.min_order_value); else delete storeMins[c.id];
+                storeHours[c.id] = { name: c.name, hours: c.opening_hours };
             });
+            renderSchedule(true);
             renderCheckout();
         }
 
@@ -349,6 +370,45 @@
             }
             if (fee > 0) return `<div data-role="fee-line" class="flex justify-between text-xs text-slate-500"><span>Entrega${km}</span><span>${formatBRL(fee)}</span></div>`;
             return q || items.some(i => typeof i.deliveryFee === 'number') ? `<div class="flex justify-between text-xs text-emerald-600 font-semibold"><span>Entrega${km}</span><span>Grátis</span></div>` : '';
+        }
+
+        // ===================================================== AGENDAR
+        let scheduleSuggested = false;
+
+        function wantsSchedule() {
+            return document.querySelector('input[name="when"]:checked').value === 'later';
+        }
+
+        /** Monta os horários possíveis; loja fechada agora sugere agendar (auto = ao carregar) */
+        function renderSchedule(auto) {
+            const ids = [...new Set(cart.map(i => i.storeId))].filter(id => storeHours[id]);
+            const closed = ids.filter(id => !storeOpenStatus(storeHours[id].hours).open);
+            const note = document.getElementById('closed-note');
+            note.textContent = closed.length ? `${closed.map(id => storeHours[id].name).join(', ')} ${closed.length > 1 ? 'estão fechadas' : 'está fechada'} agora: agende para quando abrir.` : '';
+            note.classList.toggle('hidden', !closed.length);
+            // Sugere agendar uma vez só (a cotação recalcula ao mudar o endereço e não pode desfazer a escolha)
+            if (auto && closed.length && !scheduleSuggested) {
+                scheduleSuggested = true;
+                document.querySelector('input[name="when"][value="later"]').checked = true;
+            }
+
+            const wrap = document.getElementById('schedule-wrap');
+            wrap.classList.toggle('hidden', !wantsSchedule());
+            if (!wantsSchedule()) return;
+            const select = document.getElementById('schedule-slot');
+            const previous = select.value;
+            const slots = scheduleSlots(ids.map(id => storeHours[id].hours));
+            if (!slots.length) {
+                select.innerHTML = '<option value="">Sem horário disponível nos próximos 3 dias</option>';
+                return;
+            }
+            const days = {};
+            slots.forEach(d => {
+                const label = formatScheduled(d);
+                const [day, time] = label.split(' às ');
+                (days[day] = days[day] || []).push(`<option value="${d.toISOString()}" ${d.toISOString() === previous ? 'selected' : ''}>${time}</option>`);
+            });
+            select.innerHTML = Object.entries(days).map(([day, opts]) => `<optgroup label="${day}">${opts.join('')}</optgroup>`).join('');
         }
 
         /** Lojas do carrinho abaixo do pedido mínimo: [{ name, min, missing }] */
@@ -482,6 +542,11 @@
                 showError('Seu carrinho está vazio.');
                 return;
             }
+            const scheduledFor = wantsSchedule() ? document.getElementById('schedule-slot').value : '';
+            if (wantsSchedule() && !scheduledFor) {
+                showError('Escolha um horário para agendar.');
+                return;
+            }
             const below = belowMinimum();
             if (below.length) {
                 showError(below.map(s => `${s.name}: pedido mínimo de ${formatBRL(s.min)} (faltam ${formatBRL(s.missing)}).`).join(' '));
@@ -511,6 +576,7 @@
                 invalid_coupon: 'cupom inválido',
                 coupon_min_order: 'pedido abaixo do mínimo do cupom',
                 below_min_order: 'pedido abaixo do mínimo da loja',
+                invalid_schedule: 'horário de agendamento fora do funcionamento da loja; escolha outro',
                 too_many_orders: 'muitos pedidos seguidos deste WhatsApp; aguarde alguns minutos'
             };
 
@@ -524,7 +590,7 @@
                 const { data: result, error } = await sb.rpc('place_order', {
                     p_store_id: storeId,
                     p_items: groups[storeId].map(item => ({ product_id: item.id, quantity: item.quantity, options: item.options || [], note: item.note || null })),
-                    p_customer: { name, phone, address, payment_method: payment, notes, ...(changeFor ? { change_for: changeFor } : {}), ...(customerPos && !takeout ? { lat: customerPos.lat, lng: customerPos.lng } : {}) },
+                    p_customer: { name, phone, address, payment_method: payment, notes, ...(scheduledFor ? { scheduled_for: scheduledFor } : {}), ...(changeFor ? { change_for: changeFor } : {}), ...(customerPos && !takeout ? { lat: customerPos.lat, lng: customerPos.lng } : {}) },
                     p_is_takeout: takeout,
                     p_coupon: appliedCoupon && appliedCoupon.store_id === storeId ? appliedCoupon.code : null
                 });
@@ -543,6 +609,7 @@
 
                 let message = `*NOVO PEDIDO - TIPUANAS.ONLINE*\n`;
                 message += `Pedido #${orderId.slice(0, 8)}\n\n`;
+                if (result.scheduled_for) message += `*AGENDADO PARA:* ${formatScheduled(result.scheduled_for)}\n\n`;
                 message += `*Cliente:* ${name}\n`;
                 message += `*WhatsApp:* ${phone}\n`;
                 message += takeout ? `*Retirada na loja*\n` : `*Endereço:* ${address}\n`;

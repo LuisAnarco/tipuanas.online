@@ -77,7 +77,9 @@ function rpc(db, fn, body) {
         case 'place_order': {
             const store = db.stores.find(s => s.id === body.p_store_id);
             if (!store || store.id === S2) throw { status: 400, body: { code: 'P0001', message: 'store_unavailable' } };
-            if (store.opening_hours && store.closedForTest) throw { status: 400, body: { code: 'P0001', message: 'store_closed' } };
+            const sched = body.p_customer.scheduled_for || null;
+            if (sched && new Date(sched) - Date.now() < 20 * 60000) throw { status: 400, body: { code: 'P0001', message: 'invalid_schedule' } };
+            if (!sched && store.opening_hours && store.closedForTest) throw { status: 400, body: { code: 'P0001', message: 'store_closed' } };
             if (db.tooManyOrders) throw { status: 400, body: { code: 'P0001', message: 'too_many_orders' } };
             const items = body.p_items.map(it => {
                 const p = db.products.find(x => x.id === it.product_id);
@@ -100,7 +102,7 @@ function rpc(db, fn, body) {
             }
             const total = subtotal - discount + fee;
             const change = body.p_customer.payment_method === 'Dinheiro' && body.p_customer.change_for >= total ? body.p_customer.change_for : null;
-            return { id: 'bbbbbbbb-0000-0000-0000-00000000000' + db.calls.length, pin: '4321', subtotal, discount, coupon_code: body.p_coupon || null, delivery_fee: fee, total, change_for: change, items,
+            return { id: 'bbbbbbbb-0000-0000-0000-00000000000' + db.calls.length, pin: '4321', subtotal, discount, coupon_code: body.p_coupon || null, delivery_fee: fee, total, change_for: change, scheduled_for: sched, items,
                 store: { name: store.name, whatsapp_number: store.whatsapp_number, pix_key: store.pix_key || null, pix_city: store.pix_city || null } };
         }
         case 'get_order_public': {
