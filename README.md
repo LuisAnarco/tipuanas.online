@@ -99,6 +99,7 @@ Migrações em `supabase/migrations/`:
 - `20261007_pedido_minimo.sql` — **aplicada**. `stores.min_order_value` (opcional, até R$ 1.000) e `place_order` recusando pedido com itens abaixo do mínimo da loja (`below_min_order`); a sacola mostra "faltam R$ X" e não envia antes.
 - `20261007_previsao_entrega.sql` — **aplicada**. `get_order_public` devolve também o tempo médio de preparo da loja, para o acompanhamento mostrar a previsão ("Chega entre 19h40 e 19h55").
 - `20261008_pedir_de_novo.sql` — **aplicada**. `order_summaries` (Meus pedidos) devolve também a loja (id/slug) e, por item, o produto, o preço pago, as opções e a observação, para o botão "Pedir de novo". Continua sem endereço, telefone ou PIN.
+- `20261009_agendar_pedido.sql` — **aplicada**. `place_order` aceita `scheduled_for` (de 20 min a 3 dias à frente, num horário em que a loja funciona; senão `invalid_schedule`) e grava em `orders.scheduled_for`; pedido agendado pode ser feito com a loja fechada agora. `get_order_public` devolve o horário.
 
 Configuração no painel do Supabase (Authentication):
 - **URL Configuration**: *Site URL* = domínio do site e, em *Redirect URLs*, `https://SEU-DOMINIO/**`

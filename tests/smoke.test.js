@@ -233,6 +233,8 @@ test('horário: checkout explica loja fora do horário', {}, async (page, db) =>
     await page.fill('#client-name', 'Maria');
     await page.fill('#client-phone', '48999998888');
     await page.fill('#client-address', 'Av 1');
+    await page.waitForSelector('#closed-note:not(.hidden)');
+    await page.check('input[name="when"][value="now"]'); // fechada já sugere agendar; aqui o cliente insiste em "Agora"
     await page.click('#submit-btn');
     await page.waitForSelector('text=fora do horário de funcionamento');
 });
@@ -963,6 +965,55 @@ test('lojista: edita os dados da loja', { loggedIn: true }, async (page, db) => 
     assert.strictEqual(w.body.delivery_fee, 7);
     assert.ok(!('owner_id' in w.body) && !('is_active' in w.body), 'não mexe em dono/ativação');
     assert.strictEqual(await page.textContent('#store-title'), 'Padaria Nova');
+});
+
+test('agendar pedido: loja fechada sugere agendar, horário vai para o banco, acompanhamento e painel mostram', { loggedIn: true }, async (page, db) => {
+    // Loja abre todo dia só na hora que começa daqui a ~2h (Brasília): fechada agora
+    const hourBR = d => Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', hour: '2-digit', hourCycle: 'h23' }).format(d));
+    const h = hourBR(new Date(Date.now() + 2 * 3600000));
+    const pad = n => String(n).padStart(2, '0');
+    const store = db.stores.find(s => s.id === S1);
+    store.opening_hours = Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map(d => [String(d), `${pad(h)}:00-${pad((h + 1) % 24)}:00`]));
+    store.closedForTest = true;
+    const cart = [{ id: 'p2', name: 'Sonho', price: 4.5, storeId: S1, storeName: 'Padaria', quantity: 2 }];
+    await page.goto(BASE + 'index.html');
+    await page.evaluate(c => localStorage.setItem('tipuanas_cart', JSON.stringify(c)), cart);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForSelector('#closed-note:has-text("está fechada agora")');
+    assert.ok(await page.isChecked('input[name="when"][value="later"]'), 'loja fechada já marca Agendar');
+    const values = await page.$$eval('#schedule-slot option', os => os.map(o => o.value));
+    assert.ok(values.length >= 1 && values.length <= 6, 'só horários dentro do funcionamento: ' + values.length);
+    assert.ok(values.every(v => hourBR(new Date(v)) === h), 'todos na hora em que a loja abre');
+
+    await page.fill('#client-name', 'Maria');
+    await page.fill('#client-phone', '48999998888');
+    await page.fill('#client-address', 'Rua 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#confirmation-view:not(.hidden)');
+    const call = db.calls.filter(c => c.fn === 'place_order').pop();
+    assert.strictEqual(call.body.p_customer.scheduled_for, values[0]);
+    assert.ok(decodeURIComponent(await page.getAttribute('#confirmation-cards a[href^="https://wa.me/"]', 'href')).includes('AGENDADO PARA'), 'loja recebe o horário na mensagem');
+
+    // "Agora" com a loja fechada continua recusado pelo banco
+    await page.evaluate(c => localStorage.setItem('tipuanas_cart', JSON.stringify(c)), cart);
+    await page.goto(BASE + '10_checkout_whatsapp_flow.html');
+    await page.waitForSelector('#closed-note:not(.hidden)');
+    await page.check('input[name="when"][value="now"]');
+    assert.ok(!(await isShown(page, '#schedule-wrap')) || (await page.getAttribute('#schedule-wrap', 'class')).includes('hidden'));
+    await page.fill('#client-address', 'Rua 1');
+    await page.click('#submit-btn');
+    await page.waitForSelector('#checkout-error:has-text("fora do horário")');
+
+    // Acompanhamento e painel
+    const order = db.orders.find(o => o.id === O1);
+    order.scheduled_for = new Date(Date.now() + 3 * 3600000).toISOString();
+    order.status = 'novo';
+    db.orderStatus = 'novo';
+    await page.goto(BASE + '11_order_tracking_realtime.html?id=' + O1);
+    await page.waitForSelector('#eta:has-text("Agendado para")');
+    store.owner_id = USER.id;
+    await page.goto(BASE + '04_merchant_portal.html?store=' + S1);
+    await page.waitForSelector(`[data-role="scheduled-title"] ~ [data-order="${O1}"] [data-role="scheduled"]`);
 });
 
 test('pedido mínimo: lojista define, vitrine mostra e a sacola só envia quando atinge', { loggedIn: true }, async (page, db) => {

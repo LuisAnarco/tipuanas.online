@@ -445,12 +445,16 @@ function renderOrders(orders) {
     }
 
     const isDone = o => ['entregue', 'cancelado'].includes(o.status);
-    const active = orders.filter(o => !isDone(o))
-        .sort((a, b) => (STATUS_RANK[a.status] - STATUS_RANK[b.status]) || (new Date(a.created_at) - new Date(b.created_at)));
+    // Agendado novo: fica num grupo à parte e sobe para a fila 1 h antes do horário
+    const isLater = o => o.status === 'novo' && o.scheduled_for && new Date(o.scheduled_for) - Date.now() > 60 * 60000;
+    const active = orders.filter(o => !isDone(o) && !isLater(o))
+        .sort((a, b) => (STATUS_RANK[a.status] - STATUS_RANK[b.status]) || (new Date(a.scheduled_for || a.created_at) - new Date(b.scheduled_for || b.created_at)));
+    const later = orders.filter(isLater).sort((a, b) => new Date(a.scheduled_for) - new Date(b.scheduled_for));
     const done = orders.filter(isDone).slice(0, 30);
 
     listContainer.innerHTML = [
         active.length ? active.map(orderCard).join('') : '<p class="text-sm text-gray-500 text-center py-4">Nenhum pedido em andamento.</p>',
+        later.length ? `<h3 data-role="scheduled-title" class="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 pt-2">Agendados (sobem para a fila 1 h antes)</h3>${later.map(orderCard).join('')}` : '',
         done.length ? `<h3 class="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 pt-2">Finalizados</h3>${done.map(orderCard).join('')}` : ''
     ].join('');
 }
@@ -484,6 +488,7 @@ function orderCard(order) {
                     <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">${STATUS_LABELS[order.status] || escapeHtml(order.status)}</span>
                     <span class="text-xs text-gray-500">${escapeHtml(timeAgo(order.created_at))}</span>
                 </div>
+                ${order.scheduled_for ? `<p data-role="scheduled" class="mt-1 inline-flex items-center gap-1 text-xs font-extrabold text-emerald-800 bg-emerald-100 rounded px-2 py-0.5">${icon('calendario', 'w-4 h-4')}Agendado para ${escapeHtml(formatScheduled(order.scheduled_for))}</p>` : ''}
                 <p class="text-sm font-semibold text-gray-800 mt-0.5">${escapeHtml(addr.client_name || 'Cliente')} ${order.is_takeout ? '<span class="text-[11px] font-extrabold tracking-wide text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">RETIRADA</span>' : ''}</p>
             </div>
             <span class="font-display font-extrabold text-lg text-gray-900 shrink-0 tabular-nums">${formatBRL(order.total_amount)}</span>

@@ -169,6 +169,29 @@ function storeOpenStatus(hours, now = new Date()) {
     return { open: false, label: 'sem horário de abertura' };
 }
 
+/** Data/hora de pedido agendado no fuso de Brasília: "sex 09/10 às 19h30" */
+function formatScheduled(when) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(new Date(when)).map(x => [x.type, x.value]));
+    return `${p.weekday.replace('.', '')} ${p.day}/${p.month} às ${p.hour}h${p.minute}`;
+}
+
+/**
+ * Horários para agendar (de 30 em 30 min, de ~30 min a 3 dias à frente) em que todas as
+ * lojas da lista estão abertas. O banco (place_order) confere de novo.
+ */
+function scheduleSlots(hoursList, now = new Date()) {
+    const step = 30 * 60000;
+    const end = now.getTime() + 3 * 24 * 3600000 - 5 * 60000;
+    const slots = [];
+    for (let t = Math.ceil((now.getTime() + 30 * 60000) / step) * step; t <= end; t += step) {
+        const d = new Date(t);
+        if (hoursList.every(h => storeOpenStatus(h, d).open)) slots.push(d);
+    }
+    return slots;
+}
+
 // ============================================================== ENTREGA POR DISTÂNCIA
 // Mesma conta do banco (delivery_quote): linha reta entre loja e cliente, taxa base cobre
 // os primeiros km, depois R$ por km, arredondando para cima de R$ 0,50 em R$ 0,50.

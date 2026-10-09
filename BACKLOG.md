@@ -229,8 +229,14 @@ navegador) e testes no `npm test`.
   rápidas" (preparo de até 30 min). Mostra a contagem de lojas e, quando nada aparece, o botão "Limpar
   filtros". Também dá para ordenar por recomendadas, melhor avaliação, menor tempo de preparo, menor taxa ou
   nome. A busca ignora acento e aceita erro de digitação (1 letra a cada ~4, até 2). Sem mudança no banco.
-- [ ] **31. Agendar pedido.** Loja fechada ou cliente que quer para mais tarde escolhe horário dentro
-  do funcionamento; pedido fica "agendado" e aparece para a loja no horário (com aviso antecipado).
+- [x] **31. Agendar pedido.** _(09/10/2026, PR #48)_ A sacola pergunta "Quando?" (Agora ou Agendar).
+  Se a loja está fechada, a sacola já sugere agendar. Os horários vão de 30 em 30 min, de ~30 min a 3 dias
+  à frente, só dentro do funcionamento de todas as lojas da sacola. A mensagem para a loja leva "AGENDADO PARA".
+  O acompanhamento mostra "Agendado para sex 09/10 às 19h30". No painel, o pedido fica em "Agendados" e sobe
+  para a fila 1 h antes, com o selo do horário. O aviso antecipado é o push de pedido novo, que chega na hora
+  em que o cliente agenda. Banco: `place_order` aceita `scheduled_for` (recusa com `invalid_schedule` fora do
+  funcionamento ou da janela) e aceita pedido agendado com a loja fechada agora; `get_order_public` devolve o
+  horário.
 - [ ] **32. Fidelidade por loja.** Cartão de selos por WhatsApp: a cada N pedidos entregues o cliente
   ganha um cupom daquela loja (lojista liga/desliga e define N e o desconto). Mostra o progresso no
   acompanhamento e na página da loja.

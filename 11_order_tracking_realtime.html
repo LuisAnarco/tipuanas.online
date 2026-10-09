@@ -295,7 +295,9 @@
         const hhmm = d => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).replace(':', 'h');
 
         function etaText(order, now = new Date()) {
-            if (!prepMinutes || !order.created_at || ['entregue', 'cancelado'].includes(order.status)) return '';
+            if (['entregue', 'cancelado'].includes(order.status)) return '';
+            if (order.scheduled_for) return `Agendado para ${formatScheduled(order.scheduled_for)}`;
+            if (!prepMinutes || !order.created_at) return '';
             if (isTakeout && order.status === 'pronto') return '';
             const start = new Date(new Date(order.created_at).getTime() + (prepMinutes + (isTakeout ? 0 : ETA_RIDE_MIN)) * 60000);
             const end = new Date(start.getTime() + ETA_WINDOW_MIN * 60000);
